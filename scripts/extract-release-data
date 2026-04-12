@@ -1,0 +1,101 @@
+#!/usr/bin/env bash
+# Transform build artifacts into Hugo data files for the release website.
+# Reads from .artifacts/ (populated by build.yml or local just commands).
+# Writes to apps/sbomify/release-website/data/
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="${REPO_ROOT}/.github/image-manifest.json"
+ARTIFACTS="${REPO_ROOT}/.artifacts"
+DATA_DIR="${REPO_ROOT}/apps/sbomify/release-website/data"
+STATIC_DIR="${REPO_ROOT}/apps/sbomify/release-website/static/artifacts"
+
+mkdir -p "$DATA_DIR" "$STATIC_DIR/sboms" "$STATIC_DIR/vex" "$STATIC_DIR/provenance"
+
+echo "Generating release data..."
+
+# Build release.json from manifest + artifact metadata
+release_images="[]"
+
+# Process stock images
+for row in $(jq -c '.stock[]' "$MANIFEST"); do
+    name=$(echo "$row" | jq -r '.name')
+    source=$(echo "$row" | jq -r '.source')
+    digest=$(echo "$row" | jq -r '.digest')
+
+    entry=$(jq -n \
+        --arg name "$name" \
+        --arg source "$source" \
+        --arg digest "$digest" \
+        --arg attestation_source "Docker Hardened Images" \
+        '{name: $name, source: $source, digest: $digest, attestation_source: $attestation_source, type: "stock"}')
+    release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
+
+    # Copy artifacts to static dir
+    [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
+        cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
+    [ -f "${ARTIFACTS}/${name}/vex.dhi.json" ] && [ -s "${ARTIFACTS}/${name}/vex.dhi.json" ] && \
+        cp "${ARTIFACTS}/${name}/vex.dhi.json" "${STATIC_DIR}/vex/${name}.vex.json"
+    [ -f "${ARTIFACTS}/${name}/provenance.slsa.json" ] && [ -s "${ARTIFACTS}/${name}/provenance.slsa.json" ] && \
+        cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
+done
+
+# Process custom images
+for row in $(jq -c '.custom[]' "$MANIFEST"); do
+    name=$(echo "$row" | jq -r '.name')
+    registry=$(echo "$row" | jq -r '.registry')
+
+    entry=$(jq -n \
+        --arg name "$name" \
+        --arg source "$registry" \
+        --arg attestation_source "wellmaintained" \
+        '{name: $name, source: $source, attestation_source: $attestation_source, type: "custom"}')
+    release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
+
+    # Copy artifacts
+    [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
+        cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
+    [ -f "${ARTIFACTS}/${name}/sbom.spdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.spdx.json" ] && \
+        cp "${ARTIFACTS}/${name}/sbom.spdx.json" "${STATIC_DIR}/sboms/${name}.spdx.json"
+    [ -f "${ARTIFACTS}/${name}/provenance.slsa.json" ] && [ -s "${ARTIFACTS}/${name}/provenance.slsa.json" ] && \
+        cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
+
+    # Copy VEX (our hand-written YAML)
+    vex_file=$(find "${REPO_ROOT}" -name "${name}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
+    [ -n "$vex_file" ] && cp "$vex_file" "${STATIC_DIR}/vex/${name}.vex.yaml"
+done
+
+echo "$release_images" | jq '{images: .}' > "${DATA_DIR}/release.json"
+
+# Build vulnerabilities.json — merge CVE data from all images
+vuln_data="[]"
+for dir in "${ARTIFACTS}"/*/; do
+    name=$(basename "$dir")
+    cves_file="${dir}cves.json"
+    if [ -f "$cves_file" ] && [ -s "$cves_file" ]; then
+        image_vulns=$(jq --arg name "$name" \
+            '[.matches[] | {image: $name, id: .vulnerability.id, severity: .vulnerability.severity, package: .artifact.name, version: .artifact.version, fix: (.vulnerability.fix.versions // [] | join(", "))}]' \
+            "$cves_file")
+        vuln_data=$(echo "$vuln_data" | jq --argjson v "$image_vulns" '. + $v')
+    fi
+done
+echo "$vuln_data" | jq '{vulnerabilities: .}' > "${DATA_DIR}/vulnerabilities.json"
+
+# Build licenses.json — extract license data from SBOMs
+license_data="[]"
+for dir in "${ARTIFACTS}"/*/; do
+    name=$(basename "$dir")
+    sbom_file="${dir}sbom.cdx.json"
+    if [ -f "$sbom_file" ] && [ -s "$sbom_file" ]; then
+        image_licenses=$(jq --arg name "$name" \
+            '[.components[] | {image: $name, component: .name, version: .version, license: ([.licenses[]?.license.id // .licenses[]?.license.name // "unknown"] | join(", "))}]' \
+            "$sbom_file" 2>/dev/null || echo "[]")
+        license_data=$(echo "$license_data" | jq --argjson l "$image_licenses" '. + $l')
+    fi
+done
+echo "$license_data" | jq '{licenses: .}' > "${DATA_DIR}/licenses.json"
+
+echo "Release data written to ${DATA_DIR}/"
+echo "  - release.json: $(jq '.images | length' "${DATA_DIR}/release.json") images"
+echo "  - vulnerabilities.json: $(jq '.vulnerabilities | length' "${DATA_DIR}/vulnerabilities.json") findings"
+echo "  - licenses.json: $(jq '.licenses | length' "${DATA_DIR}/licenses.json") components"

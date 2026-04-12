@@ -1,0 +1,9 @@
+{{- $release := hugo.Data.release -}}
+{{- if $release -}}
+{{- $stock := where $release.images "type" "stock" -}}
+{{- $custom := where $release.images "type" "custom" -}}
+<p><strong>Stock DHI images</strong> ({{ len $stock }}): VEX documents provided by Docker Hardened Images — available in the <a href="../quickstart/#audit-pack">compliance pack</a>.</p>
+<p><strong>Custom images</strong> ({{ len $custom }}): Hand-written OpenVEX YAML maintained alongside DHI YAML definitions.</p>
+{{- else -}}
+<em>Release data not available.</em>
+{{- end -}}

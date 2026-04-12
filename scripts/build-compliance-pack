@@ -1,0 +1,53 @@
+#!/usr/bin/env bash
+# Assemble compliance pack ZIP from build artifacts.
+set -euo pipefail
+
+VERSION="${1:?Usage: build-compliance-pack <version>}"
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+ARTIFACTS="${REPO_ROOT}/.artifacts"
+MANIFEST="${REPO_ROOT}/.github/image-manifest.json"
+PACK_DIR="${REPO_ROOT}/.compliance-pack"
+OUTPUT="${REPO_ROOT}/compliance-pack-${VERSION}.zip"
+
+rm -rf "$PACK_DIR"
+mkdir -p "$PACK_DIR"/{sboms,vex,provenance,scans}
+
+# Copy manifest
+cp "$MANIFEST" "$PACK_DIR/manifest.json"
+
+# Copy artifacts for each image
+for dir in "${ARTIFACTS}"/*/; do
+    name=$(basename "$dir")
+
+    [ -f "${dir}sbom.cdx.json" ] && [ -s "${dir}sbom.cdx.json" ] && \
+        cp "${dir}sbom.cdx.json" "$PACK_DIR/sboms/${name}.cdx.json"
+    [ -f "${dir}sbom.spdx.json" ] && [ -s "${dir}sbom.spdx.json" ] && \
+        cp "${dir}sbom.spdx.json" "$PACK_DIR/sboms/${name}.spdx.json"
+    [ -f "${dir}provenance.slsa.json" ] && [ -s "${dir}provenance.slsa.json" ] && \
+        cp "${dir}provenance.slsa.json" "$PACK_DIR/provenance/${name}.slsa.json"
+    [ -f "${dir}cves.json" ] && [ -s "${dir}cves.json" ] && \
+        cp "${dir}cves.json" "$PACK_DIR/scans/${name}.cves.json"
+    [ -f "${dir}secrets.json" ] && [ -s "${dir}secrets.json" ] && \
+        cp "${dir}secrets.json" "$PACK_DIR/scans/${name}.secrets.json"
+
+    # VEX: DHI or ours
+    [ -f "${dir}vex.dhi.json" ] && [ -s "${dir}vex.dhi.json" ] && \
+        cp "${dir}vex.dhi.json" "$PACK_DIR/vex/${name}.vex.json"
+    vex_file=$(find "${REPO_ROOT}" -name "${name}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
+    [ -n "$vex_file" ] && cp "$vex_file" "$PACK_DIR/vex/${name}.vex.yaml"
+done
+
+# Copy docker-compose for deployment reference
+[ -f "${REPO_ROOT}/apps/sbomify/deployments/docker-compose.yml" ] && \
+    cp "${REPO_ROOT}/apps/sbomify/deployments/docker-compose.yml" "$PACK_DIR/"
+
+# Create ZIP
+cd "$PACK_DIR"
+zip -r "$OUTPUT" .
+cd "$REPO_ROOT"
+rm -rf "$PACK_DIR"
+
+echo "Compliance pack: ${OUTPUT}"
+echo "Contents:"
+unzip -l "$OUTPUT" | tail -n +4 | head -n -2
