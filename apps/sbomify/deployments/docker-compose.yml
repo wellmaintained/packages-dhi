@@ -61,6 +61,9 @@ services:
 
   sbomify-minio:
     image: ghcr.io/wellmaintained/minio:latest
+    environment:
+      MINIO_ACCESS_KEY: minioadmin
+      MINIO_SECRET_KEY: minioadmin
     ports:
       - "${MINIO_API_PORT:-9000}:9000"
       - "${MINIO_CONSOLE_PORT:-9001}:9001"
@@ -73,7 +76,10 @@ services:
       retries: 5
 
   sbomify-minio-init:
-    image: ghcr.io/wellmaintained/minio-init:latest
+    image: ghcr.io/wellmaintained/minio:latest
+    entrypoint: ["/scripts/create-minio-buckets.sh"]
+    volumes:
+      - ./scripts/create-minio-buckets.sh:/scripts/create-minio-buckets.sh:ro
     environment:
       AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-http://sbomify-minio:9000}
       AWS_MEDIA_STORAGE_BUCKET_NAME: ${AWS_MEDIA_STORAGE_BUCKET_NAME:-sbomify-media}
