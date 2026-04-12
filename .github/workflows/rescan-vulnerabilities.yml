@@ -1,0 +1,38 @@
+name: Rescan Vulnerabilities
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly, Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rescan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Login to dhi.io
+        run: echo "${{ secrets.DHI_TOKEN }}" | docker login dhi.io -u "${{ secrets.DHI_USERNAME }}" --password-stdin
+
+      - name: Extract DHI attestations (includes CVE scan)
+        run: just extract-dhi-attestations
+
+      - name: Scan custom images
+        run: |
+          for image in minio minio-init sbomify-app; do
+            echo "=== Scanning ${image} ==="
+            reg=$(just _image-registry "$image")
+            just grype "${reg}:latest" -o table || true
+          done
+
+      - name: Upload scan results
+        uses: actions/upload-artifact@v4
+        with:
+          name: vulnerability-rescan-$(date +%Y%m%d)
+          path: .artifacts/

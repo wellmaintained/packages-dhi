@@ -1,0 +1,61 @@
+name: Deploy Release Website
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Download stock attestation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: stock-dhi-attestations
+          path: .artifacts/
+        continue-on-error: true
+
+      - name: Download custom image artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: custom-*-attestations
+          path: .artifacts/
+          merge-multiple: true
+        continue-on-error: true
+
+      - name: Generate release data
+        run: just release-data
+
+      - name: Setup Hugo
+        uses: peaceiris/actions-hugo@v3
+        with:
+          hugo-version: 'latest'
+
+      - name: Build website
+        run: hugo --source apps/sbomify/release-website --minify
+
+      - name: Setup Pages
+        uses: actions/configure-pages@v4
+
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: apps/sbomify/release-website/public
+
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

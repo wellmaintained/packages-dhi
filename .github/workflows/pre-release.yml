@@ -1,0 +1,70 @@
+name: Pre-Release
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  pre-release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Login to dhi.io
+        run: echo "${{ secrets.DHI_TOKEN }}" | docker login dhi.io -u "${{ secrets.DHI_USERNAME }}" --password-stdin
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+
+      - name: Generate version
+        id: version
+        run: echo "version=v$(date +%y.%-m.%-d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Pin digests
+        run: just pin-digests
+
+      - name: Build and tag custom images
+        run: |
+          for image in minio minio-init sbomify-app; do
+            just build "$image"
+            reg=$(just _image-registry "$image")
+            docker tag "${reg}:dev" "${reg}:${{ steps.version.outputs.version }}"
+            docker push "${reg}:${{ steps.version.outputs.version }}"
+          done
+
+      - name: Sign custom images
+        run: |
+          for image in minio minio-init sbomify-app; do
+            reg=$(just _image-registry "$image")
+            just cosign sign "${reg}:${{ steps.version.outputs.version }}"
+          done
+
+      - name: Extract all attestations
+        run: |
+          just extract-dhi-attestations
+          for image in minio minio-init sbomify-app; do
+            just scan "$image"
+            just sbom-spdx "$image"
+          done
+
+      - name: Build compliance pack
+        run: just compliance-pack ${{ steps.version.outputs.version }}
+
+      - name: Create pre-release
+        run: |
+          gh release create "${{ steps.version.outputs.version }}" \
+            --prerelease \
+            --title "${{ steps.version.outputs.version }}" \
+            --notes "Pre-release ${{ steps.version.outputs.version }}" \
+            .github/image-manifest.json \
+            compliance-pack-${{ steps.version.outputs.version }}.zip
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
