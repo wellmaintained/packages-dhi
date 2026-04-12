@@ -21,8 +21,10 @@ jobs:
       - name: Login to dhi.io
         run: echo "${{ secrets.DHI_TOKEN }}" | docker login dhi.io -u "${{ secrets.DHI_USERNAME }}" --password-stdin
 
-      - name: Save current digests
-        run: cp .github/image-manifest.json /tmp/manifest-before.json
+      - name: Save current lock files
+        run: |
+          cp common/tool-images.lock.yaml /tmp/tool-images-before.lock.yaml
+          cp apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml
 
       - name: Pin latest digests
         run: just update
@@ -30,13 +32,18 @@ jobs:
       - name: Check for changes
         id: diff
         run: |
-          if diff -q .github/image-manifest.json /tmp/manifest-before.json > /dev/null; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-          else
-            echo "changed=true" >> "$GITHUB_OUTPUT"
-            echo "Digest changes detected:"
-            diff /tmp/manifest-before.json .github/image-manifest.json || true
+          changed=false
+          if ! diff -q common/tool-images.lock.yaml /tmp/tool-images-before.lock.yaml > /dev/null 2>&1; then
+            changed=true
+            echo "Tool image changes:"
+            diff /tmp/tool-images-before.lock.yaml common/tool-images.lock.yaml || true
           fi
+          if ! diff -q apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml > /dev/null 2>&1; then
+            changed=true
+            echo "App image changes:"
+            diff /tmp/app-images-before.lock.yaml apps/sbomify/app-images.lock.yaml || true
+          fi
+          echo "changed=${changed}" >> "$GITHUB_OUTPUT"
 
       - name: Create PR
         if: steps.diff.outputs.changed == 'true'
@@ -45,18 +52,22 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="update-dhi-digests-$(date +%Y%m%d)"
           git checkout -b "$branch"
-          git add .github/image-manifest.json
-          git commit -m "chore: update DHI stock image and tool digest pins"
+          git add common/tool-images.yaml common/tool-images.lock.yaml
+          git add apps/sbomify/app-images.yaml apps/sbomify/app-images.lock.yaml
+          git commit -m "chore: update image digest pins"
           git push -u origin HEAD
           gh pr create \
-            --title "Update DHI digest pins" \
+            --title "Update image digest pins" \
             --body "$(cat <<'PREOF'
           ## Summary
-          - Weekly digest pin update detected new DHI image versions
+          - Weekly digest pin update detected new image versions
           - Quality gate will validate the updated images
 
-          ## Changed digests
-          $(diff /tmp/manifest-before.json .github/image-manifest.json || true)
+          ## Tool image changes
+          $(diff /tmp/tool-images-before.lock.yaml common/tool-images.lock.yaml || true)
+
+          ## App image changes
+          $(diff /tmp/app-images-before.lock.yaml apps/sbomify/app-images.lock.yaml || true)
           PREOF
           )"
         env:

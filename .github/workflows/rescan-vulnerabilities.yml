@@ -28,7 +28,7 @@ jobs:
           for image in minio minio-init sbomify-app; do
             echo "=== Scanning ${image} ==="
             reg=$(just _image-registry "$image")
-            just grype "${reg}:latest" -o table || true
+            ./bin/grype "${reg}:latest" -o table || true
           done
 
       - name: Upload scan results

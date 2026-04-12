@@ -29,11 +29,11 @@ jobs:
         run: echo "version=v$(date +%y.%-m.%-d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
 
       - name: Pin digests
-        run: just pin-digests
+        run: just update
 
       - name: Build and tag custom images
         run: |
-          for image in minio minio-init sbomify-app; do
+          for image in hugo minio minio-init sbomify-app; do
             just build "$image"
             reg=$(just _image-registry "$image")
             docker tag "${reg}:dev" "${reg}:${{ steps.version.outputs.version }}"
@@ -42,15 +42,15 @@ jobs:
 
       - name: Sign custom images
         run: |
-          for image in minio minio-init sbomify-app; do
+          for image in hugo minio minio-init sbomify-app; do
             reg=$(just _image-registry "$image")
-            just cosign sign "${reg}:${{ steps.version.outputs.version }}"
+            ./bin/cosign sign "${reg}:${{ steps.version.outputs.version }}"
           done
 
       - name: Extract all attestations
         run: |
           just extract-dhi-attestations
-          for image in minio minio-init sbomify-app; do
+          for image in hugo minio minio-init sbomify-app; do
             just scan "$image"
             just sbom-spdx "$image"
           done
@@ -64,7 +64,8 @@ jobs:
             --prerelease \
             --title "${{ steps.version.outputs.version }}" \
             --notes "Pre-release ${{ steps.version.outputs.version }}" \
-            .github/image-manifest.json \
+            common/tool-images.lock.yaml \
+            apps/sbomify/app-images.lock.yaml \
             compliance-pack-${{ steps.version.outputs.version }}.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

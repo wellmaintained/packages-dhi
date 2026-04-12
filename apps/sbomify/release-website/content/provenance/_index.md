@@ -51,4 +51,5 @@ All source code is available at the tagged release:
 
 - [Source tree](https://github.com/wellmaintained/packages-dhi) — browse the full source
 - [Image definitions](https://github.com/wellmaintained/packages-dhi/tree/main/apps/sbomify/images) — DHI YAML build definitions
-- [Image manifest](https://github.com/wellmaintained/packages-dhi/blob/main/.github/image-manifest.json) — stock digests and custom image refs
+- [Tool images](https://github.com/wellmaintained/packages-dhi/blob/main/common/tool-images.lock.yaml) — tool image digests
+- [App images](https://github.com/wellmaintained/packages-dhi/blob/main/apps/sbomify/app-images.lock.yaml) — stock and custom image digests

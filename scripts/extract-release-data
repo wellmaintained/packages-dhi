@@ -5,7 +5,9 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MANIFEST="${REPO_ROOT}/.github/image-manifest.json"
+TOOL_MANIFEST="${REPO_ROOT}/common/tool-images.yaml"
+APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
+APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
 ARTIFACTS="${REPO_ROOT}/.artifacts"
 DATA_DIR="${REPO_ROOT}/apps/sbomify/release-website/data"
 STATIC_DIR="${REPO_ROOT}/apps/sbomify/release-website/static/artifacts"
@@ -17,11 +19,10 @@ echo "Generating release data..."
 # Build release.json from manifest + artifact metadata
 release_images="[]"
 
-# Process stock images
-for row in $(jq -c '.stock[]' "$MANIFEST"); do
-    name=$(echo "$row" | jq -r '.name')
-    source=$(echo "$row" | jq -r '.source')
-    digest=$(echo "$row" | jq -r '.digest')
+# Process stock images (from app manifest lock)
+for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP_LOCK"); do
+    source=$(yq -r ".$name.source" "$APP_LOCK")
+    digest=$(yq -r ".$name.digest // empty" "$APP_LOCK")
 
     entry=$(jq -n \
         --arg name "$name" \
@@ -40,29 +41,30 @@ for row in $(jq -c '.stock[]' "$MANIFEST"); do
         cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
 done
 
-# Process custom images
-for row in $(jq -c '.custom[]' "$MANIFEST"); do
-    name=$(echo "$row" | jq -r '.name')
-    registry=$(echo "$row" | jq -r '.registry')
+# Process custom images (from both manifests — tools with definitions + app custom images)
+for manifest in "$TOOL_MANIFEST" "$APP_MANIFEST"; do
+    for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest"); do
+        registry=$(yq -r ".$name.registry" "$manifest")
 
-    entry=$(jq -n \
-        --arg name "$name" \
-        --arg source "$registry" \
-        --arg attestation_source "wellmaintained" \
-        '{name: $name, source: $source, attestation_source: $attestation_source, type: "custom"}')
-    release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
+        entry=$(jq -n \
+            --arg name "$name" \
+            --arg source "$registry" \
+            --arg attestation_source "wellmaintained" \
+            '{name: $name, source: $source, attestation_source: $attestation_source, type: "custom"}')
+        release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
 
-    # Copy artifacts
-    [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
-        cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
-    [ -f "${ARTIFACTS}/${name}/sbom.spdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.spdx.json" ] && \
-        cp "${ARTIFACTS}/${name}/sbom.spdx.json" "${STATIC_DIR}/sboms/${name}.spdx.json"
-    [ -f "${ARTIFACTS}/${name}/provenance.slsa.json" ] && [ -s "${ARTIFACTS}/${name}/provenance.slsa.json" ] && \
-        cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
+        # Copy artifacts
+        [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
+            cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
+        [ -f "${ARTIFACTS}/${name}/sbom.spdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.spdx.json" ] && \
+            cp "${ARTIFACTS}/${name}/sbom.spdx.json" "${STATIC_DIR}/sboms/${name}.spdx.json"
+        [ -f "${ARTIFACTS}/${name}/provenance.slsa.json" ] && [ -s "${ARTIFACTS}/${name}/provenance.slsa.json" ] && \
+            cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
 
-    # Copy VEX (our hand-written YAML)
-    vex_file=$(find "${REPO_ROOT}" -name "${name}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
-    [ -n "$vex_file" ] && cp "$vex_file" "${STATIC_DIR}/vex/${name}.vex.yaml"
+        # Copy VEX (our hand-written YAML)
+        vex_file=$(find "${REPO_ROOT}" -name "${name}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
+        [ -n "$vex_file" ] && cp "$vex_file" "${STATIC_DIR}/vex/${name}.vex.yaml"
+    done
 done
 
 echo "$release_images" | jq '{images: .}' > "${DATA_DIR}/release.json"

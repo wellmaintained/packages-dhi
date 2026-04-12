@@ -1,49 +1,22 @@
 # packages-dhi — DHI-native image pipeline
-# Prerequisites: Docker (with buildx), Just
+# Prerequisites: Docker (with buildx), Just, yq
 
 set dotenv-load := false
 
 repo_root := justfile_directory()
-manifest := repo_root / ".github/image-manifest.json"
+tool_manifest := repo_root / "common/tool-images.yaml"
+app_manifest := repo_root / "apps/sbomify/app-images.yaml"
 artifacts_dir := repo_root / ".artifacts"
-
-# ── Tool Wrappers ──────────────────────────────────
-# All tools run via DHI hardened images for CI/local parity.
-# Tool versions are pinned in .github/image-manifest.json
-
-# Resolve the full image ref (image:tag) for a tool from the manifest
-_tool-ref tool:
-    @jq -r --arg name "{{tool}}" '.tools[] | select(.name == $name) | "\(.image):\(.tag)"' {{manifest}}
-
-_docker_auth := "--user $(id -u):$(id -g) -v ${HOME}/.docker/config.json:/tmp/.docker/config.json:ro -e DOCKER_CONFIG=/tmp/.docker"
-
-grype *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref grype) {{ARGS}}
-
-cosign *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref cosign) {{ARGS}}
-
-syft *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref syft) {{ARGS}}
-
-crane *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref crane) {{ARGS}}
-
-gitleaks *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref gitleaks) {{ARGS}}
-
-hugo *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref hugo) {{ARGS}}
 
 # ── Helpers ────────────────────────────────────────
 
-# Resolve the DHI YAML path for a custom image name
+# Resolve the DHI YAML path for a custom image name (searches both manifests)
 _image-path image:
-    @jq -r --arg name "{{image}}" '.custom[] | select(.name == $name) | .definition' {{manifest}}
+    @yq -r '."{{image}}".definition // empty' {{tool_manifest}} {{app_manifest}} | head -1
 
-# Resolve the registry for a custom image name
+# Resolve the registry for a custom image name (searches both manifests)
 _image-registry image:
-    @jq -r --arg name "{{image}}" '.custom[] | select(.name == $name) | .registry' {{manifest}}
+    @yq -r '."{{image}}".registry // empty' {{tool_manifest}} {{app_manifest}} | head -1
 
 # ── Build ──────────────────────────────────────────
 
@@ -51,9 +24,11 @@ _image-registry image:
 build-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    for name in $(jq -r '.custom[].name' {{manifest}}); do
-        echo "=== Building ${name} ==="
-        just build "$name"
+    for manifest in "{{tool_manifest}}" "{{app_manifest}}"; do
+        for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest"); do
+            echo "=== Building ${name} ==="
+            just build "$name"
+        done
     done
 
 # Build a custom DHI image locally
@@ -79,9 +54,9 @@ scan image:
     set -euo pipefail
     reg=$(just _image-registry {{image}})
     echo "=== Grype vulnerability scan ==="
-    just grype "${reg}:dev"
+    {{repo_root}}/bin/grype "${reg}:dev"
     echo "=== Gitleaks secrets scan ==="
-    just gitleaks detect --source="${reg}:dev" || true
+    {{repo_root}}/bin/gitleaks detect --source="${reg}:dev" || true
 
 # Generate SPDX SBOM for a custom image
 sbom-spdx image:
@@ -89,7 +64,7 @@ sbom-spdx image:
     set -euo pipefail
     reg=$(just _image-registry {{image}})
     mkdir -p {{artifacts_dir}}/{{image}}
-    just syft "${reg}:dev" -o spdx-json > {{artifacts_dir}}/{{image}}/sbom.spdx.json
+    {{repo_root}}/bin/syft "${reg}:dev" -o spdx-json > {{artifacts_dir}}/{{image}}/sbom.spdx.json
 
 # ── Stock DHI Images ──────────────────────────────
 
@@ -106,12 +81,12 @@ release-data:
 # Build the release website locally
 release-website:
     just release-data
-    just hugo --source apps/sbomify/release-website
+    {{repo_root}}/bin/hugo --source apps/sbomify/release-website
 
 # Serve the release website locally for preview
 release-website-serve:
     just release-data
-    just hugo server --source apps/sbomify/release-website --bind 0.0.0.0 --port 1313
+    {{repo_root}}/bin/hugo server --source apps/sbomify/release-website --bind 0.0.0.0 --port 1313
 
 # Assemble compliance pack ZIP
 compliance-pack version:
@@ -119,29 +94,46 @@ compliance-pack version:
 
 # ── Compose ───────────────────────────────────────
 
-# Generate .env.stock-images with digest-pinned stock image refs
-render-compose:
-    {{repo_root}}/scripts/generate-stock-image-env
+# Build digest-pinned docker-compose.yml from source + app-images.lock.yaml
+build-sbomify-compose:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    lock="{{app_manifest}}"
+    lock="${lock%.yaml}.lock.yaml"
+    src="{{repo_root}}/apps/sbomify/deployments/docker-compose.yml"
+    out="{{artifacts_dir}}/docker-compose.yml"
+    mkdir -p "{{artifacts_dir}}"
+    cp "$src" "$out"
+    for name in $(yq -r 'to_entries[] | select(.value.source != null and .value.digest != null) | .key' "$lock"); do
+        source=$(yq -r ".$name.source" "$lock")
+        digest=$(yq -r ".$name.digest" "$lock")
+        pinned="${source}@${digest}"
+        echo "  ${name}: ${source} → ${pinned}"
+        sed -i "s|image: ${source}|image: ${pinned}|g" "$out"
+    done
+    echo "Written to ${out}"
 
 # ── Update ────────────────────────────────────────
 
-# Resolve all tool versions, tool digests, and stock image digests in one command
-update:
+# Update everything: tool versions, tool digests, app image digests, compose .env
+update: update-tools update-app-images
+    @echo ""
+    @echo "=== Summary ==="
+    @just images
+
+# Check for newer tool versions and pin digests
+update-tools:
     #!/usr/bin/env bash
     set -euo pipefail
-    manifest="{{manifest}}"
+    manifest="{{tool_manifest}}"
+    lock="{{repo_root}}/common/tool-images.lock.yaml"
 
-    # ── Step 1: Check for newer tool versions ──
     echo "=== Checking tool versions ==="
-    tmp=$(mktemp)
-    cp "$manifest" "$tmp"
-    tools_changed=0
-    for row in $(jq -c '.tools[]' "$manifest"); do
-        name=$(echo "$row" | jq -r '.name')
-        image=$(echo "$row" | jq -r '.image')
-        current_tag=$(echo "$row" | jq -r '.tag')
+    for name in $(yq -r 'to_entries[] | select(.value | has("image")) | .key' "$manifest"); do
+        image=$(yq -r ".$name.image" "$manifest")
+        current_tag=$(yq -r ".$name.tag" "$manifest")
         prefix=$(echo "$current_tag" | grep -oP '^\d+')
-        latest_tag=$(just crane ls --platform linux/amd64 "$image" 2>/dev/null \
+        latest_tag=$("{{repo_root}}/bin/crane" ls --platform linux/amd64 "$image" 2>/dev/null \
             | grep -P "^${prefix}-" | grep -vP '(dev|fips|rc|beta|alpha)' | sort -V | tail -1) || true
         if [ -z "$latest_tag" ]; then
             echo "  $name: $current_tag (no updates found)"
@@ -149,63 +141,60 @@ update:
             echo "  $name: $current_tag (up to date)"
         else
             echo "  $name: $current_tag → $latest_tag"
-            tmp2=$(mktemp)
-            jq --arg name "$name" --arg tag "$latest_tag" \
-                '(.tools[] | select(.name == $name)).tag = $tag | (.tools[] | select(.name == $name)).digest = ""' \
-                "$tmp" > "$tmp2" && mv "$tmp2" "$tmp"
-            tools_changed=1
+            yq -i ".$name.tag = \"$latest_tag\"" "$manifest"
         fi
     done
-    if [ "$tools_changed" -eq 1 ]; then
-        mv "$tmp" "$manifest"
-    else
-        rm "$tmp"
-    fi
 
-    # ── Step 2: Pin tool digests ──
     echo ""
     echo "=== Pinning tool digests ==="
-    for row in $(jq -c '.tools[]' "$manifest"); do
-        name=$(echo "$row" | jq -r '.name')
-        image=$(echo "$row" | jq -r '.image')
-        tag=$(echo "$row" | jq -r '.tag')
+    cp "$manifest" "$lock"
+    sed -i '1i # AUTO-GENERATED by '\''just update-tools'\'' — do not edit' "$lock"
+    for name in $(yq -r 'to_entries[] | select(.value | has("image")) | .key' "$manifest"); do
+        image=$(yq -r ".$name.image" "$manifest")
+        tag=$(yq -r ".$name.tag" "$manifest")
         ref="${image}:${tag}"
-        digest=$(just crane digest --platform linux/amd64 "$ref" 2>/dev/null) || true
+        digest=$("{{repo_root}}/bin/crane" digest --platform linux/amd64 "$ref" 2>/dev/null) || true
         if [ -n "$digest" ]; then
             echo "  $name: $ref @ $digest"
-            tmp=$(mktemp)
-            jq --arg name "$name" --arg digest "$digest" \
-                '(.tools[] | select(.name == $name)).digest = $digest' \
-                "$manifest" > "$tmp" && mv "$tmp" "$manifest"
+            yq -i ".$name.digest = \"$digest\"" "$lock"
         else
             echo "  $name: $ref (failed to resolve digest)"
         fi
     done
 
-    # ── Step 3: Pin stock image digests ──
-    echo ""
-    echo "=== Pinning stock image digests ==="
-    {{repo_root}}/scripts/pin-digests
+# Pin stock image digests and generate app lock file
+update-app-images:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    manifest="{{app_manifest}}"
+    lock="{{repo_root}}/apps/sbomify/app-images.lock.yaml"
 
-    # ── Step 4: Regenerate compose .env with pinned digests ──
-    echo ""
-    echo "=== Generating compose .env ==="
-    just render-compose
-
-    # ── Summary ──
-    echo ""
-    echo "=== Summary ==="
-    just images
+    echo "=== Pinning app image digests ==="
+    cp "$manifest" "$lock"
+    sed -i '1i # AUTO-GENERATED by '\''just update-app-images'\'' — do not edit' "$lock"
+    for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$manifest"); do
+        source=$(yq -r ".$name.source" "$manifest")
+        echo -n "  $name ($source): "
+        digest=$("{{repo_root}}/bin/crane" digest "$source" 2>/dev/null) || true
+        if [ -n "$digest" ]; then
+            echo "$digest"
+            yq -i ".$name.digest = \"$digest\"" "$lock"
+        else
+            echo "(failed to resolve digest)"
+        fi
+    done
 
 # ── Info ───────────────────────────────────────────
 
 # Show all images and their sources
 images:
-    @echo "=== DHI Tools ==="
-    @jq -r '.tools[] | "  \(.name): \(.image):\(.tag) \(if .digest == "" then "(no digest)" else "@ \(.digest)" end)"' {{manifest}}
+    @echo "=== Tools ==="
+    @yq -r 'to_entries[] | select(.value | has("image")) | "  \(.key): \(.value.image):\(.value.tag)"' {{tool_manifest}}
     @echo ""
-    @echo "=== Stock DHI Images ==="
-    @jq -r '.stock[] | "  \(.name): \(.source) @ \(if .digest == "" then "unpinned" else .digest end)"' {{manifest}}
+    @echo "=== Stock Images ==="
+    @yq -r 'to_entries[] | select(.value | has("source")) | "  \(.key): \(.value.source)"' {{app_manifest}}
     @echo ""
     @echo "=== Custom Images ==="
-    @jq -r '.custom[] | "  \(.name): \(.definition) → \(.registry)"' {{manifest}}
+    @for manifest in "{{tool_manifest}}" "{{app_manifest}}"; do \
+        yq -r 'to_entries[] | select(.value | has("definition")) | "  \(.key): \(.value.definition) → \(.value.registry)"' "$manifest"; \
+    done

@@ -1,0 +1,61 @@
+# syntax=dhi.io/build:2-alpine3.23
+
+name: Hugo Static Site Generator
+image: ghcr.io/wellmaintained/hugo
+variant: runtime
+tags:
+  - latest
+  - "0.160.1"
+platforms:
+  - linux/amd64
+
+contents:
+  repositories:
+    - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+    - https://dl-cdn.alpinelinux.org/alpine/v3.23/community
+  packages:
+    - alpine-baselayout-data
+    - ca-certificates-bundle
+    - git
+    - libc6-compat
+  builds:
+    - name: hugo
+      contents:
+        repositories:
+          - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+        packages:
+          - curl
+          - ca-certificates
+        files:
+          - url: https://github.com/gohugoio/hugo/releases/download/v0.160.1/hugo_extended_0.160.1_linux-amd64.tar.gz
+            checksum: "sha256:cb4106ffd926692b2d0c62f768601f9323faddd4e4ee05d9d58ee0e08de77055"
+            path: ${source.dir}/hugo.tar.gz
+            spdx:
+              name: hugo
+              version: "0.160.1"
+              packages:
+                - name: hugo
+                  purl: "pkg:golang/github.com/gohugoio/hugo@v0.160.1"
+                  license: Apache-2.0
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install hugo
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/usr/local/bin
+            cd ${source.dir}
+            tar xzf hugo.tar.gz hugo
+            install -m 0755 hugo ${target.dir}/usr/local/bin/hugo
+      outputs:
+        - source: ${target.dir}/usr/local/bin
+          target: /usr/local/bin
+          uid: 0
+          gid: 0
+
+annotations:
+  org.opencontainers.image.description: Hugo extended static site generator
+  org.opencontainers.image.licenses: Apache-2.0
+
+entrypoint:
+  - /usr/local/bin/hugo

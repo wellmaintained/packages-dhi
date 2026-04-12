@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-MANIFEST="${REPO_ROOT}/.github/image-manifest.json"
+APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
 ARTIFACTS="${REPO_ROOT}/.artifacts"
 
 mkdir -p "$ARTIFACTS"
@@ -33,14 +33,14 @@ parse_image_ref() {
 get_token() {
     local registry="$1"
     local repo="$2"
-    just --justfile "${REPO_ROOT}/Justfile" crane auth token "${registry}/${repo}" 2>/dev/null \
+    "${REPO_ROOT}/bin/crane" auth token "${registry}/${repo}" 2>/dev/null \
         | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])"
 }
 
 # Resolve the platform-specific manifest digest for linux/amd64
 get_platform_digest() {
     local source="$1"
-    just --justfile "${REPO_ROOT}/Justfile" crane manifest "$source" 2>/dev/null \
+    "${REPO_ROOT}/bin/crane" manifest "$source" 2>/dev/null \
         | python3 -c "
 import sys, json
 idx = json.load(sys.stdin)
@@ -123,12 +123,11 @@ json.dump(predicate, sys.stdout, indent=2)
 echo "Extracting DHI attestations for stock images..."
 echo ""
 
-for row in $(jq -c '.stock[]' "$MANIFEST"); do
-    name=$(echo "$row" | jq -r '.name')
-    source=$(echo "$row" | jq -r '.source')
-    digest=$(echo "$row" | jq -r '.digest')
+for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP_LOCK"); do
+    source=$(yq -r ".$name.source" "$APP_LOCK")
+    digest=$(yq -r ".$name.digest // empty" "$APP_LOCK")
 
-    if [ -z "$digest" ] || [ "$digest" = "null" ]; then
+    if [ -z "$digest" ]; then
         echo "  SKIP ${name}: no pinned digest (run 'just update' first)"
         continue
     fi
@@ -188,7 +187,7 @@ for m in data.get('manifests', []):
     # Run grype scan using the extracted SBOM
     echo "    - CVE scan:"
     if [ -f "${out_dir}/sbom.cdx.json" ]; then
-        just --justfile "${REPO_ROOT}/Justfile" grype \
+        "${REPO_ROOT}/bin/grype" \
             "sbom:/work/.artifacts/${name}/sbom.cdx.json" -o json \
             > "${out_dir}/cves.json" 2>/dev/null && echo "      saved" || echo "      (scan failed)"
     else

@@ -5,7 +5,8 @@ on:
     paths:
       - 'common/**'
       - 'apps/**'
-      - '.github/image-manifest.json'
+      - 'common/tool-images.yaml'
+      - 'apps/sbomify/app-images.yaml'
       - '.github/workflows/build.yml'
       - 'scripts/**'
       - 'Justfile'
@@ -37,11 +38,13 @@ jobs:
           name: stock-dhi-attestations
           path: .artifacts/
 
-      - name: Upload updated manifest
+      - name: Upload lock files
         uses: actions/upload-artifact@v4
         with:
-          name: image-manifest
-          path: .github/image-manifest.json
+          name: image-lock-files
+          path: |
+            common/tool-images.lock.yaml
+            apps/sbomify/app-images.lock.yaml
 
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
@@ -49,6 +52,7 @@ jobs:
     strategy:
       matrix:
         image:
+          - hugo
           - minio
           - minio-init
           - sbomify-app

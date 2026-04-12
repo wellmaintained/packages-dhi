@@ -1,0 +1,20 @@
+crane:
+  image: dhi.io/crane
+  tag: 0-debian13
+cosign:
+  image: dhi.io/cosign
+  tag: 2-debian13
+grype:
+  image: dhi.io/grype
+  tag: 0-debian13
+syft:
+  image: dhi.io/syft
+  tag: 1-debian13
+gitleaks:
+  image: dhi.io/gitleaks
+  tag: 8-debian13
+hugo:
+  image: ghcr.io/wellmaintained/hugo
+  tag: "0.160.1"
+  definition: common/images/hugo/latest.yaml
+  registry: ghcr.io/wellmaintained/hugo

@@ -1,0 +1,22 @@
+postgres:
+  source: dhi.io/postgres:17
+  sbomify_component_id: M8rixM6mMEPe
+redis:
+  source: dhi.io/redis:8
+  sbomify_component_id: ABBCcw2YiYrG
+keycloak:
+  source: dhi.io/keycloak:26
+  sbomify_component_id: N4agQD8pvej8
+caddy:
+  source: dhi.io/caddy:2
+minio:
+  definition: common/images/minio/latest.yaml
+  registry: ghcr.io/wellmaintained/minio
+  sbomify_component_id: PLACEHOLDER_MINIO
+minio-init:
+  definition: common/images/minio-init/latest.yaml
+  registry: ghcr.io/wellmaintained/minio-init
+sbomify-app:
+  definition: apps/sbomify/images/sbomify-app/prod.yaml
+  registry: ghcr.io/wellmaintained/sbomify-app
+  sbomify_component_id: VP42I4XQgpDE
