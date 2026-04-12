@@ -12,11 +12,11 @@ artifacts_dir := repo_root / ".artifacts"
 
 # Resolve the DHI YAML path for a custom image name (searches both manifests)
 _image-path image:
-    @yq -r '."{{image}}".definition // empty' {{tool_manifest}} {{app_manifest}} | head -1
+    @yq -r '."{{image}}".definition | select(. != null)' {{tool_manifest}} {{app_manifest}} | head -1
 
 # Resolve the registry for a custom image name (searches both manifests)
 _image-registry image:
-    @yq -r '."{{image}}".registry // empty' {{tool_manifest}} {{app_manifest}} | head -1
+    @yq -r '."{{image}}".registry | select(. != null)' {{tool_manifest}} {{app_manifest}} | head -1
 
 # ── Build ──────────────────────────────────────────
 

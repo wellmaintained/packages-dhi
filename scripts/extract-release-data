@@ -22,7 +22,7 @@ release_images="[]"
 # Process stock images (from app manifest lock)
 for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP_LOCK"); do
     source=$(yq -r ".$name.source" "$APP_LOCK")
-    digest=$(yq -r ".$name.digest // empty" "$APP_LOCK")
+    digest=$(yq -r ".$name.digest // \"\"" "$APP_LOCK")
 
     entry=$(jq -n \
         --arg name "$name" \
