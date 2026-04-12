@@ -81,7 +81,7 @@ release-data:
 # Build the release website locally
 release-website:
     just release-data
-    {{repo_root}}/bin/hugo --source apps/sbomify/release-website
+    {{repo_root}}/bin/hugo --source apps/sbomify/release-website --minify
 
 # Serve the release website locally for preview
 release-website-serve:

@@ -20,7 +20,8 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
-          dhi-login: false
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
 
       - name: Download stock attestation artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -37,16 +38,8 @@ jobs:
           merge-multiple: true
         continue-on-error: true
 
-      - name: Generate release data
-        run: just release-data
-
-      - name: Setup Hugo
-        uses: peaceiris/actions-hugo@75d2e84710de30f6ff7268e08f310b60ef14033f # v3
-        with:
-          hugo-version: 'latest'
-
-      - name: Build website
-        run: hugo --source apps/sbomify/release-website --minify
+      - name: Build release website
+        run: just release-website
 
       - name: Setup Pages
         uses: actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d # v4
