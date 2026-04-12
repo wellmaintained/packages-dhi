@@ -15,20 +15,22 @@ artifacts_dir := repo_root / ".artifacts"
 _tool-ref tool:
     @jq -r --arg name "{{tool}}" '.tools[] | select(.name == $name) | "\(.image):\(.tag)"' {{manifest}}
 
+_docker_auth := "--user $(id -u):$(id -g) -v ${HOME}/.docker/config.json:/tmp/.docker/config.json:ro -e DOCKER_CONFIG=/tmp/.docker"
+
 grype *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref grype) {{ARGS}}
+    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref grype) {{ARGS}}
 
 cosign *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref cosign) {{ARGS}}
+    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref cosign) {{ARGS}}
 
 syft *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref syft) {{ARGS}}
+    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref syft) {{ARGS}}
 
 crane *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref crane) {{ARGS}}
+    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref crane) {{ARGS}}
 
 gitleaks *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref gitleaks) {{ARGS}}
+    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref gitleaks) {{ARGS}}
 
 # ── Helpers ────────────────────────────────────────
 
@@ -117,7 +119,7 @@ update:
         current_tag=$(echo "$row" | jq -r '.tag')
         prefix=$(echo "$current_tag" | grep -oP '^\d+')
         latest_tag=$(just crane ls --platform linux/amd64 "$image" 2>/dev/null \
-            | grep -P "^${prefix}-" | sort -V | tail -1) || true
+            | grep -P "^${prefix}-" | grep -vP '(dev|fips|rc|beta|alpha)' | sort -V | tail -1) || true
         if [ -z "$latest_tag" ]; then
             echo "  $name: $current_tag (no updates found)"
         elif [ "$latest_tag" = "$current_tag" ]; then
