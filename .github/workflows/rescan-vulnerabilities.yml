@@ -23,7 +23,7 @@ jobs:
 
       - name: Scan custom images
         run: |
-          for image in minio sbomify-app; do
+          for image in $(just custom-app-images | jq -r '.[]'); do
             echo "=== Scanning ${image} ==="
             reg=$(just _image-registry "$image")
             ./bin/grype "${reg}:latest" -o table || true

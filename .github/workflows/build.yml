@@ -17,6 +17,19 @@ permissions:
   packages: write
 
 jobs:
+  resolve-images:
+    name: Resolve image lists
+    runs-on: ubuntu-latest
+    outputs:
+      custom-images: ${{ steps.images.outputs.custom }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-login: false
+      - id: images
+        run: echo "custom=$(just custom-images)" >> "$GITHUB_OUTPUT"
+
   stock-dhi-images:
     name: Extract DHI attestations
     runs-on: ubuntu-latest
@@ -46,13 +59,11 @@ jobs:
 
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
+    needs: resolve-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image:
-          - hugo
-          - minio
-          - sbomify-app
+        image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
     steps:
       - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pipeline

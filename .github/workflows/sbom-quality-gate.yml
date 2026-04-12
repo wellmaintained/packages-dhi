@@ -10,12 +10,25 @@ permissions:
   pull-requests: write
 
 jobs:
-  quality-gate:
+  resolve-images:
     if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    outputs:
+      app-images: ${{ steps.images.outputs.app }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-login: false
+      - id: images
+        run: echo "app=$(just custom-app-images)" >> "$GITHUB_OUTPUT"
+
+  quality-gate:
+    needs: resolve-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: [minio, sbomify-app]
+        image: ${{ fromJSON(needs.resolve-images.outputs.app-images) }}
     steps:
       - uses: actions/checkout@v4
 
