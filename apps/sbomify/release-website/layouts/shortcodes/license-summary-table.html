@@ -15,7 +15,7 @@
 <thead><tr><th>License</th><th>Components</th></tr></thead>
 <tbody>
 {{- range $license, $count := $grouped }}
-<tr><td>{{ $license }}</td><td>{{ $count }}</td></tr>
+<tr><td>{{ if and $license (ne $license "unknown") }}<a href="https://spdx.org/licenses/{{ $license }}.html">{{ $license }}</a>{{ else }}{{ $license }}{{ end }}</td><td>{{ $count }}</td></tr>
 {{- end }}
 </tbody>
 </table>

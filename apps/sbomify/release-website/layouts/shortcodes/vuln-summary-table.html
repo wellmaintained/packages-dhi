@@ -12,11 +12,11 @@
 <table>
 <thead><tr><th>Severity</th><th>Count</th></tr></thead>
 <tbody>
-<tr><td>Critical</td><td>{{ $critical }}</td></tr>
-<tr><td>High</td><td>{{ $high }}</td></tr>
-<tr><td>Medium</td><td>{{ $medium }}</td></tr>
-<tr><td>Low</td><td>{{ $low }}</td></tr>
-<tr><td>Negligible</td><td>{{ $negligible }}</td></tr>
+<tr><td><a href="critical/">Critical</a></td><td>{{ $critical }}</td></tr>
+<tr><td><a href="high/">High</a></td><td>{{ $high }}</td></tr>
+<tr><td><a href="medium/">Medium</a></td><td>{{ $medium }}</td></tr>
+<tr><td><a href="low/">Low</a></td><td>{{ $low }}</td></tr>
+<tr><td><a href="negligible/">Negligible</a></td><td>{{ $negligible }}</td></tr>
 </tbody>
 </table>
 <small>{{ len $vulns }} total findings across all images.</small>

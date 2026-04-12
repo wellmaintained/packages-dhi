@@ -17,7 +17,7 @@
 <tr>
   <td>{{ .component }}</td>
   <td>{{ .version }}</td>
-  <td>{{ .license }}</td>
+  <td>{{ if and .license (ne .license "unknown") }}<a href="https://spdx.org/licenses/{{ .license }}.html">{{ .license }}</a>{{ else }}{{ .license | default "unknown" }}{{ end }}</td>
 </tr>
 {{- end }}
 {{- end }}
