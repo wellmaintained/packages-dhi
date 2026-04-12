@@ -1,0 +1,46 @@
+{
+  "stock": [
+    {
+      "name": "postgres",
+      "source": "dhi.io/postgres:17",
+      "digest": "",
+      "sbomify_component_id": "M8rixM6mMEPe"
+    },
+    {
+      "name": "redis",
+      "source": "dhi.io/redis:8",
+      "digest": "",
+      "sbomify_component_id": "ABBCcw2YiYrG"
+    },
+    {
+      "name": "keycloak",
+      "source": "dhi.io/keycloak:26",
+      "digest": "",
+      "sbomify_component_id": "N4agQD8pvej8"
+    },
+    {
+      "name": "caddy",
+      "source": "dhi.io/caddy:2",
+      "digest": ""
+    }
+  ],
+  "custom": [
+    {
+      "name": "minio",
+      "definition": "common/images/minio/latest.yaml",
+      "registry": "ghcr.io/wellmaintained/minio",
+      "sbomify_component_id": "PLACEHOLDER_MINIO"
+    },
+    {
+      "name": "minio-init",
+      "definition": "common/images/minio-init/latest.yaml",
+      "registry": "ghcr.io/wellmaintained/minio-init"
+    },
+    {
+      "name": "sbomify-app",
+      "definition": "apps/sbomify/images/sbomify-app/prod.yaml",
+      "registry": "ghcr.io/wellmaintained/sbomify-app",
+      "sbomify_component_id": "VP42I4XQgpDE"
+    }
+  ]
+}
