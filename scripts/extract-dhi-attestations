@@ -27,25 +27,23 @@ for row in $(jq -c '.stock[]' "$MANIFEST"); do
 
     echo "  ${name} (${image_ref}):"
 
-    # Extract CycloneDX SBOM via syft (DHI images don't use cosign attestations)
-    echo "    - CycloneDX SBOM (via syft)"
-    just --justfile "${REPO_ROOT}/Justfile" syft \
-        "$image_ref" -o cyclonedx-json \
-        > "${out_dir}/sbom.cdx.json" 2>/dev/null || echo "      (extraction failed)"
+    # Extract CycloneDX SBOM
+    echo "    - CycloneDX SBOM"
+    just --justfile "${REPO_ROOT}/Justfile" cosign verify-attestation \
+        --type cyclonedx \
+        --insecure-ignore-tlog \
+        "$image_ref" 2>/dev/null \
+        | jq -r '.payload' | base64 -d | jq '.predicate' \
+        > "${out_dir}/sbom.cdx.json" 2>/dev/null || echo "      (not found)"
 
-    # Extract provenance from OCI manifest annotations (DHI embeds build metadata as annotations)
-    echo "    - Provenance (from OCI annotations)"
-    just --justfile "${REPO_ROOT}/Justfile" crane manifest "$image_ref" 2>/dev/null \
-        | jq '{
-            builder: .annotations["com.docker.dhi.build.id"] // null,
-            source: .annotations["org.opencontainers.image.source"] // null,
-            revision: .annotations["org.opencontainers.image.revision"] // null,
-            created: .annotations["org.opencontainers.image.created"] // null,
-            definition: .annotations["com.docker.dhi.definition"] // null,
-            version: .annotations["com.docker.dhi.version"] // null,
-            compliance: .annotations["com.docker.dhi.compliance"] // null
-        }' \
-        > "${out_dir}/provenance.dhi.json" 2>/dev/null || echo "      (not found)"
+    # Extract SLSA provenance
+    echo "    - SLSA provenance"
+    just --justfile "${REPO_ROOT}/Justfile" cosign verify-attestation \
+        --type slsaprovenance \
+        --insecure-ignore-tlog \
+        "$image_ref" 2>/dev/null \
+        | jq -r '.payload' | base64 -d | jq '.predicate' \
+        > "${out_dir}/provenance.slsa.json" 2>/dev/null || echo "      (not found)"
 
     # Extract VEX from DHI advisories repo (by image name)
     echo "    - VEX"

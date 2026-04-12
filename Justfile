@@ -18,7 +18,7 @@ _tool-ref tool:
 _docker_auth := "--user $(id -u):$(id -g) -v ${HOME}/.docker/config.json:/tmp/.docker/config.json:ro -e DOCKER_CONFIG=/tmp/.docker"
 
 grype *ARGS:
-    docker run --rm -v {{repo_root}}:/work -w /work --tmpfs /.cache:uid=$(id -u),gid=$(id -g) {{_docker_auth}} $(just _tool-ref grype) {{ARGS}}
+    docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref grype) {{ARGS}}
 
 cosign *ARGS:
     docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref cosign) {{ARGS}}
@@ -100,12 +100,6 @@ release-website:
 compliance-pack version:
     {{repo_root}}/scripts/build-compliance-pack {{version}}
 
-# ── Compose ───────────────────────────────────────
-
-# Generate .env.stock-images with digest-pinned stock image refs
-render-compose:
-    {{repo_root}}/scripts/generate-stock-image-env
-
 # ── Update ────────────────────────────────────────
 
 # Resolve all tool versions, tool digests, and stock image digests in one command
@@ -169,11 +163,6 @@ update:
     echo ""
     echo "=== Pinning stock image digests ==="
     {{repo_root}}/scripts/pin-digests
-
-    # ── Step 4: Regenerate compose .env with pinned digests ──
-    echo ""
-    echo "=== Generating compose .env ==="
-    just render-compose
 
     # ── Summary ──
     echo ""
