@@ -68,32 +68,36 @@ done
 echo "$release_images" | jq '{images: .}' > "${DATA_DIR}/release.json"
 
 # Build vulnerabilities.json — merge CVE data from all images
-vuln_data="[]"
+vuln_tmp=$(mktemp)
+echo "[]" > "$vuln_tmp"
 for dir in "${ARTIFACTS}"/*/; do
     name=$(basename "$dir")
     cves_file="${dir}cves.json"
     if [ -f "$cves_file" ] && [ -s "$cves_file" ]; then
-        image_vulns=$(jq --arg name "$name" \
+        jq --arg name "$name" \
             '[.matches[] | {image: $name, id: .vulnerability.id, severity: .vulnerability.severity, package: .artifact.name, version: .artifact.version, fix: (.vulnerability.fix.versions // [] | join(", "))}]' \
-            "$cves_file")
-        vuln_data=$(echo "$vuln_data" | jq --argjson v "$image_vulns" '. + $v')
+            "$cves_file" 2>/dev/null > "${vuln_tmp}.part" || echo "[]" > "${vuln_tmp}.part"
+        jq -s '.[0] + .[1]' "$vuln_tmp" "${vuln_tmp}.part" > "${vuln_tmp}.merged" && mv "${vuln_tmp}.merged" "$vuln_tmp"
     fi
 done
-echo "$vuln_data" | jq '{vulnerabilities: .}' > "${DATA_DIR}/vulnerabilities.json"
+jq '{vulnerabilities: .}' "$vuln_tmp" > "${DATA_DIR}/vulnerabilities.json"
+rm -f "$vuln_tmp" "${vuln_tmp}.part"
 
 # Build licenses.json — extract license data from SBOMs
-license_data="[]"
+license_tmp=$(mktemp)
+echo "[]" > "$license_tmp"
 for dir in "${ARTIFACTS}"/*/; do
     name=$(basename "$dir")
     sbom_file="${dir}sbom.cdx.json"
     if [ -f "$sbom_file" ] && [ -s "$sbom_file" ]; then
-        image_licenses=$(jq --arg name "$name" \
+        jq --arg name "$name" \
             '[.components[] | {image: $name, component: .name, version: .version, license: ([.licenses[]?.license.id // .licenses[]?.license.name // "unknown"] | join(", "))}]' \
-            "$sbom_file" 2>/dev/null || echo "[]")
-        license_data=$(echo "$license_data" | jq --argjson l "$image_licenses" '. + $l')
+            "$sbom_file" 2>/dev/null > "${license_tmp}.part" || echo "[]" > "${license_tmp}.part"
+        jq -s '.[0] + .[1]' "$license_tmp" "${license_tmp}.part" > "${license_tmp}.merged" && mv "${license_tmp}.merged" "$license_tmp"
     fi
 done
-echo "$license_data" | jq '{licenses: .}' > "${DATA_DIR}/licenses.json"
+jq '{licenses: .}' "$license_tmp" > "${DATA_DIR}/licenses.json"
+rm -f "$license_tmp" "${license_tmp}.part"
 
 echo "Release data written to ${DATA_DIR}/"
 echo "  - release.json: $(jq '.images | length' "${DATA_DIR}/release.json") images"

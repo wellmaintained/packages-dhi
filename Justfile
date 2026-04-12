@@ -32,6 +32,9 @@ crane *ARGS:
 gitleaks *ARGS:
     docker run --rm -v {{repo_root}}:/work -w /work {{_docker_auth}} $(just _tool-ref gitleaks) {{ARGS}}
 
+hugo *ARGS:
+    docker run --rm -v {{repo_root}}:/work -w /work $(just _tool-ref hugo) {{ARGS}}
+
 # ── Helpers ────────────────────────────────────────
 
 # Resolve the DHI YAML path for a custom image name
@@ -43,6 +46,15 @@ _image-registry image:
     @jq -r --arg name "{{image}}" '.custom[] | select(.name == $name) | .registry' {{manifest}}
 
 # ── Build ──────────────────────────────────────────
+
+# Build all custom DHI images
+build-all:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    for name in $(jq -r '.custom[].name' {{manifest}}); do
+        echo "=== Building ${name} ==="
+        just build "$name"
+    done
 
 # Build a custom DHI image locally
 build image:
@@ -94,7 +106,12 @@ release-data:
 # Build the release website locally
 release-website:
     just release-data
-    hugo --source apps/sbomify/release-website
+    just hugo --source apps/sbomify/release-website
+
+# Serve the release website locally for preview
+release-website-serve:
+    just release-data
+    just hugo server --source apps/sbomify/release-website --bind 0.0.0.0 --port 1313
 
 # Assemble compliance pack ZIP
 compliance-pack version:

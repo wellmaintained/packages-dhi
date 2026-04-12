@@ -29,6 +29,12 @@
       "image": "dhi.io/gitleaks",
       "tag": "8-debian13",
       "digest": "sha256:83878a33e4b18f53ba0092daa6321aa37058b23631e80a8069f37baef0b0944f"
+    },
+    {
+      "name": "hugo",
+      "image": "hugomods/hugo",
+      "tag": "0.160.1",
+      "digest": "sha256:cb4106ffd926692b2d0c62f768601f9323faddd4e4ee05d9d58ee0e08de77055"
     }
   ],
   "stock": [
