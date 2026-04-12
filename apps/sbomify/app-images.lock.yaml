@@ -18,9 +18,6 @@ minio:
   definition: common/images/minio/dhi.yaml
   registry: ghcr.io/wellmaintained/minio
   sbomify_component_id: PLACEHOLDER_MINIO
-minio-init:
-  definition: common/images/minio-init/latest.yaml
-  registry: ghcr.io/wellmaintained/minio-init
 sbomify-app:
   definition: apps/sbomify/images/sbomify-app/prod.yaml
   registry: ghcr.io/wellmaintained/sbomify-app
