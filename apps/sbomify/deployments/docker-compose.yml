@@ -1,0 +1,198 @@
+# Production deployment using DHI stock images + wellmaintained sbomify-app
+#
+# Stock images: pulled directly from dhi.io
+# Custom images: pulled from ghcr.io/wellmaintained
+# Runtime config: keycloak themes and Caddyfile from upstream sbomify repo
+
+x-common-env: &common-env
+  AM_I_IN_DOCKER_CONTAINER: ${AM_I_IN_DOCKER_CONTAINER:-1}
+  APP_BASE_URL: ${APP_BASE_URL:-http://dev.sbomify.com}
+  AWS_ACCESS_KEY_ID: ${AWS_ACCESS_KEY_ID:-minioadmin}
+  AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-http://sbomify-minio:9000}
+  AWS_MEDIA_ACCESS_KEY_ID: ${AWS_MEDIA_ACCESS_KEY_ID:-minioadmin}
+  AWS_MEDIA_SECRET_ACCESS_KEY: ${AWS_MEDIA_SECRET_ACCESS_KEY:-minioadmin}
+  AWS_MEDIA_STORAGE_BUCKET_NAME: ${AWS_MEDIA_STORAGE_BUCKET_NAME:-sbomify-media}
+  AWS_MEDIA_STORAGE_BUCKET_URL: ${AWS_MEDIA_STORAGE_BUCKET_URL:-http://sbomify-minio:9000/sbomify-media}
+  AWS_REGION: ${AWS_REGION:-auto}
+  AWS_SBOMS_ACCESS_KEY_ID: ${AWS_SBOMS_ACCESS_KEY_ID:-minioadmin}
+  AWS_SBOMS_SECRET_ACCESS_KEY: ${AWS_SBOMS_SECRET_ACCESS_KEY:-minioadmin}
+  AWS_SBOMS_STORAGE_BUCKET_NAME: ${AWS_SBOMS_STORAGE_BUCKET_NAME:-sbomify-sboms}
+  AWS_SBOMS_STORAGE_BUCKET_URL: ${AWS_SBOMS_STORAGE_BUCKET_URL:-http://sbomify-minio:9000/sbomify-sboms}
+  AWS_SECRET_ACCESS_KEY: ${AWS_SECRET_ACCESS_KEY:-minioadmin}
+  DATABASE_NAME: ${DATABASE_NAME:-sbomify}
+  DATABASE_PASSWORD: ${DATABASE_PASSWORD:-sbomify}
+  DATABASE_PORT: ${DATABASE_PORT:-5432}
+  DATABASE_SSLMODE: ${DATABASE_SSLMODE:-}
+  DATABASE_SSLROOTCERT: ${DATABASE_SSLROOTCERT:-}
+  DATABASE_USER: ${DATABASE_USER:-sbomify}
+  DOCKER_DATABASE_HOST: ${DOCKER_DATABASE_HOST:-sbomify-db}
+  REDIS_CA_CERTS: ${REDIS_CA_CERTS:-}
+  REDIS_URL: ${REDIS_URL:-redis://sbomify-redis:6379}
+  SECRET_KEY: ${SECRET_KEY:-"django-insecure-your-development-secret-key-here-CHANGE-ME!"}
+  SIGNED_URL_SALT: ${SIGNED_URL_SALT:-django-insecure-signed-url-salt-CHANGE-ME!}
+  TRUST_CENTER_DOMAIN: ${TRUST_CENTER_DOMAIN:-}
+  POSTHOG_API_KEY: ${POSTHOG_API_KEY:-}
+  POSTHOG_HOST: ${POSTHOG_HOST:-https://us.i.posthog.com}
+
+services:
+  sbomify-db:
+    image: dhi.io/postgres:17
+    restart: ${POSTGRES_RESTART_POLICY:-always}
+    environment:
+      POSTGRES_USER: ${DATABASE_USER:-sbomify}
+      POSTGRES_PASSWORD: ${DATABASE_PASSWORD:-sbomify}
+      POSTGRES_DB: ${DATABASE_NAME:-sbomify}
+    volumes:
+      - sbomify_postgres_data:/var/lib/postgresql/17/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DATABASE_USER:-sbomify}"]
+      interval: 10s
+      timeout: 2s
+      retries: 10
+
+  sbomify-redis:
+    image: dhi.io/redis:8
+    restart: ${REDIS_RESTART_POLICY:-always}
+    volumes:
+      - sbomify_redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  sbomify-minio:
+    image: ghcr.io/wellmaintained/minio:latest
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - sbomify_minio_data:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  sbomify-minio-init:
+    image: ghcr.io/wellmaintained/minio-init:latest
+    environment:
+      AWS_ENDPOINT_URL_S3: ${AWS_ENDPOINT_URL_S3:-http://sbomify-minio:9000}
+      AWS_MEDIA_STORAGE_BUCKET_NAME: ${AWS_MEDIA_STORAGE_BUCKET_NAME:-sbomify-media}
+      AWS_SBOMS_STORAGE_BUCKET_NAME: ${AWS_SBOMS_STORAGE_BUCKET_NAME:-sbomify-sboms}
+    depends_on:
+      sbomify-minio:
+        condition: service_healthy
+
+  sbomify-migrations:
+    image: ghcr.io/wellmaintained/sbomify-app:${SBOMIFY_TAG:-latest}
+    command: ["python", "/code/bin/release.py"]
+    environment:
+      <<: *common-env
+      BILLING: ${BILLING:-False}
+    depends_on:
+      sbomify-db:
+        condition: service_healthy
+
+  sbomify-backend:
+    image: ghcr.io/wellmaintained/sbomify-app:${SBOMIFY_TAG:-latest}
+    restart: ${SBOMIFY_RESTART_POLICY:-always}
+    deploy:
+      replicas: ${BACKEND_REPLICAS:-2}
+    environment:
+      <<: *common-env
+      BILLING: ${BILLING:-False}
+      DATABASE_HOST: ${DATABASE_HOST:-localhost}
+      KC_HOSTNAME_URL: ${KC_HOSTNAME_URL:-http://keycloak:8080/}
+      KEYCLOAK_CLIENT_ID: ${KEYCLOAK_CLIENT_ID:-sbomify}
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-dev-client-secret}
+      KEYCLOAK_REALM: ${KEYCLOAK_REALM:-sbomify}
+      KEYCLOAK_SERVER_URL: ${KEYCLOAK_SERVER_URL:-http://keycloak:8080/}
+    expose:
+      - 8000
+    depends_on:
+      sbomify-db:
+        condition: service_healthy
+      sbomify-redis:
+        condition: service_healthy
+      sbomify-migrations:
+        condition: service_completed_successfully
+    stop_grace_period: 30s
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/UuPha8mu/', timeout=4).close()"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+  sbomify-worker:
+    image: ghcr.io/wellmaintained/sbomify-app:${SBOMIFY_TAG:-latest}
+    restart: ${SBOMIFY_RESTART_POLICY:-always}
+    deploy:
+      replicas: ${WORKER_REPLICAS:-2}
+    environment:
+      <<: *common-env
+      BILLING: ${BILLING:-False}
+    command:
+      [
+        "python",
+        "manage.py",
+        "rundramatiq",
+        "-p",
+        "${DRAMATIQ_PROCESSES:-1}",
+        "-t",
+        "${DRAMATIQ_THREADS:-4}"
+      ]
+    depends_on:
+      sbomify-redis:
+        condition: service_healthy
+      sbomify-db:
+        condition: service_healthy
+    stop_grace_period: 30s
+
+  sbomify-caddy:
+    image: dhi.io/caddy:2
+    restart: ${CADDY_RESTART_POLICY:-always}
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-8000}:80"
+      - "${BIND_IP:-127.0.0.1}:${HTTPS_PORT:-8443}:443"
+    volumes:
+      # Caddyfile pulled from upstream sbomify repo at deployment time
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+    environment:
+      LOG_LEVEL: ${CADDY_LOG_LEVEL:-INFO}
+      CADDY_ADMIN: ${CADDY_ADMIN:-off}
+      ACME_EMAIL: ${ACME_EMAIL:-admin@example.com}
+      ACME_CA: ${ACME_CA:-https://acme-v02.api.letsencrypt.org/directory}
+    depends_on:
+      sbomify-backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://sbomify-caddy/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
+    stop_grace_period: 10s
+
+  keycloak:
+    image: dhi.io/keycloak:26
+    restart: ${KEYCLOAK_RESTART_POLICY:-always}
+    command: ["start-dev"]
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://sbomify-db:5432/${DATABASE_NAME:-sbomify}
+      KC_DB_USERNAME: ${DATABASE_USER:-sbomify}
+      KC_DB_PASSWORD: ${DATABASE_PASSWORD:-sbomify}
+    volumes:
+      # Theme mounted from upstream sbomify repo at deployment time
+      - ./keycloak/themes:/opt/keycloak/themes:ro
+    ports:
+      - "${KEYCLOAK_PORT:-8080}:8080"
+
+volumes:
+  sbomify_postgres_data:
+  sbomify_redis_data:
+  sbomify_minio_data:
+  caddy_data:

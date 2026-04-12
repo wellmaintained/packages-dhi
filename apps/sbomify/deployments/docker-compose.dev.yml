@@ -1,0 +1,31 @@
+# Development overrides for sbomify deployment
+#
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+#
+# Changes from production:
+# - Postgres and Redis ports exposed for local tooling
+# - Backend and worker scaled to single replica
+# - Minio console exposed
+# - All bind IPs set to 0.0.0.0 for container access
+
+services:
+  sbomify-db:
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+
+  sbomify-redis:
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+
+  sbomify-backend:
+    deploy:
+      replicas: 1
+
+  sbomify-worker:
+    deploy:
+      replicas: 1
+
+  sbomify-caddy:
+    ports:
+      - "0.0.0.0:${HTTP_PORT:-8000}:80"
+      - "0.0.0.0:${HTTPS_PORT:-8443}:443"
