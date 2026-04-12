@@ -1,4 +1,11 @@
 {
+  "tools": [
+    { "name": "crane", "image": "dhi.io/crane", "tag": "0-alpine3.23", "digest": "" },
+    { "name": "cosign", "image": "dhi.io/cosign", "tag": "2-alpine3.23", "digest": "" },
+    { "name": "grype", "image": "dhi.io/grype", "tag": "0-alpine3.23", "digest": "" },
+    { "name": "syft", "image": "dhi.io/syft", "tag": "1-alpine3.23", "digest": "" },
+    { "name": "gitleaks", "image": "dhi.io/gitleaks", "tag": "8-debian13", "digest": "" }
+  ],
   "stock": [
     {
       "name": "postgres",
