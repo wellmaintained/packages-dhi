@@ -40,6 +40,7 @@ build image:
     echo "Building ${def} → ${reg}:dev"
     docker buildx build \
         -f "${def}" \
+        --platform linux/amd64 \
         --sbom=generator=dhi.io/scout-sbom-indexer:1 \
         --provenance=1 \
         --tag "${reg}:dev" \
