@@ -34,22 +34,14 @@ get_token() {
     local registry="$1"
     local repo="$2"
     "${REPO_ROOT}/bin/crane" auth token "${registry}/${repo}" 2>/dev/null \
-        | python3 -c "import sys,json; print(json.load(sys.stdin)['token'])"
+        | jq -r '.token'
 }
 
 # Resolve the platform-specific manifest digest for linux/amd64
 get_platform_digest() {
     local source="$1"
     "${REPO_ROOT}/bin/crane" manifest "$source" 2>/dev/null \
-        | python3 -c "
-import sys, json
-idx = json.load(sys.stdin)
-for m in idx.get('manifests', []):
-    p = m.get('platform', {})
-    if p.get('architecture') == 'amd64' and p.get('os') == 'linux':
-        print(m['digest'])
-        break
-"
+        | jq -r '.manifests[] | select(.platform.architecture == "amd64" and .platform.os == "linux") | .digest'
 }
 
 # Fetch OCI referrers for a given digest
@@ -88,13 +80,7 @@ extract_attestation() {
         "https://${registry}/v2/${repo}/manifests/${manifest_digest}")
 
     local blob_digest
-    blob_digest=$(echo "$att_manifest" | python3 -c "
-import sys, json
-m = json.load(sys.stdin)
-layers = m.get('layers', [])
-if layers:
-    print(layers[0]['digest'])
-")
+    blob_digest=$(echo "$att_manifest" | jq -r '.layers[0].digest // empty')
 
     if [ -z "$blob_digest" ]; then
         echo "      (no blob found)"
@@ -103,12 +89,7 @@ if layers:
 
     # Fetch the blob and extract the predicate from the in-toto envelope
     fetch_blob "$registry" "$repo" "$blob_digest" "$token" \
-        | python3 -c "
-import sys, json
-envelope = json.load(sys.stdin)
-predicate = envelope.get('predicate', {})
-json.dump(predicate, sys.stdout, indent=2)
-" > "$output_file"
+        | jq '.predicate' > "$output_file"
 
     local size
     size=$(wc -c < "$output_file")
@@ -156,7 +137,7 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
     echo "    Fetching referrers..."
     referrers=$(fetch_referrers "$registry" "$repo" "$platform_digest" "$token")
 
-    referrer_count=$(echo "$referrers" | python3 -c "import sys,json; print(len(json.load(sys.stdin).get('manifests',[])))")
+    referrer_count=$(echo "$referrers" | jq '.manifests | length')
     echo "    Found ${referrer_count} attestations"
 
     # Extract each attestation type we care about
@@ -165,15 +146,10 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
         short_type="${predicate_type##*/}"
 
         # Find the referrer manifest digest for this predicate type
-        att_digest=$(echo "$referrers" | python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-for m in data.get('manifests', []):
-    ann = m.get('annotations', {})
-    if ann.get('in-toto.io/predicate-type') == '${predicate_type}':
-        print(m['digest'])
-        break
-" 2>/dev/null)
+        att_digest=$(echo "$referrers" | jq -r \
+            --arg type "$predicate_type" \
+            '.manifests[] | select(.annotations["in-toto.io/predicate-type"] == $type) | .digest' \
+            2>/dev/null)
 
         if [ -z "$att_digest" ]; then
             echo "    - ${short_type}: (not found)"
