@@ -83,10 +83,6 @@ sbom-spdx image:
 extract-dhi-attestations:
     {{repo_root}}/scripts/extract-dhi-attestations
 
-# Resolve and pin current digests for all stock DHI images
-pin-digests:
-    {{repo_root}}/scripts/pin-digests
-
 # ── Release ────────────────────────────────────────
 
 # Generate Hugo data files from build artifacts
@@ -102,23 +98,25 @@ release-website:
 compliance-pack version:
     {{repo_root}}/scripts/build-compliance-pack {{version}}
 
-# ── Tool Management ────────────────────────────────
+# ── Update ────────────────────────────────────────
 
-# Check for newer tool versions in the DHI registry
-update-tools:
+# Resolve all tool versions, tool digests, and stock image digests in one command
+update:
     #!/usr/bin/env bash
     set -euo pipefail
     manifest="{{manifest}}"
+
+    # ── Step 1: Check for newer tool versions ──
+    echo "=== Checking tool versions ==="
     tmp=$(mktemp)
     cp "$manifest" "$tmp"
-    changed=0
+    tools_changed=0
     for row in $(jq -c '.tools[]' "$manifest"); do
         name=$(echo "$row" | jq -r '.name')
         image=$(echo "$row" | jq -r '.image')
         current_tag=$(echo "$row" | jq -r '.tag')
-        # List tags from registry, pick the latest matching the same major prefix
         prefix=$(echo "$current_tag" | grep -oP '^\d+')
-        latest_tag=$(docker run --rm $(jq -r --arg name crane '.tools[] | select(.name == $name) | "\(.image):\(.tag)"' "$manifest") ls --platform linux/amd64 "$image" 2>/dev/null \
+        latest_tag=$(just crane ls --platform linux/amd64 "$image" 2>/dev/null \
             | grep -P "^${prefix}-" | sort -V | tail -1) || true
         if [ -z "$latest_tag" ]; then
             echo "  $name: $current_tag (no updates found)"
@@ -130,31 +128,24 @@ update-tools:
             jq --arg name "$name" --arg tag "$latest_tag" \
                 '(.tools[] | select(.name == $name)).tag = $tag | (.tools[] | select(.name == $name)).digest = ""' \
                 "$tmp" > "$tmp2" && mv "$tmp2" "$tmp"
-            changed=1
+            tools_changed=1
         fi
     done
-    if [ "$changed" -eq 1 ]; then
+    if [ "$tools_changed" -eq 1 ]; then
         mv "$tmp" "$manifest"
-        echo ""
-        echo "Manifest updated. Run 'just pin-tool-digests' to resolve digests."
     else
         rm "$tmp"
-        echo ""
-        echo "All tools are up to date."
     fi
 
-# Resolve SHA256 digests for all pinned tool versions
-pin-tool-digests:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    manifest="{{manifest}}"
-    crane_ref=$(jq -r '.tools[] | select(.name == "crane") | "\(.image):\(.tag)"' "$manifest")
+    # ── Step 2: Pin tool digests ──
+    echo ""
+    echo "=== Pinning tool digests ==="
     for row in $(jq -c '.tools[]' "$manifest"); do
         name=$(echo "$row" | jq -r '.name')
         image=$(echo "$row" | jq -r '.image')
         tag=$(echo "$row" | jq -r '.tag')
         ref="${image}:${tag}"
-        digest=$(docker run --rm "$crane_ref" digest --platform linux/amd64 "$ref" 2>/dev/null) || true
+        digest=$(just crane digest --platform linux/amd64 "$ref" 2>/dev/null) || true
         if [ -n "$digest" ]; then
             echo "  $name: $ref @ $digest"
             tmp=$(mktemp)
@@ -165,6 +156,16 @@ pin-tool-digests:
             echo "  $name: $ref (failed to resolve digest)"
         fi
     done
+
+    # ── Step 3: Pin stock image digests ──
+    echo ""
+    echo "=== Pinning stock image digests ==="
+    {{repo_root}}/scripts/pin-digests
+
+    # ── Summary ──
+    echo ""
+    echo "=== Summary ==="
+    just images
 
 # ── Info ───────────────────────────────────────────
 

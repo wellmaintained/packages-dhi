@@ -29,7 +29,7 @@ for row in $(jq -c '.stock[]' "$MANIFEST"); do
 
     # Extract CycloneDX SBOM
     echo "    - CycloneDX SBOM"
-    docker run --rm dhi.io/cosign verify-attestation \
+    just --justfile "${REPO_ROOT}/Justfile" cosign verify-attestation \
         --type cyclonedx \
         --insecure-ignore-tlog \
         "$image_ref" 2>/dev/null \
@@ -38,7 +38,7 @@ for row in $(jq -c '.stock[]' "$MANIFEST"); do
 
     # Extract SLSA provenance
     echo "    - SLSA provenance"
-    docker run --rm dhi.io/cosign verify-attestation \
+    just --justfile "${REPO_ROOT}/Justfile" cosign verify-attestation \
         --type slsaprovenance \
         --insecure-ignore-tlog \
         "$image_ref" 2>/dev/null \
@@ -53,8 +53,8 @@ for row in $(jq -c '.stock[]' "$MANIFEST"); do
     # Run grype scan using the SBOM
     echo "    - CVE scan"
     if [ -f "${out_dir}/sbom.cdx.json" ]; then
-        docker run --rm -v "${out_dir}:/work" dhi.io/grype \
-            sbom:/work/sbom.cdx.json -o json \
+        just --justfile "${REPO_ROOT}/Justfile" grype \
+            "sbom:/work/.artifacts/${name}/sbom.cdx.json" -o json \
             > "${out_dir}/cves.json" 2>/dev/null || echo "      (scan failed)"
     fi
 done

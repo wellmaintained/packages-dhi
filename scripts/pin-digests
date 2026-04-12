@@ -7,13 +7,13 @@ MANIFEST="${REPO_ROOT}/.github/image-manifest.json"
 
 echo "Pinning stock DHI image digests..."
 
-# For each stock image, resolve the digest via crane
+# For each stock image, resolve the digest via crane (using Justfile wrapper)
 for row in $(jq -c '.stock[]' "$MANIFEST"); do
     name=$(echo "$row" | jq -r '.name')
     source=$(echo "$row" | jq -r '.source')
 
     echo -n "  ${name} (${source}): "
-    digest=$(docker run --rm dhi.io/crane digest "$source" 2>/dev/null)
+    digest=$(just --justfile "${REPO_ROOT}/Justfile" crane digest "$source" 2>/dev/null)
     echo "$digest"
 
     # Update the manifest in place
