@@ -1,0 +1,100 @@
+# syntax=dhi.io/build:2-alpine3.23
+
+name: MinIO Server
+image: ghcr.io/wellmaintained/minio
+variant: runtime
+tags:
+  - latest
+platforms:
+  - linux/amd64
+
+contents:
+  repositories:
+    - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+    - https://dl-cdn.alpinelinux.org/alpine/v3.23/community
+  packages:
+    - alpine-baselayout-data
+    - ca-certificates-bundle
+  builds:
+    - name: minio
+      contents:
+        repositories:
+          - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+        packages:
+          - bash
+          - curl
+          - ca-certificates
+        files:
+          - url: https://dl.min.io/server/minio/release/linux-amd64/minio
+            checksum: "sha256:7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
+            path: ${source.dir}/minio
+            spdx:
+              name: minio
+              version: "RELEASE.2025-09-07T16-13-09Z"
+              packages:
+                - name: minio
+                  purl: "pkg:golang/github.com/minio/minio@RELEASE.2025-09-07T16-13-09Z"
+                  license: AGPL-3.0-or-later
+            uid: 0
+            gid: 0
+          - url: https://dl.min.io/client/mc/release/linux-amd64/mc
+            checksum: "sha256:01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+            path: ${source.dir}/mc
+            spdx:
+              name: mc
+              version: "RELEASE.2025-08-13T08-35-41Z"
+              packages:
+                - name: mc
+                  purl: "pkg:golang/github.com/minio/mc@RELEASE.2025-08-13T08-35-41Z"
+                  license: AGPL-3.0-or-later
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install binaries
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/usr/local/bin
+            install -m 0755 ${source.dir}/minio ${target.dir}/usr/local/bin/minio
+            install -m 0755 ${source.dir}/mc ${target.dir}/usr/local/bin/mc
+            mkdir -p ${target.dir}/data
+            chown 65532:65532 ${target.dir}/data
+      outputs:
+        - source: ${target.dir}/usr/local/bin
+          target: /usr/local/bin
+          uid: 0
+          gid: 0
+        - source: ${target.dir}/data
+          target: /data
+          uid: 65532
+          gid: 65532
+
+accounts:
+  run-as: minio
+  users:
+    - name: minio
+      uid: 65532
+      gid: 65532
+  groups:
+    - name: minio
+      gid: 65532
+      members:
+        - minio
+
+environment:
+  MINIO_ACCESS_KEY: minioadmin
+  MINIO_SECRET_KEY: minioadmin
+
+annotations:
+  org.opencontainers.image.description: A minimal MinIO S3-compatible object storage server
+  org.opencontainers.image.licenses: AGPL-3.0-or-later
+
+entrypoint:
+  - /usr/local/bin/minio
+
+cmd:
+  - server
+  - /data
+
+ports:
+  - 9000/tcp
+  - 9001/tcp
