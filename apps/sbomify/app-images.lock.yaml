@@ -15,7 +15,7 @@ caddy:
   source: dhi.io/caddy:2
   digest: sha256:bebd9b1b94a0c53d251c4a45a16373255829da9d75d5473b52de882556d05325
 minio:
-  definition: common/images/minio/latest.yaml
+  definition: common/images/minio/dhi.yaml
   registry: ghcr.io/wellmaintained/minio
   sbomify_component_id: PLACEHOLDER_MINIO
 minio-init:
