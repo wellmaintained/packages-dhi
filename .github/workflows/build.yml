@@ -21,16 +21,10 @@ jobs:
     name: Extract DHI attestations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install just
-        uses: extractions/setup-just@v2
-
-      - name: Login to dhi.io
-        run: echo "$DHI_TOKEN" | docker login dhi.io -u "$DHI_USERNAME" --password-stdin
-        env:
-          DHI_USERNAME: ${{ vars.DHI_USERNAME }}
-          DHI_TOKEN: ${{ secrets.DHI_TOKEN }}
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
 
       - name: Extract attestations
         run: just extract-dhi-attestations
@@ -59,19 +53,13 @@ jobs:
           - minio
           - sbomify-app
     steps:
-      - uses: actions/checkout@v4
-
-      - name: Install just
-        uses: extractions/setup-just@v2
-
-      - name: Login to dhi.io
-        run: echo "$DHI_TOKEN" | docker login dhi.io -u "$DHI_USERNAME" --password-stdin
-        env:
-          DHI_USERNAME: ${{ vars.DHI_USERNAME }}
-          DHI_TOKEN: ${{ secrets.DHI_TOKEN }}
-
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u "${{ github.actor }}" --password-stdin
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+          ghcr-login: true
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build image
         run: just build ${{ matrix.image }}

@@ -1,0 +1,42 @@
+name: Setup Pipeline
+description: Checkout, install just, and optionally login to container registries
+
+inputs:
+  dhi-login:
+    description: Login to dhi.io registry
+    default: 'true'
+  dhi-username:
+    description: DHI registry username
+  dhi-token:
+    description: DHI registry token
+  ghcr-login:
+    description: Login to ghcr.io registry
+    default: 'false'
+  ghcr-username:
+    description: GHCR username (typically github.actor)
+  ghcr-token:
+    description: GHCR token (typically secrets.GITHUB_TOKEN)
+
+runs:
+  using: composite
+  steps:
+    - uses: actions/checkout@v4
+
+    - name: Install just
+      uses: extractions/setup-just@v2
+
+    - name: Login to dhi.io
+      if: inputs.dhi-login == 'true'
+      shell: bash
+      run: echo "$DHI_TOKEN" | docker login dhi.io -u "$DHI_USERNAME" --password-stdin
+      env:
+        DHI_USERNAME: ${{ inputs.dhi-username }}
+        DHI_TOKEN: ${{ inputs.dhi-token }}
+
+    - name: Login to GHCR
+      if: inputs.ghcr-login == 'true'
+      shell: bash
+      run: echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GHCR_USERNAME" --password-stdin
+      env:
+        GHCR_USERNAME: ${{ inputs.ghcr-username }}
+        GHCR_TOKEN: ${{ inputs.ghcr-token }}
