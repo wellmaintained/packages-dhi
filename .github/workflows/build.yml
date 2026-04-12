@@ -23,7 +23,7 @@ jobs:
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-login: false
@@ -34,7 +34,7 @@ jobs:
     name: Extract DHI attestations
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
@@ -44,13 +44,13 @@ jobs:
         run: just extract-dhi-attestations
 
       - name: Upload attestation artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stock-dhi-attestations
           path: .artifacts/
 
       - name: Upload lock files
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: image-lock-files
           path: |
@@ -65,7 +65,7 @@ jobs:
       matrix:
         image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
@@ -84,7 +84,7 @@ jobs:
         run: just sbom-spdx ${{ matrix.image }}
 
       - name: Upload attestation artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: custom-${{ matrix.image }}-attestations
           path: .artifacts/${{ matrix.image }}/
