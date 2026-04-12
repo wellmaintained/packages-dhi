@@ -1,0 +1,86 @@
+# syntax=dhi.io/build:2-alpine3.23
+
+name: MinIO Init
+image: ghcr.io/wellmaintained/minio-init
+variant: runtime
+tags:
+  - latest
+platforms:
+  - linux/amd64
+
+contents:
+  repositories:
+    - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+  packages:
+    - alpine-baselayout-data
+    - busybox
+    - ca-certificates-bundle
+  builds:
+    - name: mc
+      contents:
+        repositories:
+          - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+        packages:
+          - bash
+          - curl
+          - ca-certificates
+        files:
+          - url: https://dl.min.io/client/mc/release/linux-amd64/mc
+            checksum: "sha256:01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
+            path: ${source.dir}/mc
+            spdx:
+              name: mc
+              version: "RELEASE.2025-08-13T08-35-41Z"
+              packages:
+                - name: mc
+                  purl: "pkg:golang/github.com/minio/mc@RELEASE.2025-08-13T08-35-41Z"
+                  license: AGPL-3.0-or-later
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/usr/local/bin
+            install -m 0755 ${source.dir}/mc ${target.dir}/usr/local/bin/mc
+            cat > ${target.dir}/usr/local/bin/create-minio-buckets.sh <<'SCRIPT'
+            #!/bin/sh
+            set -e
+            echo "Waiting for MinIO to be ready..."
+            until mc alias set myminio "$AWS_ENDPOINT_URL_S3" minioadmin minioadmin; do
+            echo "MinIO not ready, retrying in 2s..."
+            sleep 2
+            done
+            echo "Creating buckets..."
+            mc mb --ignore-existing "myminio/$AWS_MEDIA_STORAGE_BUCKET_NAME"
+            mc mb --ignore-existing "myminio/$AWS_SBOMS_STORAGE_BUCKET_NAME"
+            echo "Setting public access on media bucket..."
+            mc anonymous set public "myminio/$AWS_MEDIA_STORAGE_BUCKET_NAME"
+            echo "Done."
+            SCRIPT
+            sed -i 's/^            //' ${target.dir}/usr/local/bin/create-minio-buckets.sh
+            chmod 0755 ${target.dir}/usr/local/bin/create-minio-buckets.sh
+      outputs:
+        - source: ${target.dir}/usr/local/bin
+          target: /usr/local/bin
+          uid: 0
+          gid: 0
+
+accounts:
+  run-as: nonroot
+  users:
+    - name: nonroot
+      uid: 65532
+      gid: 65532
+  groups:
+    - name: nonroot
+      gid: 65532
+      members:
+        - nonroot
+
+annotations:
+  org.opencontainers.image.description: MinIO bucket initialization container
+  org.opencontainers.image.licenses: Apache-2.0
+
+entrypoint:
+  - /usr/local/bin/create-minio-buckets.sh
