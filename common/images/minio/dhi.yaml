@@ -1,4 +1,4 @@
-# syntax=dhi.io/build:2-alpine3.23
+# syntax=dhi.io/build:2-debian13
 
 name: MinIO Server
 image: ghcr.io/wellmaintained/minio
@@ -9,53 +9,44 @@ platforms:
   - linux/amd64
 
 contents:
-  repositories:
-    - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
-    - https://dl-cdn.alpinelinux.org/alpine/v3.23/community
   packages:
-    - alpine-baselayout-data
-    - ca-certificates-bundle
+    - base-files
+    - ca-certificates
   builds:
-    - name: minio
+    - name: minio-server
+      uses: dhi.io/golang:1.26-alpine3.23-dev@sha256:0d916bcd9ca2060863389d96c8ea686d72e03ccc48ebf498be2150f21f720999
       contents:
-        repositories:
-          - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
-        packages:
-          - bash
-          - curl
-          - ca-certificates
         files:
-          - url: https://dl.min.io/server/minio/release/linux-amd64/minio
-            checksum: "sha256:7c5bd8512c6e966455b1d198209358b2d191c77a83ab377c4073281065fb855f"
+          - url: "git+https://github.com/minio/minio.git#RELEASE.2025-10-15T17-29-55Z"
             path: ${source.dir}/minio
             spdx:
               name: minio
-              version: "RELEASE.2025-09-07T16-13-09Z"
+              version: "RELEASE.2025-10-15T17-29-55Z"
               packages:
                 - name: minio
-                  purl: "pkg:golang/github.com/minio/minio@RELEASE.2025-09-07T16-13-09Z"
-                  license: AGPL-3.0-or-later
-            uid: 0
-            gid: 0
-          - url: https://dl.min.io/client/mc/release/linux-amd64/mc
-            checksum: "sha256:01f866e9c5f9b87c2b09116fa5d7c06695b106242d829a8bb32990c00312e891"
-            path: ${source.dir}/mc
-            spdx:
-              name: mc
-              version: "RELEASE.2025-08-13T08-35-41Z"
-              packages:
-                - name: mc
-                  purl: "pkg:golang/github.com/minio/mc@RELEASE.2025-08-13T08-35-41Z"
+                  purl: "pkg:golang/github.com/minio/minio@RELEASE.2025-10-15T17-29-55Z"
                   license: AGPL-3.0-or-later
             uid: 0
             gid: 0
       pipeline:
-        - name: install binaries
+        - name: build minio server
+          work-dir: ${source.dir}/minio
+          privileged: true
           runs: |
             set -eux -o pipefail
+            go mod download
+            CGO_ENABLED=0 go build \
+              -tags kqueue \
+              -trimpath \
+              --ldflags "-s -w \
+                -X github.com/minio/minio/cmd.Version=2025-10-15T17:29:55Z \
+                -X github.com/minio/minio/cmd.CopyrightYear=2025 \
+                -X github.com/minio/minio/cmd.ReleaseTag=RELEASE.2025-10-15T17-29-55Z \
+                -X github.com/minio/minio/cmd.CommitID=9e49d5e7a648f00e26f2246f4dc28e6b07f8c84a \
+                -X github.com/minio/minio/cmd.ShortCommitID=9e49d5e7a648" \
+              -o minio
             mkdir -p ${target.dir}/usr/local/bin
-            install -m 0755 ${source.dir}/minio ${target.dir}/usr/local/bin/minio
-            install -m 0755 ${source.dir}/mc ${target.dir}/usr/local/bin/mc
+            install -m 0755 minio ${target.dir}/usr/local/bin/minio
             mkdir -p ${target.dir}/data
             chown 65532:65532 ${target.dir}/data
       outputs:
@@ -67,6 +58,46 @@ contents:
           target: /data
           uid: 65532
           gid: 65532
+
+    - name: mc-client
+      uses: dhi.io/golang:1.26-alpine3.23-dev@sha256:0d916bcd9ca2060863389d96c8ea686d72e03ccc48ebf498be2150f21f720999
+      contents:
+        files:
+          - url: "git+https://github.com/minio/mc.git#RELEASE.2025-08-13T08-35-41Z"
+            path: ${source.dir}/mc
+            spdx:
+              name: mc
+              version: "RELEASE.2025-08-13T08-35-41Z"
+              packages:
+                - name: mc
+                  purl: "pkg:golang/github.com/minio/mc@RELEASE.2025-08-13T08-35-41Z"
+                  license: AGPL-3.0-or-later
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: build mc client
+          work-dir: ${source.dir}/mc
+          privileged: true
+          runs: |
+            set -eux -o pipefail
+            go mod download
+            GO111MODULE=on CGO_ENABLED=0 go build \
+              -trimpath \
+              -tags kqueue \
+              --ldflags "-s -w \
+                -X github.com/minio/mc/cmd.Version=2025-08-13T08:35:41Z \
+                -X github.com/minio/mc/cmd.CopyrightYear=2025 \
+                -X github.com/minio/mc/cmd.ReleaseTag=RELEASE.2025-08-13T08-35-41Z \
+                -X github.com/minio/mc/cmd.CommitID=7394ce0dd2a80935aded936b09fa12cbb3cb8096 \
+                -X github.com/minio/mc/cmd.ShortCommitID=7394ce0dd2a8" \
+              -o mc
+            mkdir -p ${target.dir}/usr/local/bin
+            install -m 0755 mc ${target.dir}/usr/local/bin/mc
+      outputs:
+        - source: ${target.dir}/usr/local/bin
+          target: /usr/local/bin
+          uid: 0
+          gid: 0
 
 accounts:
   run-as: minio
@@ -80,12 +111,8 @@ accounts:
       members:
         - minio
 
-environment:
-  MINIO_ACCESS_KEY: minioadmin
-  MINIO_SECRET_KEY: minioadmin
-
 annotations:
-  org.opencontainers.image.description: A minimal MinIO S3-compatible object storage server
+  org.opencontainers.image.description: A minimal MinIO S3-compatible object storage server with mc client
   org.opencontainers.image.licenses: AGPL-3.0-or-later
 
 entrypoint:
