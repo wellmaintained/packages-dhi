@@ -13,6 +13,7 @@ jobs:
   pre-release:
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}

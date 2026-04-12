@@ -21,6 +21,7 @@ jobs:
     name: Extract DHI attestations
     runs-on: ubuntu-latest
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
@@ -53,6 +54,7 @@ jobs:
           - minio
           - sbomify-app
     steps:
+      - uses: actions/checkout@v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
