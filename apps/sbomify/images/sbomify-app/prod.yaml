@@ -3,9 +3,8 @@
 # sbomify-app DHI YAML image definition
 #
 # NOTE: DHI pipelines run without network access (hermetic builds).
-# The frontend and python-app stages require network for bun install / uv sync,
-# which currently fails. The tools stage (pre-built binary downloads) works.
-# See: https://github.com/wellmaintained/packages-dhi/issues/TBD
+# Pipeline steps that need network (bun install, uv sync) use privileged: true
+# to enable network access — matching the pattern used in Docker's own DHI catalog.
 #
 # To build: just build sbomify-app
 # Upstream Dockerfile: https://github.com/sbomify/sbomify/blob/master/Dockerfile
@@ -42,6 +41,7 @@ contents:
       pipeline:
         - name: install and build frontend
           work-dir: ${source.dir}/sbomify
+          privileged: true
           runs: |
             set -eux -o pipefail
             bun install --frozen-lockfile
@@ -72,6 +72,7 @@ contents:
       pipeline:
         - name: install python deps
           work-dir: ${source.dir}/sbomify
+          privileged: true
           runs: |
             set -eux -o pipefail
             pip install --root-user-action=ignore uv
@@ -80,6 +81,7 @@ contents:
           work-dir: ${source.dir}/sbomify
           runs: |
             set -eux -o pipefail
+            . .venv/bin/activate
             SECRET_KEY=collectstatic-dummy \
             python manage.py collectstatic --noinput
         - name: prepare runtime
@@ -87,6 +89,8 @@ contents:
             set -eux -o pipefail
             mkdir -p ${target.dir}/app
             cp -a ${source.dir}/sbomify/. ${target.dir}/app/
+            # Fix venv shebangs: replace build-time path with runtime path
+            sed -i "1s|#!${source.dir}/sbomify/.venv/bin/python|#!/app/.venv/bin/python|" ${target.dir}/app/.venv/bin/*
             mkdir -p ${target.dir}/app/tmp
             mkdir -p ${target.dir}/var/lib/dramatiq-prometheus
             chown -R 65532:65532 ${target.dir}/app/tmp ${target.dir}/var/lib/dramatiq-prometheus
