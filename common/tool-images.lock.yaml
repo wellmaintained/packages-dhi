@@ -22,5 +22,5 @@ gitleaks:
 hugo:
   image: ghcr.io/wellmaintained/hugo
   tag: "0.160.1"
-  definition: common/images/hugo/latest.yaml
+  definition: common/images/hugo/dhi.yaml
   registry: ghcr.io/wellmaintained/hugo
