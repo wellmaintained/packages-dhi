@@ -187,20 +187,6 @@ update-app-images:
 
 # ── Info ───────────────────────────────────────────
 
-# List all custom image names as JSON array (for CI matrices)
-custom-images:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    names=""
-    for manifest in "{{tool_manifest}}" "{{app_manifest}}"; do
-        names+=$(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest")$'\n'
-    done
-    echo "$names" | grep -v '^$' | jq -cRn '[inputs]'
-
-# List app custom image names as JSON array (for CI matrices)
-custom-app-images:
-    @yq -o=json -I0 '[to_entries[] | select(.value | has("definition")) | .key]' {{app_manifest}}
-
 # Show all images and their sources
 images:
     @echo "=== Tools ==="

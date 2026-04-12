@@ -17,11 +17,8 @@ jobs:
       app-images: ${{ steps.images.outputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: ./.github/actions/setup-pipeline
-        with:
-          dhi-login: false
       - id: images
-        run: echo "app=$(just custom-app-images)" >> "$GITHUB_OUTPUT"
+        run: echo "app=$(./scripts/list-custom-images --app-only)" >> "$GITHUB_OUTPUT"
 
   quality-gate:
     needs: resolve-images
