@@ -15,7 +15,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: [minio, minio-init, sbomify-app]
+        image: [minio, sbomify-app]
     steps:
       - uses: actions/checkout@v4
 

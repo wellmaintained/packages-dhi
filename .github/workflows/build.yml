@@ -54,7 +54,6 @@ jobs:
         image:
           - hugo
           - minio
-          - minio-init
           - sbomify-app
     steps:
       - uses: actions/checkout@v4

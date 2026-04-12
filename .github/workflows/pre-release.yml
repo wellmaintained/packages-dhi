@@ -33,7 +33,7 @@ jobs:
 
       - name: Build and tag custom images
         run: |
-          for image in hugo minio minio-init sbomify-app; do
+          for image in hugo minio sbomify-app; do
             just build "$image"
             reg=$(just _image-registry "$image")
             docker tag "${reg}:dev" "${reg}:${{ steps.version.outputs.version }}"
@@ -42,7 +42,7 @@ jobs:
 
       - name: Sign custom images
         run: |
-          for image in hugo minio minio-init sbomify-app; do
+          for image in hugo minio sbomify-app; do
             reg=$(just _image-registry "$image")
             ./bin/cosign sign "${reg}:${{ steps.version.outputs.version }}"
           done
@@ -50,7 +50,7 @@ jobs:
       - name: Extract all attestations
         run: |
           just extract-dhi-attestations
-          for image in hugo minio minio-init sbomify-app; do
+          for image in hugo minio sbomify-app; do
             just scan "$image"
             just sbom-spdx "$image"
           done
