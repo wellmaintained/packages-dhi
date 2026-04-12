@@ -5,7 +5,7 @@ DHI-native image pipeline for wellmaintained packages.
 ## Structure
 
 - `common/tool-images.yaml` — Tool image manifest (crane, cosign, grype, syft, gitleaks, hugo)
-- `common/images/` — Shared infrastructure images (minio, minio-init, hugo)
+- `common/images/` — Shared infrastructure images (minio, hugo)
 - `apps/sbomify/app-images.yaml` — App image manifest (stock + custom)
 - `apps/sbomify/` — sbomify application (images, deployments, release website)
 - `bin/` — Tool wrapper scripts (auto-added to PATH via direnv)

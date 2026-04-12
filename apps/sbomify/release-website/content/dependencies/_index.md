@@ -27,7 +27,7 @@ by [Docker Hardened Images](https://www.docker.com/products/hardened-images/)
 as part of their 15-attestation suite. These are extracted from the DHI registry
 at build time.
 
-**Custom images** (minio, minio-init, sbomify-app) are built using DHI YAML
+**Custom images** (minio, sbomify-app) are built using DHI YAML
 definitions with `dhi.io/scout-sbom-indexer` generating CycloneDX SBOMs, plus
 SPDX SBOMs via [Syft](https://github.com/anchore/syft).
 

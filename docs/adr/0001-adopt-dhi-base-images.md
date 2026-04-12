@@ -17,7 +17,7 @@ handles across 381+ images with 15 attestation types, automated CVE patching,
 and SLSA Level 3 provenance.
 
 Analysis of upstream sbomify's deployment pattern revealed that 6 of 7 custom
-images are unnecessary: postgres, redis, keycloak, caddy, and minio-init all
+images are unnecessary: postgres, redis, keycloak, and caddy all
 use stock images with runtime configuration (volume mounts, environment
 variables). Only the sbomify-app image requires a custom build.
 
@@ -29,7 +29,7 @@ Create a new packages-dhi repo that:
    keycloak, caddy) — referenced by pinned digest, attestations extracted
    at build time
 2. Builds custom images using DHI's YAML build frontend for sbomify-app,
-   minio (learning exercise), and minio-init
+   and minio (built from Go source for complete SBOM coverage)
 3. Uses DHI hardened tool images (grype, cosign, syft, crane, gitleaks)
    for all build and scan operations
 4. Produces identical compliance outputs: release website, compliance pack,
