@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# Extract attestations (SBOM, VEX, provenance) for all stock DHI images.
+# Stores artifacts in .artifacts/<image-name>/ for use by release website and compliance pack.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+MANIFEST="${REPO_ROOT}/.github/image-manifest.json"
+ARTIFACTS="${REPO_ROOT}/.artifacts"
+
+mkdir -p "$ARTIFACTS"
+
+echo "Extracting DHI attestations for stock images..."
+
+for row in $(jq -c '.stock[]' "$MANIFEST"); do
+    name=$(echo "$row" | jq -r '.name')
+    source=$(echo "$row" | jq -r '.source')
+    digest=$(echo "$row" | jq -r '.digest')
+
+    if [ -z "$digest" ] || [ "$digest" = "null" ]; then
+        echo "  SKIP ${name}: no pinned digest (run 'just pin-digests' first)"
+        continue
+    fi
+
+    image_ref="${source}@${digest}"
+    out_dir="${ARTIFACTS}/${name}"
+    mkdir -p "$out_dir"
+
+    echo "  ${name} (${image_ref}):"
+
+    # Extract CycloneDX SBOM
+    echo "    - CycloneDX SBOM"
+    docker run --rm dhi.io/cosign verify-attestation \
+        --type cyclonedx \
+        --insecure-ignore-tlog \
+        "$image_ref" 2>/dev/null \
+        | jq -r '.payload' | base64 -d | jq '.predicate' \
+        > "${out_dir}/sbom.cdx.json" 2>/dev/null || echo "      (not found)"
+
+    # Extract SLSA provenance
+    echo "    - SLSA provenance"
+    docker run --rm dhi.io/cosign verify-attestation \
+        --type slsaprovenance \
+        --insecure-ignore-tlog \
+        "$image_ref" 2>/dev/null \
+        | jq -r '.payload' | base64 -d | jq '.predicate' \
+        > "${out_dir}/provenance.slsa.json" 2>/dev/null || echo "      (not found)"
+
+    # Extract VEX from DHI advisories repo (by image name)
+    echo "    - VEX"
+    curl -sfL "https://raw.githubusercontent.com/docker-hardened-images/advisories/main/vex/${name}/dhi-${name}.vex.json" \
+        > "${out_dir}/vex.dhi.json" 2>/dev/null || echo "      (not found)"
+
+    # Run grype scan using the SBOM
+    echo "    - CVE scan"
+    if [ -f "${out_dir}/sbom.cdx.json" ]; then
+        docker run --rm -v "${out_dir}:/work" dhi.io/grype \
+            sbom:/work/sbom.cdx.json -o json \
+            > "${out_dir}/cves.json" 2>/dev/null || echo "      (scan failed)"
+    fi
+done
+
+echo ""
+echo "Artifacts written to ${ARTIFACTS}/"
+ls -la "${ARTIFACTS}/"
