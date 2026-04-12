@@ -2,7 +2,7 @@
 {{ if $release }}
 <table>
 <thead>
-<tr><th>Image</th><th>Type</th><th>Format</th><th></th></tr>
+<tr><th>Image</th><th>Type</th><th>Format</th><th></th><th></th></tr>
 </thead>
 <tbody>
 {{ range $release.images }}
@@ -10,6 +10,7 @@
   <td><strong>{{ .name }}</strong></td>
   <td>{{ .type }}</td>
   <td>CycloneDX</td>
+  <td><a href="{{ printf "dependencies/%s/" .name | relURL }}">View</a></td>
   <td><a href="{{ printf "artifacts/sboms/%s.cdx.json" .name | relURL }}">Download</a></td>
 </tr>
 {{ end }}
