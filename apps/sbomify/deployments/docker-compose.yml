@@ -1,6 +1,7 @@
 # Production deployment using DHI stock images + wellmaintained sbomify-app
 #
-# Stock images: pulled directly from dhi.io
+# Stock images: pulled directly from dhi.io, pinned by digest via .env.stock-images
+#   Run 'just render-compose' to regenerate .env.stock-images from the manifest
 # Custom images: pulled from ghcr.io/wellmaintained
 # Runtime config: keycloak themes and Caddyfile from upstream sbomify repo
 
@@ -36,7 +37,7 @@ x-common-env: &common-env
 
 services:
   sbomify-db:
-    image: dhi.io/postgres:17
+    image: ${STOCK_POSTGRES_IMAGE:-dhi.io/postgres:17}
     restart: ${POSTGRES_RESTART_POLICY:-always}
     environment:
       POSTGRES_USER: ${DATABASE_USER:-sbomify}
@@ -51,7 +52,7 @@ services:
       retries: 10
 
   sbomify-redis:
-    image: dhi.io/redis:8
+    image: ${STOCK_REDIS_IMAGE:-dhi.io/redis:8}
     restart: ${REDIS_RESTART_POLICY:-always}
     volumes:
       - sbomify_redis_data:/data
@@ -151,7 +152,7 @@ services:
     stop_grace_period: 30s
 
   sbomify-caddy:
-    image: dhi.io/caddy:2
+    image: ${STOCK_CADDY_IMAGE:-dhi.io/caddy:2}
     restart: ${CADDY_RESTART_POLICY:-always}
     ports:
       - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-8000}:80"
@@ -177,7 +178,7 @@ services:
     stop_grace_period: 10s
 
   keycloak:
-    image: dhi.io/keycloak:26
+    image: ${STOCK_KEYCLOAK_IMAGE:-dhi.io/keycloak:26}
     restart: ${KEYCLOAK_RESTART_POLICY:-always}
     command: ["start-dev"]
     environment:

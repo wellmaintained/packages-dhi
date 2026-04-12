@@ -100,6 +100,12 @@ release-website:
 compliance-pack version:
     {{repo_root}}/scripts/build-compliance-pack {{version}}
 
+# ── Compose ───────────────────────────────────────
+
+# Generate .env.stock-images with digest-pinned stock image refs
+render-compose:
+    {{repo_root}}/scripts/generate-stock-image-env
+
 # ── Update ────────────────────────────────────────
 
 # Resolve all tool versions, tool digests, and stock image digests in one command
@@ -163,6 +169,11 @@ update:
     echo ""
     echo "=== Pinning stock image digests ==="
     {{repo_root}}/scripts/pin-digests
+
+    # ── Step 4: Regenerate compose .env with pinned digests ──
+    echo ""
+    echo "=== Generating compose .env ==="
+    just render-compose
 
     # ── Summary ──
     echo ""
