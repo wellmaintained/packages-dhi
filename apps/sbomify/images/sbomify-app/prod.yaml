@@ -1,0 +1,197 @@
+# syntax=dhi.io/build:2-debian13
+#
+# sbomify-app DHI YAML image definition
+#
+# NOTE: DHI pipelines run without network access (hermetic builds).
+# The frontend and python-app stages require network for bun install / uv sync,
+# which currently fails. The tools stage (pre-built binary downloads) works.
+# See: https://github.com/wellmaintained/packages-dhi/issues/TBD
+#
+# To build: just build sbomify-app
+# Upstream Dockerfile: https://github.com/sbomify/sbomify/blob/master/Dockerfile
+
+name: sbomify Application
+image: ghcr.io/wellmaintained/sbomify-app
+variant: runtime
+tags:
+  - latest
+platforms:
+  - linux/amd64
+
+contents:
+  packages:
+    - base-files
+    - ca-certificates
+    - libpq5
+  builds:
+    - name: frontend
+      uses: dhi.io/bun:1-debian13-dev@sha256:8e2390977c8150c0c452452f6a87a02d75876e0c0cbddf13db732f8afa037250
+      contents:
+        files:
+          - url: "git+https://github.com/sbomify/sbomify.git#v26.1.0"
+            path: ${source.dir}/sbomify
+            spdx:
+              name: sbomify
+              version: "v26.1.0"
+              packages:
+                - name: sbomify
+                  purl: "pkg:github/sbomify/sbomify@v26.1.0"
+                  license: Apache-2.0
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install and build frontend
+          work-dir: ${source.dir}/sbomify
+          runs: |
+            set -eux -o pipefail
+            bun install --frozen-lockfile
+            bun run copy-deps
+            bun x vite build
+            # Stage compiled frontend assets for the final image
+            mkdir -p ${target.dir}/staticfiles
+            cp -a sbomify/static/dist ${target.dir}/staticfiles/dist
+            cp -a sbomify/static/css ${target.dir}/staticfiles/css
+            cp -a sbomify/static/webfonts ${target.dir}/staticfiles/webfonts
+      outputs:
+        - source: ${target.dir}/staticfiles
+          target: /app/staticfiles
+          uid: 0
+          gid: 0
+
+    - name: python-app
+      uses: dhi.io/python:3.14-debian13-dev@sha256:456b0bea86c1f01b6de60ebb9800e75a5326e5876f05c1ea074dcd66fa446834
+      contents:
+        packages:
+          - libpq-dev
+          - gcc
+        files:
+          - url: "git+https://github.com/sbomify/sbomify.git#v26.1.0"
+            path: ${source.dir}/sbomify
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install python deps
+          work-dir: ${source.dir}/sbomify
+          runs: |
+            set -eux -o pipefail
+            pip install --root-user-action=ignore uv
+            uv sync --locked --no-dev
+        - name: collect static files
+          work-dir: ${source.dir}/sbomify
+          runs: |
+            set -eux -o pipefail
+            SECRET_KEY=collectstatic-dummy \
+            python manage.py collectstatic --noinput
+        - name: prepare runtime
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/app
+            cp -a ${source.dir}/sbomify/. ${target.dir}/app/
+            mkdir -p ${target.dir}/app/tmp
+            mkdir -p ${target.dir}/var/lib/dramatiq-prometheus
+            chown -R 65532:65532 ${target.dir}/app/tmp ${target.dir}/var/lib/dramatiq-prometheus
+      outputs:
+        - source: ${target.dir}/app
+          target: /app
+          uid: 0
+          gid: 0
+        - source: ${target.dir}/var/lib/dramatiq-prometheus
+          target: /var/lib/dramatiq-prometheus
+          uid: 65532
+          gid: 65532
+
+    - name: tools
+      contents:
+        packages:
+          - dash
+          - coreutils
+        files:
+          - url: "https://github.com/google/osv-scanner/releases/download/v2.3.3/osv-scanner_linux_amd64"
+            checksum: "sha256:777b4bb7ddd10bdcc8a1aa398d37d05e91e866e7586f9cff3fca2f72b8153033"
+            path: ${source.dir}/osv-scanner
+            spdx:
+              name: osv-scanner
+              version: "v2.3.3"
+              packages:
+                - name: osv-scanner
+                  purl: "pkg:golang/github.com/google/osv-scanner@v2.3.3"
+                  license: Apache-2.0
+            uid: 0
+            gid: 0
+          - url: "https://github.com/sigstore/cosign/releases/download/v2.6.2/cosign-linux-amd64"
+            checksum: "sha256:d437b8f0d30f5dec169337607fcfa0238de1348503e175f1bb5b94330b1ee409"
+            path: ${source.dir}/cosign
+            spdx:
+              name: cosign
+              version: "v2.6.2"
+              packages:
+                - name: cosign
+                  purl: "pkg:golang/github.com/sigstore/cosign@v2.6.2"
+                  license: Apache-2.0
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install binaries
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/usr/local/bin
+            install -m 0755 ${source.dir}/osv-scanner ${target.dir}/usr/local/bin/osv-scanner
+            install -m 0755 ${source.dir}/cosign ${target.dir}/usr/local/bin/cosign
+      outputs:
+        - source: ${target.dir}/usr/local/bin
+          target: /usr/local/bin
+          uid: 0
+          gid: 0
+
+  artifacts:
+    - name: dhi.io/python:3.14-debian13@sha256:9ca50fe005c6ff19c38e9378f3d97704ed3431718b66ab0488a4941966d18adf
+      includes:
+        - opt/**
+        - usr/local/**
+      uid: 0
+      gid: 0
+
+accounts:
+  run-as: nonroot
+  users:
+    - name: nonroot
+      uid: 65532
+      gid: 65532
+  groups:
+    - name: nonroot
+      gid: 65532
+      members:
+        - nonroot
+
+environment:
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+  PROMETHEUS_MULTIPROC_DIR: /var/lib/dramatiq-prometheus
+  HOME: /tmp
+  PATH: /app/.venv/bin:/usr/local/bin:/usr/bin:/bin
+
+annotations:
+  org.opencontainers.image.description: sbomify application server
+  org.opencontainers.image.licenses: Apache-2.0
+  org.opencontainers.image.source: https://github.com/sbomify/sbomify
+
+work-dir: /app
+
+entrypoint:
+  - gunicorn
+
+cmd:
+  - sbomify.asgi:application
+  - --bind
+  - 0.0.0.0:8000
+  - --workers
+  - "2"
+  - --worker-class
+  - uvicorn_worker.UvicornWorker
+  - --graceful-timeout
+  - "30"
+  - --timeout
+  - "120"
+
+ports:
+  - 8000/tcp
