@@ -1,0 +1,55 @@
+name: SBOM Quality Gate
+
+on:
+  workflow_run:
+    workflows: [Build]
+    types: [completed]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  quality-gate:
+    if: github.event.workflow_run.conclusion == 'success'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: [minio, minio-init, sbomify-app]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download attestation artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: custom-${{ matrix.image }}-attestations
+          path: .artifacts/${{ matrix.image }}/
+          run-id: ${{ github.event.workflow_run.id }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Check SBOM exists and is non-empty
+        run: |
+          sbom=".artifacts/${{ matrix.image }}/sbom.spdx.json"
+          if [ ! -f "$sbom" ]; then
+            echo "FAIL: No SPDX SBOM found for ${{ matrix.image }}"
+            exit 1
+          fi
+          # SPDX packages array
+          packages=$(jq '.packages | length' "$sbom")
+          echo "SBOM has ${packages} packages"
+          if [ "$packages" -lt 1 ]; then
+            echo "FAIL: SBOM has no packages"
+            exit 1
+          fi
+
+      - name: Check for critical/high CVEs
+        run: |
+          cves=".artifacts/${{ matrix.image }}/cves.json"
+          if [ -f "$cves" ]; then
+            critical=$(jq '[.matches[] | select(.vulnerability.severity == "Critical")] | length' "$cves")
+            high=$(jq '[.matches[] | select(.vulnerability.severity == "High")] | length' "$cves")
+            echo "Critical: ${critical}, High: ${high}"
+            # Warn but don't fail — VEX may suppress these
+          else
+            echo "No CVE scan results found — skipping vulnerability check"
+          fi

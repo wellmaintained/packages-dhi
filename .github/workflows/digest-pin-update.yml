@@ -1,0 +1,63 @@
+name: Update DHI Digest Pins
+
+on:
+  schedule:
+    - cron: '0 6 * * 1'  # Weekly, Monday 06:00 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-digests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install just
+        uses: extractions/setup-just@v2
+
+      - name: Login to dhi.io
+        run: echo "${{ secrets.DHI_TOKEN }}" | docker login dhi.io -u "${{ secrets.DHI_USERNAME }}" --password-stdin
+
+      - name: Save current digests
+        run: cp .github/image-manifest.json /tmp/manifest-before.json
+
+      - name: Pin latest digests
+        run: just update
+
+      - name: Check for changes
+        id: diff
+        run: |
+          if diff -q .github/image-manifest.json /tmp/manifest-before.json > /dev/null; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "changed=true" >> "$GITHUB_OUTPUT"
+            echo "Digest changes detected:"
+            diff /tmp/manifest-before.json .github/image-manifest.json || true
+          fi
+
+      - name: Create PR
+        if: steps.diff.outputs.changed == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          branch="update-dhi-digests-$(date +%Y%m%d)"
+          git checkout -b "$branch"
+          git add .github/image-manifest.json
+          git commit -m "chore: update DHI stock image and tool digest pins"
+          git push -u origin HEAD
+          gh pr create \
+            --title "Update DHI digest pins" \
+            --body "$(cat <<'PREOF'
+          ## Summary
+          - Weekly digest pin update detected new DHI image versions
+          - Quality gate will validate the updated images
+
+          ## Changed digests
+          $(diff /tmp/manifest-before.json .github/image-manifest.json || true)
+          PREOF
+          )"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
