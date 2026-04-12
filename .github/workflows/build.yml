@@ -49,14 +49,6 @@ jobs:
           name: stock-dhi-attestations
           path: .artifacts/
 
-      - name: Upload lock files
-        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
-        with:
-          name: image-lock-files
-          path: |
-            common/tool-images.lock.yaml
-            apps/sbomify/app-images.lock.yaml
-
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
     needs: resolve-images
