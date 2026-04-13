@@ -114,63 +114,6 @@ build image:
 
 # ── Stock DHI Images ──────────────────────────────
 
-# Build the experimental Dalec-based MinIO image (local only)
-build-minio-dalec:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    def="common/images/minio-by-dalec/dalec.yaml"
-    tag="ghcr.io/wellmaintained/minio-by-dalec:dev"
-    out="{{artifacts_dir}}/minio-by-dalec"
-    mkdir -p "$out"
-
-    echo "=== Building Dalec MinIO (target: trixie/testing/container) ==="
-    docker buildx build \
-        -f "${def}" \
-        --target trixie/testing/container \
-        --platform linux/amd64 \
-        --sbom=true \
-        --provenance=true \
-        --tag "${tag}" \
-        --load \
-        .
-
-    echo ""
-    echo "=== Extracting SBOM from image attestation ==="
-    # Export as OCI to access attestation layers directly
-    docker save "${tag}" -o "${out}/image.tar"
-    # Extract SBOM from attestation manifest in the containerd image store
-    docker buildx imagetools inspect "${tag}" --raw 2>/dev/null | \
-        jq -r '.manifests[]? | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest") | .digest' | \
-        head -1 | while read digest; do
-            if [ -n "$digest" ]; then
-                docker buildx imagetools inspect "${tag}@${digest}" --raw 2>/dev/null | \
-                    jq -r '.layers[]? | select(.annotations["in-toto.io/predicate-type"] | test("spdx")) | .digest' | \
-                    head -1 | while read layer_digest; do
-                        if [ -n "$layer_digest" ]; then
-                            echo "  Found SBOM attestation layer: ${layer_digest}"
-                        fi
-                    done
-            fi
-        done || true
-    # Fallback: use syft to scan the image for SBOM comparison
-    echo ""
-    echo "=== Generating syft SPDX SBOM (for comparison) ==="
-    {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/minio-by-dalec/image.tar" -o spdx-json > "${out}/sbom.spdx.json" 2>/dev/null \
-        && echo "  saved ${out}/sbom.spdx.json ($(jq '.packages | length' "${out}/sbom.spdx.json") packages)" \
-        || echo "  (syft scan failed)"
-    rm -f "${out}/image.tar"
-
-    echo ""
-    echo "=== Quick smoke test ==="
-    docker run --rm --entrypoint /usr/bin/minio "${tag}" --version
-    docker run --rm --entrypoint /usr/bin/mc "${tag}" --version
-
-    echo ""
-    echo "=== Artifacts ==="
-    ls -lh "${out}/"
-
-# ── Stock DHI Images ──────────────────────────────
-
 # Extract attestations for all stock DHI images
 extract-dhi-attestations:
     {{repo_root}}/scripts/extract-dhi-attestations
