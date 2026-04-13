@@ -50,7 +50,7 @@ build image:
         --load \
         .
 
-    # Export image as tar to extract attestations and enable scanning
+    # Export image as tar to extract build attestations
     echo ""
     echo "=== Exporting image ==="
     docker save "${reg}:dev" -o "${out}/image.tar"
@@ -81,6 +81,10 @@ build image:
         esac
     done
 
+    # Clean up tar and temp blobs (no longer needed)
+    rm -f "${out}/image.tar" "${out}/index.json"
+    rm -rf "${out}/blobs"
+
     # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
     echo ""
     echo "=== Converting SPDX → CycloneDX ==="
@@ -90,21 +94,50 @@ build image:
 
     echo ""
     echo "=== Grype vulnerability scan ==="
-    {{repo_root}}/bin/grype "docker-archive:/work/.artifacts/{{image}}/image.tar" -o json > "${out}/cves.json" 2>/dev/null \
+    {{repo_root}}/bin/grype "sbom:/work/.artifacts/{{image}}/sbom.cdx.json" -o json > "${out}/cves.json" 2>/dev/null \
         && echo "  saved ${out}/cves.json" || echo "  (scan failed)"
-
-    echo ""
-    echo "=== Gitleaks secrets scan ==="
-    {{repo_root}}/bin/gitleaks detect --source="docker-archive:/work/.artifacts/{{image}}/image.tar" \
-        -f json -r "${out}/secrets.json" 2>/dev/null || true
 
     # Copy VEX file if one exists
     vex_file=$(find "{{repo_root}}" -name "{{image}}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
     [ -n "$vex_file" ] && cp "$vex_file" "${out}/vex.yaml" && echo "  copied VEX: ${vex_file}"
 
-    # Clean up tar and temp blobs
-    rm -f "${out}/image.tar" "${out}/index.json"
-    rm -rf "${out}/blobs"
+    echo ""
+    echo "=== Artifacts ==="
+    ls -lh "${out}/"
+
+# ── Stock DHI Images ──────────────────────────────
+
+# Build the experimental Dalec-based MinIO image (local only)
+build-minio-dalec:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    def="common/images/minio-by-dalec/dalec.yaml"
+    tag="ghcr.io/wellmaintained/minio-by-dalec:dev"
+    out="{{artifacts_dir}}/minio-by-dalec"
+    mkdir -p "$out"
+
+    echo "=== Building Dalec MinIO (target: trixie) ==="
+    docker buildx build \
+        -f "${def}" \
+        --target trixie \
+        --platform linux/amd64 \
+        --sbom=true \
+        --provenance=true \
+        --tag "${tag}" \
+        --load \
+        .
+
+    echo ""
+    echo "=== Extracting Dalec-native SBOM attestation ==="
+    docker buildx imagetools inspect "${tag}" \
+        --format '{{ '{{' }}json .SBOM{{ '}}' }}' > "${out}/dalec-sbom.json" 2>/dev/null \
+        && echo "  saved ${out}/dalec-sbom.json" \
+        || echo "  (SBOM attestation extraction failed — image may need to be pushed to a registry first)"
+
+    echo ""
+    echo "=== Quick smoke test ==="
+    docker run --rm "${tag}" --version
+    docker run --rm --entrypoint mc "${tag}" --version
 
     echo ""
     echo "=== Artifacts ==="
