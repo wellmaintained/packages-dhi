@@ -88,9 +88,10 @@ build image:
     # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
     echo ""
     echo "=== Converting SPDX → CycloneDX ==="
-    {{repo_root}}/bin/syft convert "/work/.artifacts/{{image}}/sbom.spdx.json" -o cyclonedx-json > "${out}/sbom.cdx.json"
-    cdx_count=$(jq '.components | length' "${out}/sbom.cdx.json")
-    echo "  CycloneDX SBOM: ${cdx_count} components"
+    {{repo_root}}/bin/sbom-convert convert "${out}/sbom.spdx.json" -f cyclonedx -o "${out}/sbom.cdx.json"
+    cdx_components=$(jq '.components | length' "${out}/sbom.cdx.json")
+    cdx_deps=$(jq '.dependencies | length' "${out}/sbom.cdx.json")
+    echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"
 
     echo ""
     echo "=== Grype vulnerability scan ==="
@@ -122,10 +123,10 @@ build-minio-dalec:
     out="{{artifacts_dir}}/minio-by-dalec"
     mkdir -p "$out"
 
-    echo "=== Building Dalec MinIO (target: trixie) ==="
+    echo "=== Building Dalec MinIO (target: trixie/testing/container) ==="
     docker buildx build \
         -f "${def}" \
-        --target trixie \
+        --target trixie/testing/container \
         --platform linux/amd64 \
         --sbom=true \
         --provenance=true \
@@ -134,16 +135,35 @@ build-minio-dalec:
         .
 
     echo ""
-    echo "=== Extracting Dalec-native SBOM attestation ==="
-    docker buildx imagetools inspect "${tag}" \
-        --format '{{ '{{' }}json .SBOM{{ '}}' }}' > "${out}/dalec-sbom.json" 2>/dev/null \
-        && echo "  saved ${out}/dalec-sbom.json" \
-        || echo "  (SBOM attestation extraction failed — image may need to be pushed to a registry first)"
+    echo "=== Extracting SBOM from image attestation ==="
+    # Export as OCI to access attestation layers directly
+    docker save "${tag}" -o "${out}/image.tar"
+    # Extract SBOM from attestation manifest in the containerd image store
+    docker buildx imagetools inspect "${tag}" --raw 2>/dev/null | \
+        jq -r '.manifests[]? | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest") | .digest' | \
+        head -1 | while read digest; do
+            if [ -n "$digest" ]; then
+                docker buildx imagetools inspect "${tag}@${digest}" --raw 2>/dev/null | \
+                    jq -r '.layers[]? | select(.annotations["in-toto.io/predicate-type"] | test("spdx")) | .digest' | \
+                    head -1 | while read layer_digest; do
+                        if [ -n "$layer_digest" ]; then
+                            echo "  Found SBOM attestation layer: ${layer_digest}"
+                        fi
+                    done
+            fi
+        done || true
+    # Fallback: use syft to scan the image for SBOM comparison
+    echo ""
+    echo "=== Generating syft SPDX SBOM (for comparison) ==="
+    {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/minio-by-dalec/image.tar" -o spdx-json > "${out}/sbom.spdx.json" 2>/dev/null \
+        && echo "  saved ${out}/sbom.spdx.json ($(jq '.packages | length' "${out}/sbom.spdx.json") packages)" \
+        || echo "  (syft scan failed)"
+    rm -f "${out}/image.tar"
 
     echo ""
     echo "=== Quick smoke test ==="
-    docker run --rm "${tag}" --version
-    docker run --rm --entrypoint mc "${tag}" --version
+    docker run --rm --entrypoint /usr/bin/minio "${tag}" --version
+    docker run --rm --entrypoint /usr/bin/mc "${tag}" --version
 
     echo ""
     echo "=== Artifacts ==="
