@@ -35,6 +35,15 @@ runs:
       with:
         driver: docker
 
+    - name: Disable Docker credential store
+      shell: bash
+      run: |
+        mkdir -p ~/.docker
+        [ -f ~/.docker/config.json ] || echo '{}' > ~/.docker/config.json
+        # Ensure docker login writes plaintext tokens to config.json so that
+        # extracted DHI tool binaries (crane, cosign) can read them directly
+        tmp=$(jq 'del(.credsStore)' ~/.docker/config.json) && echo "$tmp" > ~/.docker/config.json
+
     - name: Login to dhi.io
       if: inputs.dhi-login == 'true'
       shell: bash
