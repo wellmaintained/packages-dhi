@@ -46,6 +46,8 @@ build image:
         --platform linux/amd64 \
         --sbom=generator=dhi.io/scout-sbom-indexer:1 \
         --provenance=1 \
+        ${BUILDX_CACHE_FROM:+--cache-from "type=local,src=${BUILDX_CACHE_FROM}"} \
+        ${BUILDX_CACHE_TO:+--cache-to "type=local,dest=${BUILDX_CACHE_TO},mode=max"} \
         --tag "${reg}:dev" \
         --load \
         .
