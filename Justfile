@@ -47,8 +47,13 @@ build image:
         --sbom=generator=dhi.io/scout-sbom-indexer:1 \
         --provenance=1 \
         --tag "${reg}:dev" \
-        --output "type=oci,dest=${out}/image.tar" \
+        --load \
         .
+
+    # Export image as tar to extract build attestations
+    echo ""
+    echo "=== Exporting image ==="
+    docker save "${reg}:dev" -o "${out}/image.tar"
 
     # Extract SPDX SBOM and SLSA provenance from build attestations
     echo ""

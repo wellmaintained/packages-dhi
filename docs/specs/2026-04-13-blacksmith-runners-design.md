@@ -2,75 +2,84 @@
 
 ## Problem
 
-The Build workflow on PRs runs on GitHub-hosted `ubuntu-latest` runners with no persistent Docker cache. Every run cold-pulls tool images from dhi.io, re-downloads Go modules, and recompiles Go binaries from source. The Go compilation of minio server and mc client dominates wall-clock time.
+The Build workflow on PRs runs on GitHub-hosted `ubuntu-latest` runners. The Go compilation of minio server and mc client dominates wall-clock time. Total pipeline takes ~7 minutes.
 
 ## Decision
 
-Switch the Build workflow to Blacksmith runners with per-image sticky disks caching Docker's entire data directory. Keep all other workflows on `ubuntu-latest` for now.
+Switch the Build workflow to Blacksmith runners (`blacksmith-2vcpu-ubuntu-2204`). No caching infrastructure — just faster hardware.
 
-## Constraints
+## Result
 
-- **Local/CI parity**: the Justfile and build scripts must work identically in CI and on developer machines. No CI-only build paths.
-- **Attestation preservation**: `--sbom` and `--provenance` flags with `--load` require `driver: docker` + containerd-snapshotter. This rules out Blacksmith's `setup-docker-builder` action (which uses a `remote` driver that drops attestations on `--load`).
-- **Parallel matrix jobs**: the Build workflow runs `custom-dhi-builds` as a matrix across images (minio, hugo, sbom-convert). Shared sticky disks under parallel writes are last-writer-wins, so each image needs its own disk.
+**~55% faster builds** (7m → ~3m 10s) with a one-line `runs-on` change per job. No changes to the Justfile, build scripts, or local development workflow.
 
-## Design
+## What we tried
 
-### Runner change
+### 1. Blacksmith runners only (adopted)
 
-All jobs in the Build workflow switch from `ubuntu-latest` to `blacksmith-2vcpu-ubuntu-2204`, including `resolve-images` (which doesn't use Docker but benefits from faster boot and network).
+Changed `runs-on: ubuntu-latest` → `runs-on: blacksmith-2vcpu-ubuntu-2204` across all Build workflow jobs. Kept the existing `docker` driver with containerd-snapshotter.
 
-### Per-image sticky disk for Docker cache
+**Result: ~55% faster.** Minio dropped from 6m 45s to ~2m 37s. The speedup comes from faster CPU (Go compilation) and faster NVMe I/O.
 
-The `setup-pipeline` composite action gains:
-- A new optional input `cache-key` (string, default empty)
-- When `cache-key` is set: stop Docker, mount a sticky disk at `/var/lib/docker` keyed to `docker-<cache-key>`, then configure containerd-snapshotter and restart Docker
-- When `cache-key` is empty: current behavior (no sticky disk)
+### 2. Sticky disk at `/var/lib/docker` (rejected)
 
-The sticky disk is mounted **before** the containerd-snapshotter daemon.json is written and Docker is restarted, so Docker starts with the cached state.
+Mounted a Blacksmith sticky disk over Docker's entire data directory to persist BuildKit's internal cache.
 
-### Build workflow changes
+**Result: containerd metadata corruption.** The containerd-snapshotter stores metadata in a bolt DB that references snapshot IDs by content hash. Restoring `/var/lib/docker` from a snapshot causes `"parent snapshot does not exist: not found"` errors because the metadata DB references snapshots that don't match the restored blobs.
 
-- `custom-dhi-builds` passes `cache-key: ${{ matrix.image }}` to `setup-pipeline`
-- `stock-dhi-images` passes `cache-key: stock-attestations` to `setup-pipeline`
-- `resolve-images` does not use `setup-pipeline` (no Docker needed), stays simple
+Also required stopping Docker before the sticky disk post-job unmount (`sudo systemctl stop docker docker.socket` with `if: always()`) because Docker holds `/var/lib/docker` busy.
 
-### What the cache captures
+### 3. `--cache-to/--cache-from type=local` with sticky disk (rejected)
 
-Each per-image sticky disk persists:
-- **BuildKit layer cache** — Go module downloads and compilation layers are reused when the DHI yaml hasn't changed
-- **Pulled container images** — tool images (grype, syft, gitleaks, etc.), build frontend (`dhi.io/build:2-debian13`), build SDK (`dhi.io/golang:...`)
-- **Previously built images** — available immediately for `docker save` and scanning
+Mounted a sticky disk at `/tmp/buildx-cache` (separate from `/var/lib/docker`) and used `--cache-to type=local,dest=/tmp/buildx-cache,mode=max` and `--cache-from type=local,src=/tmp/buildx-cache`.
 
-### Cache lifecycle
+**Result: cache export works, import silently fails.** The `docker` driver has unreliable `type=local` cache import even with containerd-snapshotter enabled. This is a known BuildKit limitation. 70+ build steps, only 1 showed CACHED.
 
-- First run per image: cold build (same as today)
-- Subsequent runs: warm cache, Go compilation skipped on cache hit
-- Eviction: 7 days of inactivity (any PR build resets the timer)
-- Corruption: a stale or corrupt cache results in a cold build — no worse than today
+### 4. Blacksmith's `setup-docker-builder` with remote driver (rejected)
 
-### What doesn't change
+Switched to `useblacksmith/setup-docker-builder` which uses a `remote` BuildKit driver with built-in sticky disk caching at `/var/lib/buildkit`. Changed Justfile to use `--output type=oci,dest=file.tar` since the remote driver drops attestations on `--load`.
 
-- Justfile and build scripts — untouched
-- Local development workflow — identical
-- Attestation extraction (`--load`, `docker save`, tar parsing) — unchanged
-- Buildx driver (`docker`) — unchanged
-- containerd-snapshotter configuration — unchanged
-- Other workflows (pre-release, rescan, deploy, digest-pin-update) — unchanged
+**Result: DHI pipeline steps are uncacheable.** The DHI frontend (`# syntax=dhi.io/build:2-debian13`) marks all pipeline steps with `ignore_cache`. Even trivial `echo` steps re-execute on every build. Confirmed by adding test steps and observing they never show CACHED across runs.
 
-## Setup-pipeline action sequence (revised)
+Additional findings:
+- `type=docker` output format cannot export manifest lists (needed for attestations) — must use `type=oci`
+- `docker load` cannot import OCI-format tars — different internal layout
+- `useblacksmith/setup-docker-builder` uses a single repo-scoped sticky disk with no per-key scoping — matrix jobs suffer last-writer-wins. Fixed by mounting our own `useblacksmith/stickydisk` at `/var/lib/buildkit` before the builder action, keyed per image.
+- The 70 cached layers (Debian package downloads, base image setup) save negligible time because those downloads already complete in <0.1s on Blacksmith's network
+- The cache infrastructure overhead (sticky disk mount, buildkitd startup, OCI export) actually made builds ~30s slower than the simple setup
 
-1. Install Just
-2. (If `cache-key` set) Stop Docker daemon
-3. (If `cache-key` set) Mount sticky disk at `/var/lib/docker` with key `docker-<cache-key>`
-4. Write containerd-snapshotter daemon.json
-5. Start/restart Docker daemon (always — with or without sticky disk, since containerd-snapshotter requires a restart regardless)
-6. Set up Docker Buildx with `driver: docker`
-7. Login to dhi.io (if configured)
-8. Login to GHCR (if configured)
+### 5. Per-image sticky disk with Blacksmith builder (rejected)
+
+Added `useblacksmith/stickydisk` keyed to `buildkit-${{ matrix.image }}` before `setup-docker-builder` to give each matrix job its own persistent BuildKit cache.
+
+**Result: cache mechanism works correctly** (70 CACHED layers, cache.db grows from 0.03 MB to 1.00 MB, persists across runs), but provides no meaningful speedup because the cached layers are already fast and the expensive pipeline steps (Go compilation) are uncacheable.
+
+## Key findings
+
+1. **DHI pipeline steps are uncacheable.** The DHI build frontend sets `ignore_cache` on all pipeline operations. This is not caused by `privileged: true` — BuildKit caches privileged steps normally (the security mode is part of the cache key, not a bypass flag). The DHI frontend itself makes this choice, likely for reproducibility guarantees.
+
+2. **`privileged: true` in DHI means network access, not `--security=insecure`.** Non-privileged DHI steps run hermetically (no network). This is separate from BuildKit's privilege escalation.
+
+3. **Blacksmith hardware alone provides the biggest win.** Faster CPU and NVMe I/O cut Go compilation time by ~60%. No cache infrastructure needed.
+
+4. **The `docker` driver with containerd-snapshotter is the simplest correct setup.** It supports `--load` with attestations preserved, works identically locally and in CI, and requires no special configuration beyond the daemon.json change.
+
+5. **`useblacksmith/setup-docker-builder` doesn't support matrix builds.** Its sticky disk is repo-scoped with no key parameter. Parallel matrix jobs share one disk with last-writer-wins semantics.
+
+## Implementation
+
+Only two files change:
+
+**`.github/workflows/build.yml`** — change `runs-on` for all three jobs:
+```yaml
+runs-on: blacksmith-2vcpu-ubuntu-2204  # was: ubuntu-latest
+```
+
+**`.github/actions/setup-pipeline/action.yml`** — unchanged from the original. Keeps `docker` driver, containerd-snapshotter, and registry logins.
+
+**Justfile** — unchanged. `just build` works identically locally and in CI.
 
 ## Future considerations
 
-- If cold builds remain slow, bump to `blacksmith-4vcpu-ubuntu-2204`
-- Other workflows (pre-release, rescan) could adopt Blacksmith runners independently once the Build workflow is validated
-- If Blacksmith's `setup-docker-builder` ever supports containerd-snapshotter or attestation preservation on `--load`, the sticky disk approach could be replaced with their native Docker layer caching
+- If DHI adds cache support for pipeline steps, revisit the Blacksmith builder + per-image sticky disk approach
+- If cold builds remain too slow, bump to `blacksmith-4vcpu-ubuntu-2204`
+- Other workflows (pre-release, rescan) could adopt Blacksmith runners independently
