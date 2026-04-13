@@ -88,7 +88,7 @@ build image:
     # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
     echo ""
     echo "=== Converting SPDX → CycloneDX ==="
-    {{repo_root}}/bin/sbom-convert convert "${out}/sbom.spdx.json" -f cyclonedx -o "${out}/sbom.cdx.json"
+    {{repo_root}}/bin/sbom-convert convert "/work/.artifacts/{{image}}/sbom.spdx.json" -f cyclonedx -o "/work/.artifacts/{{image}}/sbom.cdx.json"
     cdx_components=$(jq '.components | length' "${out}/sbom.cdx.json")
     cdx_deps=$(jq '.dependencies | length' "${out}/sbom.cdx.json")
     echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"

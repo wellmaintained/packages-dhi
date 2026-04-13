@@ -1,0 +1,57 @@
+# syntax=dhi.io/build:2-alpine3.23
+
+name: SBOM Format Converter
+image: ghcr.io/wellmaintained/sbom-convert
+variant: runtime
+tags:
+  - latest
+  - "0.0.7"
+platforms:
+  - linux/amd64
+
+contents:
+  repositories:
+    - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+  packages:
+    - alpine-baselayout-data
+    - ca-certificates-bundle
+  builds:
+    - name: sbom-convert
+      contents:
+        repositories:
+          - https://dl-cdn.alpinelinux.org/alpine/v3.23/main
+        packages:
+          - ca-certificates
+        files:
+          - url: https://github.com/protobom/sbom-convert/releases/download/v0.0.7/sbom-convert_linux_amd64.tar.gz
+            checksum: "sha256:79e581fa36a0d05c1e29130494f1757672f5e12d209e9b6270b7b17b70fe6a58"
+            path: ${source.dir}/sbom-convert.tar.gz
+            spdx:
+              name: sbom-convert
+              version: "0.0.7"
+              packages:
+                - name: sbom-convert
+                  purl: "pkg:golang/github.com/protobom/sbom-convert@v0.0.7"
+                  license: Apache-2.0
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: install sbom-convert
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/usr/local/bin
+            cd ${source.dir}
+            tar xzf sbom-convert.tar.gz sbom-convert
+            install -m 0755 sbom-convert ${target.dir}/usr/local/bin/sbom-convert
+      outputs:
+        - source: ${target.dir}/usr/local/bin
+          target: /usr/local/bin
+          uid: 0
+          gid: 0
+
+annotations:
+  org.opencontainers.image.description: SBOM format converter (SPDX <-> CycloneDX) with relationship preservation
+  org.opencontainers.image.licenses: Apache-2.0
+
+entrypoint:
+  - /usr/local/bin/sbom-convert
