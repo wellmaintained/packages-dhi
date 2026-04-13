@@ -5,8 +5,6 @@ on:
     paths:
       - 'common/**'
       - 'apps/**'
-      - 'common/tool-images.yaml'
-      - 'apps/sbomify/app-images.yaml'
       - '.github/workflows/build.yml'
       - 'scripts/**'
       - 'Justfile'
@@ -15,6 +13,7 @@ on:
 permissions:
   contents: read
   packages: write
+  id-token: write
 
 jobs:
   resolve-images:
@@ -65,6 +64,39 @@ jobs:
 
       - name: Build image and generate compliance artifacts
         run: just build ${{ matrix.image }}
+
+      - name: Compute component tag
+        id: tag
+        run: |
+          SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
+          SHA7="${SHA7::7}"
+          IMAGE="${{ matrix.image }}"
+          VERSION=$(just _image-version "$IMAGE")
+          COMPONENT_TAG="${IMAGE}-${VERSION}-${SHA7}"
+          REG=$(just _image-registry "$IMAGE")
+          echo "component_tag=${COMPONENT_TAG}" >> "$GITHUB_OUTPUT"
+          echo "registry=${REG}" >> "$GITHUB_OUTPUT"
+          echo "==> Component tag: ${COMPONENT_TAG}"
+
+      - name: Push to GHCR with component tag
+        run: |
+          docker tag "${{ steps.tag.outputs.registry }}:dev" "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
+          docker push "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
+
+      - name: Sign image
+        run: ./bin/cosign sign --yes "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
+
+      - name: Attest SBOM
+        run: |
+          ./bin/cosign attest --yes --type cyclonedx \
+            --predicate ".artifacts/${{ matrix.image }}/sbom.cdx.json" \
+            "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
+
+      - name: Attest provenance
+        run: |
+          ./bin/cosign attest --yes --type slsaprovenance \
+            --predicate ".artifacts/${{ matrix.image }}/provenance.slsa.json" \
+            "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
