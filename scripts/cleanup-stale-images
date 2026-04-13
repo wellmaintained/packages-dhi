@@ -1,0 +1,78 @@
+#!/usr/bin/env bash
+# scripts/cleanup-stale-images — Delete stale component-tagged images from GHCR.
+#
+# Sweeps image versions that have no released-on: tag and are older than N days.
+#
+# Usage:
+#   scripts/cleanup-stale-images sweep --image NAME [--days N]
+#
+# Requires: gh (GitHub CLI) with packages:write permission
+set -euo pipefail
+
+ORG="${GHCR_ORG:-wellmaintained}"
+RELEASED_TAG_RE="${RELEASED_TAG_RE:-^released-on:}"
+
+usage() {
+  cat >&2 <<EOF
+Usage: $0 sweep --image NAME [--days N]  (default: 7 days)
+
+Environment:
+  GHCR_ORG            Organization name (default: wellmaintained)
+  GH_TOKEN            GitHub token with packages:write
+EOF
+  exit 1
+}
+
+delete_versions() {
+  local image="$1"
+  local jq_filter="$2"
+
+  local version_ids
+  version_ids=$(gh api \
+    "/orgs/${ORG}/packages/container/${image}/versions" \
+    --paginate \
+    --jq "${jq_filter}" \
+    2>/dev/null || true)
+
+  if [[ -z "$version_ids" ]]; then
+    echo "  No matching images found." >&2
+    return 0
+  fi
+
+  local count=0
+  while IFS= read -r version_id; do
+    [[ -z "$version_id" ]] && continue
+    echo "  Deleting version ${version_id}..." >&2
+    gh api --method DELETE \
+      "/orgs/${ORG}/packages/container/${image}/versions/${version_id}" \
+      2>/dev/null || echo "  WARNING: Failed to delete version ${version_id}" >&2
+    count=$((count + 1))
+  done <<< "$version_ids"
+
+  echo "  Deleted ${count} version(s)." >&2
+}
+
+cmd_sweep() {
+  local image="" days=7
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      --image) image="$2"; shift 2 ;;
+      --days) days="$2"; shift 2 ;;
+      *) echo "Unknown option: $1" >&2; usage ;;
+    esac
+  done
+  [[ -z "$image" ]] && { echo "ERROR: --image required" >&2; usage; }
+
+  local cutoff
+  cutoff=$(date -u -d "${days} days ago" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null \
+    || date -u -v-"${days}"d '+%Y-%m-%dT%H:%M:%SZ')
+
+  echo "==> Sweeping stale images for ${image} (older than ${cutoff})" >&2
+  delete_versions "$image" \
+    ".[] | select((.metadata.container.tags | length > 0) and (.metadata.container.tags | all(test(\"${RELEASED_TAG_RE}\") | not)) and (.updated_at < \"${cutoff}\")) | .id"
+}
+
+case "${1:-}" in
+  sweep) shift; cmd_sweep "$@" ;;
+  *) usage ;;
+esac
