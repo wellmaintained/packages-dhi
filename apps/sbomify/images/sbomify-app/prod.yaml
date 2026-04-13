@@ -39,12 +39,16 @@ contents:
             uid: 0
             gid: 0
       pipeline:
-        - name: install and build frontend
+        - name: install frontend dependencies
           work-dir: ${source.dir}/sbomify
           privileged: true
           runs: |
             set -eux -o pipefail
             bun install --frozen-lockfile
+        - name: build frontend
+          work-dir: ${source.dir}/sbomify
+          runs: |
+            set -eux -o pipefail
             bun run copy-deps
             bun x vite build
             # Stage compiled frontend assets for the final image

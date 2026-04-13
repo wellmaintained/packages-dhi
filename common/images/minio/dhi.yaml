@@ -29,12 +29,16 @@ contents:
             uid: 0
             gid: 0
       pipeline:
-        - name: build minio server
+        - name: download go modules
           work-dir: ${source.dir}/minio
           privileged: true
           runs: |
             set -eux -o pipefail
             go mod download
+        - name: compile minio server
+          work-dir: ${source.dir}/minio
+          runs: |
+            set -eux -o pipefail
             CGO_ENABLED=0 go build \
               -tags kqueue \
               -trimpath \
@@ -75,12 +79,16 @@ contents:
             uid: 0
             gid: 0
       pipeline:
-        - name: build mc client
+        - name: download go modules
           work-dir: ${source.dir}/mc
           privileged: true
           runs: |
             set -eux -o pipefail
             go mod download
+        - name: compile mc client
+          work-dir: ${source.dir}/mc
+          runs: |
+            set -eux -o pipefail
             GO111MODULE=on CGO_ENABLED=0 go build \
               -trimpath \
               -tags kqueue \
