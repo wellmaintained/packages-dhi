@@ -50,18 +50,41 @@ build image:
         --load \
         .
 
-    # Export image as tar so containerised tools can access it
+    # Export image as tar to extract attestations and enable scanning
     echo ""
-    echo "=== Exporting image for scanning ==="
+    echo "=== Exporting image ==="
     docker save "${reg}:dev" -o "${out}/image.tar"
 
+    # Extract SPDX SBOM and SLSA provenance from build attestations
+    echo ""
+    echo "=== Extracting build attestations ==="
+    tar -xf "${out}/image.tar" -C "${out}" index.json
+    manifest_list_digest=$(jq -r '.manifests[0].digest' "${out}/index.json" | cut -d: -f2)
+    tar -xf "${out}/image.tar" -C "${out}" "blobs/sha256/${manifest_list_digest}"
+    att_digest=$(jq -r '.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest") | .digest' "${out}/blobs/sha256/${manifest_list_digest}" | cut -d: -f2)
+    tar -xf "${out}/image.tar" -C "${out}" "blobs/sha256/${att_digest}"
+
+    for layer in $(jq -r '.layers[] | @base64' "${out}/blobs/sha256/${att_digest}"); do
+        predicate_type=$(echo "$layer" | base64 -d | jq -r '.annotations["in-toto.io/predicate-type"]')
+        layer_digest=$(echo "$layer" | base64 -d | jq -r '.digest' | cut -d: -f2)
+        tar -xf "${out}/image.tar" -C "${out}" "blobs/sha256/${layer_digest}"
+        case "$predicate_type" in
+            *spdx*)
+                jq '.predicate' "${out}/blobs/sha256/${layer_digest}" > "${out}/sbom.spdx.json"
+                pkg_count=$(jq '.packages | length' "${out}/sbom.spdx.json")
+                echo "  SPDX SBOM: ${pkg_count} packages"
+                ;;
+            *provenance*)
+                jq '.predicate' "${out}/blobs/sha256/${layer_digest}" > "${out}/provenance.slsa.json"
+                echo "  SLSA provenance extracted"
+                ;;
+        esac
+    done
+
+    # Generate CycloneDX SBOM via syft (DHI build produces SPDX, not CycloneDX)
     echo ""
     echo "=== Generating CycloneDX SBOM ==="
     {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/{{image}}/image.tar" -o cyclonedx-json > "${out}/sbom.cdx.json"
-
-    echo ""
-    echo "=== Generating SPDX SBOM ==="
-    {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/{{image}}/image.tar" -o spdx-json > "${out}/sbom.spdx.json"
 
     echo ""
     echo "=== Grype vulnerability scan ==="
@@ -77,8 +100,9 @@ build image:
     vex_file=$(find "{{repo_root}}" -name "{{image}}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
     [ -n "$vex_file" ] && cp "$vex_file" "${out}/vex.yaml" && echo "  copied VEX: ${vex_file}"
 
-    # Clean up tar
-    rm -f "${out}/image.tar"
+    # Clean up tar and temp blobs
+    rm -f "${out}/image.tar" "${out}/index.json"
+    rm -rf "${out}/blobs"
 
     echo ""
     echo "=== Artifacts ==="
