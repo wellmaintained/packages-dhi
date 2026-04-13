@@ -63,14 +63,8 @@ jobs:
           ghcr-username: ${{ github.actor }}
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build image
+      - name: Build image and generate compliance artifacts
         run: just build ${{ matrix.image }}
-
-      - name: Scan image
-        run: just scan ${{ matrix.image }}
-
-      - name: Generate SPDX SBOM
-        run: just sbom-spdx ${{ matrix.image }}
 
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

@@ -31,13 +31,16 @@ build-all:
         done
     done
 
-# Build a custom DHI image locally
+# Build a custom DHI image and produce all compliance artifacts
 build image:
     #!/usr/bin/env bash
     set -euo pipefail
     def=$(just _image-path {{image}})
     reg=$(just _image-registry {{image}})
-    echo "Building ${def} → ${reg}:dev"
+    out="{{artifacts_dir}}/{{image}}"
+    mkdir -p "$out"
+
+    echo "=== Building ${def} → ${reg}:dev ==="
     docker buildx build \
         -f "${def}" \
         --platform linux/amd64 \
@@ -47,25 +50,39 @@ build image:
         --load \
         .
 
-# ── Scan ───────────────────────────────────────────
+    # Export image as tar so containerised tools can access it
+    echo ""
+    echo "=== Exporting image for scanning ==="
+    docker save "${reg}:dev" -o "${out}/image.tar"
 
-# Scan a custom image for vulnerabilities and secrets
-scan image:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    reg=$(just _image-registry {{image}})
+    echo ""
+    echo "=== Generating CycloneDX SBOM ==="
+    {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/{{image}}/image.tar" -o cyclonedx-json > "${out}/sbom.cdx.json"
+
+    echo ""
+    echo "=== Generating SPDX SBOM ==="
+    {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/{{image}}/image.tar" -o spdx-json > "${out}/sbom.spdx.json"
+
+    echo ""
     echo "=== Grype vulnerability scan ==="
-    {{repo_root}}/bin/grype "${reg}:dev"
-    echo "=== Gitleaks secrets scan ==="
-    {{repo_root}}/bin/gitleaks detect --source="${reg}:dev" || true
+    {{repo_root}}/bin/grype "docker-archive:/work/.artifacts/{{image}}/image.tar" -o json > "${out}/cves.json" 2>/dev/null \
+        && echo "  saved ${out}/cves.json" || echo "  (scan failed)"
 
-# Generate SPDX SBOM for a custom image
-sbom-spdx image:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    reg=$(just _image-registry {{image}})
-    mkdir -p {{artifacts_dir}}/{{image}}
-    {{repo_root}}/bin/syft "${reg}:dev" -o spdx-json > {{artifacts_dir}}/{{image}}/sbom.spdx.json
+    echo ""
+    echo "=== Gitleaks secrets scan ==="
+    {{repo_root}}/bin/gitleaks detect --source="docker-archive:/work/.artifacts/{{image}}/image.tar" \
+        -f json -r "${out}/secrets.json" 2>/dev/null || true
+
+    # Copy VEX file if one exists
+    vex_file=$(find "{{repo_root}}" -name "{{image}}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
+    [ -n "$vex_file" ] && cp "$vex_file" "${out}/vex.yaml" && echo "  copied VEX: ${vex_file}"
+
+    # Clean up tar
+    rm -f "${out}/image.tar"
+
+    echo ""
+    echo "=== Artifacts ==="
+    ls -lh "${out}/"
 
 # ── Stock DHI Images ──────────────────────────────
 

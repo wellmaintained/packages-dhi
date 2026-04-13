@@ -45,13 +45,8 @@ jobs:
             ./bin/cosign sign "${reg}:${{ steps.version.outputs.version }}"
           done
 
-      - name: Extract all attestations
-        run: |
-          just extract-dhi-attestations
-          for image in $(./scripts/list-custom-images | jq -r '.[]'); do
-            just scan "$image"
-            just sbom-spdx "$image"
-          done
+      - name: Extract stock image attestations
+        run: just extract-dhi-attestations
 
       - name: Build compliance pack
         run: just compliance-pack ${{ steps.version.outputs.version }}
