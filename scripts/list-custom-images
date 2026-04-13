@@ -1,19 +1,13 @@
 #!/usr/bin/env bash
-# List custom image names as a compact JSON array.
-# Usage: list-custom-images [--app-only]
-#   --app-only  Only list app custom images (excludes tool images)
+# List all custom image names as a compact JSON array.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 TOOL_MANIFEST="${REPO_ROOT}/common/tool-images.yaml"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 
-if [ "${1:-}" = "--app-only" ]; then
-    yq -o=json -I0 '[to_entries[] | select(.value | has("definition")) | .key]' "$APP_MANIFEST"
-else
-    names=""
-    for manifest in "$TOOL_MANIFEST" "$APP_MANIFEST"; do
-        names+=$(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest")$'\n'
-    done
-    echo "$names" | grep -v '^$' | jq -cRn '[inputs]'
-fi
+names=""
+for manifest in "$TOOL_MANIFEST" "$APP_MANIFEST"; do
+    names+=$(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest")$'\n'
+done
+echo "$names" | grep -v '^$' | jq -cRn '[inputs]'

@@ -14,18 +14,18 @@ jobs:
     if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
-      app-images: ${{ steps.images.outputs.app }}
+      custom-images: ${{ steps.images.outputs.custom }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - id: images
-        run: echo "app=$(./scripts/list-custom-images --app-only)" >> "$GITHUB_OUTPUT"
+        run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
 
   quality-gate:
     needs: resolve-images
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ${{ fromJSON(needs.resolve-images.outputs.app-images) }}
+        image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 

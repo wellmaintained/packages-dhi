@@ -23,7 +23,7 @@ jobs:
 
       - name: Scan custom images
         run: |
-          for image in $(./scripts/list-custom-images --app-only | jq -r '.[]'); do
+          for image in $(./scripts/list-custom-images | jq -r '.[]'); do
             echo "=== Scanning ${image} ==="
             reg=$(just _image-registry "$image")
             ./bin/grype "${reg}:latest" -o table || true
