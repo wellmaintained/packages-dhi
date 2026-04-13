@@ -47,6 +47,10 @@ jobs:
           name: stock-dhi-attestations
           path: .artifacts/
 
+      - name: Stop Docker before cache unmount
+        if: always()
+        run: sudo systemctl stop docker docker.socket
+
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
     needs: resolve-images
@@ -73,3 +77,7 @@ jobs:
         with:
           name: custom-${{ matrix.image }}-attestations
           path: .artifacts/${{ matrix.image }}/
+
+      - name: Stop Docker before cache unmount
+        if: always()
+        run: sudo systemctl stop docker docker.socket
