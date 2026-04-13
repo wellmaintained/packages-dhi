@@ -19,7 +19,7 @@ permissions:
 jobs:
   resolve-images:
     name: Resolve image lists
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
     steps:
@@ -29,11 +29,12 @@ jobs:
 
   stock-dhi-images:
     name: Extract DHI attestations
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
+          cache-key: stock-attestations
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
@@ -49,7 +50,7 @@ jobs:
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
     needs: resolve-images
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
     strategy:
       matrix:
         image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
@@ -57,6 +58,7 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
+          cache-key: ${{ matrix.image }}
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
           ghcr-login: true
