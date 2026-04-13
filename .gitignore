@@ -3,3 +3,4 @@ compliance-pack-*.zip
 .compliance-pack/
 .direnv/
 .worktrees/
+.tools/

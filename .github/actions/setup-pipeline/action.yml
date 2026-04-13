@@ -35,19 +35,6 @@ runs:
       with:
         driver: docker
 
-    - name: Ensure Docker config uses plaintext auth (for dhi-tools-shim)
-      shell: bash
-      run: |
-        mkdir -p ~/.docker
-        # Remove credential store so docker login writes tokens to config.json
-        # (the dhi-tools-shim mounts config.json into containers for registry auth)
-        if [ -f ~/.docker/config.json ]; then
-          jq 'del(.credsStore)' ~/.docker/config.json > ~/.docker/config.json.tmp \
-            && mv ~/.docker/config.json.tmp ~/.docker/config.json
-        else
-          echo '{}' > ~/.docker/config.json
-        fi
-
     - name: Login to dhi.io
       if: inputs.dhi-login == 'true'
       shell: bash
