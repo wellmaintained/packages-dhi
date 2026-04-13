@@ -28,7 +28,7 @@ contents:
           - ca-certificates
         files:
           - url: https://github.com/gohugoio/hugo/releases/download/v0.160.1/hugo_extended_0.160.1_linux-amd64.tar.gz
-            checksum: "sha256:cb4106ffd926692b2d0c62f768601f9323faddd4e4ee05d9d58ee0e08de77055"
+            checksum: "sha256:133adf4932c1b626b6fe6aa28d56791555abe3ceff167e03be534e8324c9ed39"
             path: ${source.dir}/hugo.tar.gz
             spdx:
               name: hugo
