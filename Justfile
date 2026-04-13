@@ -46,16 +46,14 @@ build image:
         --platform linux/amd64 \
         --sbom=generator=dhi.io/scout-sbom-indexer:1 \
         --provenance=1 \
-        ${BUILDX_CACHE_FROM:+--cache-from "type=local,src=${BUILDX_CACHE_FROM}"} \
-        ${BUILDX_CACHE_TO:+--cache-to "type=local,dest=${BUILDX_CACHE_TO},mode=max"} \
         --tag "${reg}:dev" \
-        --load \
+        --output "type=oci,dest=${out}/image.tar" \
         .
 
-    # Export image as tar to extract build attestations
+    # Load image into Docker daemon for scanning
     echo ""
-    echo "=== Exporting image ==="
-    docker save "${reg}:dev" -o "${out}/image.tar"
+    echo "=== Loading image ==="
+    docker load -i "${out}/image.tar"
 
     # Extract SPDX SBOM and SLSA provenance from build attestations
     echo ""

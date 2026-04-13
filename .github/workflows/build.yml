@@ -55,13 +55,6 @@ jobs:
         image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-
-      - name: Mount build cache (sticky disk)
-        uses: useblacksmith/stickydisk@v1
-        with:
-          key: buildx-cache-${{ matrix.image }}
-          path: /tmp/buildx-cache
-
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
@@ -72,9 +65,6 @@ jobs:
 
       - name: Build image and generate compliance artifacts
         run: just build ${{ matrix.image }}
-        env:
-          BUILDX_CACHE_FROM: /tmp/buildx-cache
-          BUILDX_CACHE_TO: /tmp/buildx-cache
 
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
