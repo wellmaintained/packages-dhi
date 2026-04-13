@@ -120,8 +120,12 @@ accounts:
         - minio
 
 annotations:
+  org.opencontainers.image.title: minio
+  org.opencontainers.image.version: RELEASE.2025-10-15T17-29-55Z
   org.opencontainers.image.description: A minimal MinIO S3-compatible object storage server with mc client
   org.opencontainers.image.licenses: AGPL-3.0-or-later
+  org.opencontainers.image.vendor: wellmaintained
+  org.opencontainers.image.source: https://github.com/wellmaintained/packages-dhi
 
 entrypoint:
   - /usr/local/bin/minio

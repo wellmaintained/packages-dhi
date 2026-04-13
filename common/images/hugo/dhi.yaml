@@ -54,8 +54,12 @@ contents:
           gid: 0
 
 annotations:
+  org.opencontainers.image.title: hugo
+  org.opencontainers.image.version: "0.160.1"
   org.opencontainers.image.description: Hugo extended static site generator
   org.opencontainers.image.licenses: Apache-2.0
+  org.opencontainers.image.vendor: wellmaintained
+  org.opencontainers.image.source: https://github.com/wellmaintained/packages-dhi
 
 entrypoint:
   - /usr/local/bin/hugo
