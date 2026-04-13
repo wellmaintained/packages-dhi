@@ -47,7 +47,7 @@ build image:
         --sbom=generator=dhi.io/scout-sbom-indexer:1 \
         --provenance=1 \
         --tag "${reg}:dev" \
-        --output "type=oci,dest=${out}/image.tar" \
+        --output "type=docker,dest=${out}/image.tar" \
         .
 
     # Load image into Docker daemon for scanning
