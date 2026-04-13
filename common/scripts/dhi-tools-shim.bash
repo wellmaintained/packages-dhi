@@ -22,6 +22,9 @@ exec docker run --rm \
     -v "$REPO_ROOT:/work" -w /work \
     --user "$(id -u):$(id -g)" \
     --tmpfs /.cache:uid="$(id -u)" \
+    --tmpfs /.sigstore:uid="$(id -u)" \
     -v "${HOME}/.docker/config.json:/tmp/.docker/config.json:ro" \
     -e DOCKER_CONFIG=/tmp/.docker \
+    -e ACTIONS_ID_TOKEN_REQUEST_URL \
+    -e ACTIONS_ID_TOKEN_REQUEST_TOKEN \
     "$IMAGE:$TAG" "$@"

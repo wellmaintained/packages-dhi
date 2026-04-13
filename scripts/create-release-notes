@@ -1,0 +1,79 @@
+#!/usr/bin/env bash
+# scripts/create-release-notes — Generate markdown release notes for an app-collection.
+#
+# Usage:
+#   scripts/create-release-notes \
+#     --app-collection-version VERSION \
+#     --pr-number NUM \
+#     --app-version VERSION \
+#     --sha7 SHA7 \
+#     --output FILE
+#
+# Reads custom image list from scripts/list-custom-images.
+# Requires: crane (via bin/crane), jq, yq
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+usage() {
+  echo "Usage: $0 --app-collection-version VERSION --pr-number NUM --app-version VERSION --sha7 SHA7 --output FILE"
+  exit 1
+}
+
+APP_COLLECTION_VERSION=""
+PR_NUMBER=""
+APP_VERSION=""
+SHA7=""
+OUTPUT=""
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --app-collection-version) APP_COLLECTION_VERSION="$2"; shift 2 ;;
+    --pr-number) PR_NUMBER="$2"; shift 2 ;;
+    --app-version) APP_VERSION="$2"; shift 2 ;;
+    --sha7) SHA7="$2"; shift 2 ;;
+    --output) OUTPUT="$2"; shift 2 ;;
+    *) echo "Unknown option: $1"; usage ;;
+  esac
+done
+
+[[ -z "$APP_COLLECTION_VERSION" || -z "$PR_NUMBER" || -z "$APP_VERSION" || -z "$SHA7" || -z "$OUTPUT" ]] && usage
+
+TOOL_MANIFEST="${REPO_ROOT}/common/tool-images.yaml"
+APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
+
+{
+  echo "## App-Collection: ${APP_COLLECTION_VERSION}"
+  echo ""
+  echo "**Source PR:** #${PR_NUMBER}"
+  echo "**App version:** ${APP_VERSION}"
+  echo ""
+  echo "### Custom Images"
+  echo ""
+  echo "| Image | Component Tag | Digest |"
+  echo "|-------|--------------|--------|"
+} > "$OUTPUT"
+
+for IMAGE in $("${REPO_ROOT}/scripts/list-custom-images" | jq -r '.[]'); do
+  REGISTRY=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$TOOL_MANIFEST" "$APP_MANIFEST" | head -1)
+  [ -z "$REGISTRY" ] && continue
+
+  COMPONENT_TAG=$("${REPO_ROOT}/scripts/resolve-component-tag" \
+    --image "$IMAGE" --sha7 "$SHA7" --registry "$REGISTRY" 2>/dev/null || true)
+  if [ -z "$COMPONENT_TAG" ]; then
+    echo "WARNING: No component tag for ${IMAGE} with SHA ${SHA7}" >&2
+    continue
+  fi
+
+  DIGEST=$("${REPO_ROOT}/bin/crane" digest "${REGISTRY}/${IMAGE}:${COMPONENT_TAG}" 2>/dev/null || echo "unknown")
+  SHORT_DIGEST="${DIGEST::19}"
+
+  echo "| \`${IMAGE}\` | \`${COMPONENT_TAG}\` | \`${SHORT_DIGEST}\` |" >> "$OUTPUT"
+done
+
+echo "" >> "$OUTPUT"
+echo "### Stock DHI Images" >> "$OUTPUT"
+echo "" >> "$OUTPUT"
+echo "Referenced by pinned digest in \`apps/sbomify/app-images.lock.yaml\`." >> "$OUTPUT"
+
+cat "$OUTPUT"

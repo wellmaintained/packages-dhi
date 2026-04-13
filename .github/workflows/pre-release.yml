@@ -8,10 +8,111 @@ on:
 permissions:
   contents: write
   packages: write
+  actions: read
 
 jobs:
-  pre-release:
+  resolve-images:
+    name: Resolve image lists
     runs-on: ubuntu-latest
+    outputs:
+      custom-images: ${{ steps.images.outputs.custom }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - id: images
+        run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
+
+  resolve-pr:
+    name: Resolve source PR
+    runs-on: ubuntu-latest
+    outputs:
+      pr-number: ${{ steps.pr.outputs.number }}
+      sha7: ${{ steps.pr.outputs.sha7 }}
+      build-run-id: ${{ steps.build-run.outputs.run_id }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Find PR from merge commit
+        id: pr
+        run: |
+          PR_JSON=$(gh api "repos/${{ github.repository }}/commits/${{ github.sha }}/pulls" \
+            --jq '.[0] | {number, sha: .head.sha}' 2>/dev/null || echo '{}')
+          PR_NUMBER=$(echo "$PR_JSON" | jq -r '.number // "0"')
+          HEAD_SHA=$(echo "$PR_JSON" | jq -r '.sha // "${{ github.sha }}"')
+          SHA7="${HEAD_SHA::7}"
+          echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
+          echo "sha7=${SHA7}" >> "$GITHUB_OUTPUT"
+          echo "==> PR #${PR_NUMBER}, HEAD SHA: ${HEAD_SHA} (${SHA7})"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Find build workflow run for PR
+        id: build-run
+        run: |
+          SHA7="${{ steps.pr.outputs.sha7 }}"
+          # Find the most recent successful Build workflow run matching the PR head SHA
+          RUN_ID=$(gh run list \
+            --workflow build.yml \
+            --status success \
+            --json databaseId,headSha \
+            --jq ".[] | select(.headSha | startswith(\"${SHA7}\")) | .databaseId" \
+            2>/dev/null | head -1 || true)
+          echo "run_id=${RUN_ID}" >> "$GITHUB_OUTPUT"
+          echo "==> Build workflow run ID: ${RUN_ID:-not found}"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  resolve-version:
+    name: Compute app-collection version
+    needs: resolve-pr
+    runs-on: ubuntu-latest
+    outputs:
+      app-collection-version: ${{ steps.version.outputs.app_collection_version }}
+      app-version: ${{ steps.version.outputs.app_version }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+          ghcr-login: true
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Compute CalVer
+        id: version
+        run: |
+          SHA7="${{ needs.resolve-pr.outputs.sha7 }}"
+          REG=$(just _image-registry sbomify-app)
+
+          # Resolve sbomify-app component tag to extract app version
+          COMPONENT_TAG=$(./scripts/resolve-component-tag \
+            --image sbomify-app --sha7 "$SHA7" --registry "$REG")
+          # Parse: sbomify-app-{version}-{sha7} → extract {version}
+          WITHOUT_SHA="${COMPONENT_TAG%-"${SHA7}"}"
+          APP_VERSION="${WITHOUT_SHA#sbomify-app-}"
+
+          # Compute build number
+          TODAY=$(date -u '+%Y%m%d')
+          PREFIX="sbomify-v${APP_VERSION}-${TODAY}."
+          EXISTING=$(git tag -l "${PREFIX}*" | wc -l)
+          BUILD_NUMBER=$((EXISTING + 1))
+          APP_COLLECTION_VERSION="sbomify-v${APP_VERSION}-${TODAY}.${BUILD_NUMBER}"
+
+          echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "app_collection_version=${APP_COLLECTION_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "==> App-collection version: ${APP_COLLECTION_VERSION}"
+
+  tag-app-collection:
+    name: Tag ${{ matrix.image }}
+    needs: [resolve-pr, resolve-version, resolve-images]
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
@@ -22,43 +123,111 @@ jobs:
           ghcr-username: ${{ github.actor }}
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Generate version
-        id: version
-        run: echo "version=v$(date +%y.%-m.%-d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
-
-      - name: Pin digests
-        run: just update
-
-      - name: Build and tag custom images
+      - name: Add app-collection tag
         run: |
-          for image in $(./scripts/list-custom-images | jq -r '.[]'); do
-            just build "$image"
-            reg=$(just _image-registry "$image")
-            docker tag "${reg}:dev" "${reg}:${{ steps.version.outputs.version }}"
-            docker push "${reg}:${{ steps.version.outputs.version }}"
-          done
+          REG=$(just _image-registry "${{ matrix.image }}")
+          COMPONENT_TAG=$(./scripts/resolve-component-tag \
+            --image "${{ matrix.image }}" \
+            --sha7 "${{ needs.resolve-pr.outputs.sha7 }}" \
+            --registry "$REG")
+          ./scripts/tag-app-collection \
+            --image "${{ matrix.image }}" \
+            --component-tag "$COMPONENT_TAG" \
+            --app-collection-version "${{ needs.resolve-version.outputs.app-collection-version }}" \
+            --registry "$REG"
 
-      - name: Sign custom images
+  build-compliance-pack:
+    name: Build compliance pack
+    needs: [resolve-pr, resolve-version, tag-app-collection]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+
+      - name: Download stock attestation artifacts
+        if: needs.resolve-pr.outputs.build-run-id != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: stock-dhi-attestations
+          path: .artifacts/
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ needs.resolve-pr.outputs.build-run-id }}
+        continue-on-error: true
+
+      - name: Download custom image artifacts
+        if: needs.resolve-pr.outputs.build-run-id != ''
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          pattern: custom-*-attestations
+          path: .artifacts/
+          merge-multiple: true
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          run-id: ${{ needs.resolve-pr.outputs.build-run-id }}
+        continue-on-error: true
+
+      - name: Extract stock DHI attestations (fallback)
         run: |
-          for image in $(./scripts/list-custom-images | jq -r '.[]'); do
-            reg=$(just _image-registry "$image")
-            ./bin/cosign sign "${reg}:${{ steps.version.outputs.version }}"
-          done
-
-      - name: Extract stock image attestations
-        run: just extract-dhi-attestations
+          if [ ! -d ".artifacts/postgres" ]; then
+            echo "Build artifacts not found, extracting fresh..."
+            just extract-dhi-attestations
+          fi
 
       - name: Build compliance pack
-        run: just compliance-pack ${{ steps.version.outputs.version }}
+        run: just compliance-pack ${{ needs.resolve-version.outputs.app-collection-version }}
 
-      - name: Create pre-release
+      - name: Upload compliance pack
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: compliance-pack
+          path: compliance-pack-${{ needs.resolve-version.outputs.app-collection-version }}.zip
+
+  create-release:
+    name: Create pre-release
+    needs: [resolve-pr, resolve-version, build-compliance-pack]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+          ghcr-login: true
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Generate release notes
         run: |
-          gh release create "${{ steps.version.outputs.version }}" \
+          ./scripts/create-release-notes \
+            --app-collection-version "${{ needs.resolve-version.outputs.app-collection-version }}" \
+            --pr-number "${{ needs.resolve-pr.outputs.pr-number }}" \
+            --app-version "${{ needs.resolve-version.outputs.app-version }}" \
+            --sha7 "${{ needs.resolve-pr.outputs.sha7 }}" \
+            --output /tmp/release-notes.md
+
+      - name: Download compliance pack
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: compliance-pack
+
+      - name: Create git tag
+        run: |
+          git tag "${{ needs.resolve-version.outputs.app-collection-version }}"
+          git push origin "${{ needs.resolve-version.outputs.app-collection-version }}"
+
+      - name: Create GitHub pre-release
+        run: |
+          gh release create "${{ needs.resolve-version.outputs.app-collection-version }}" \
+            --target "${{ github.sha }}" \
             --prerelease \
-            --title "${{ steps.version.outputs.version }}" \
-            --notes "Pre-release ${{ steps.version.outputs.version }}" \
-            common/tool-images.lock.yaml \
-            apps/sbomify/app-images.lock.yaml \
-            compliance-pack-${{ steps.version.outputs.version }}.zip
+            --title "${{ needs.resolve-version.outputs.app-collection-version }}" \
+            --notes-file /tmp/release-notes.md \
+            compliance-pack-${{ needs.resolve-version.outputs.app-collection-version }}.zip
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

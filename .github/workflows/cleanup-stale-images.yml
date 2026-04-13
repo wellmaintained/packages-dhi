@@ -1,0 +1,35 @@
+name: Cleanup Stale Images
+
+on:
+  schedule:
+    - cron: '0 3 * * 0'  # Weekly, Sunday 03:00 UTC
+  workflow_dispatch:
+
+permissions:
+  packages: write
+
+jobs:
+  resolve-images:
+    name: Resolve image lists
+    runs-on: ubuntu-latest
+    outputs:
+      custom-images: ${{ steps.images.outputs.custom }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - id: images
+        run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
+
+  cleanup:
+    name: Clean ${{ matrix.image }}
+    needs: resolve-images
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+
+      - name: Sweep stale images
+        run: ./scripts/cleanup-stale-images sweep --image "${{ matrix.image }}" --days 7
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

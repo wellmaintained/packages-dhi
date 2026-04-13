@@ -18,6 +18,25 @@ _image-path image:
 _image-registry image:
     @yq -r '."{{image}}".registry | select(. != null)' {{tool_manifest}} {{app_manifest}} | head -1
 
+# Resolve the version for a custom image (from manifest tag or DHI YAML)
+_image-version image:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    # Try manifest tag first (hugo, sbom-convert)
+    tag=$(yq -r '."{{image}}".tag | select(. != null)' {{tool_manifest}} {{app_manifest}} | head -1)
+    if [ -n "$tag" ]; then
+        echo "$tag"
+        exit 0
+    fi
+    # Fall back to parsing version from DHI YAML git URL (e.g. #v26.1.0 or #RELEASE.2025-10-15T17-29-55Z)
+    def=$(just _image-path {{image}})
+    version=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$def" | head -1 || true)
+    if [ -n "$version" ]; then
+        echo "$version"
+        exit 0
+    fi
+    echo "unknown"
+
 # ── Build ──────────────────────────────────────────
 
 # Build all custom DHI images
