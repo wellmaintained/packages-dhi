@@ -30,8 +30,8 @@ done
 
 [[ -z "$IMAGE" || -z "$SHA7" || -z "$REGISTRY" ]] && usage
 
-echo "==> Looking for ${IMAGE} tag ending in -${SHA7} at ${REGISTRY}/${IMAGE}" >&2
-CRANE_OUTPUT=$("${REPO_ROOT}/bin/crane" ls "${REGISTRY}/${IMAGE}" 2>&1) || {
+echo "==> Looking for ${IMAGE} tag ending in -${SHA7} at ${REGISTRY}" >&2
+CRANE_OUTPUT=$("${REPO_ROOT}/bin/crane" ls "${REGISTRY}" 2>&1) || {
   echo "==> crane ls failed: ${CRANE_OUTPUT}" >&2
 }
 COMPONENT_TAG=$(echo "$CRANE_OUTPUT" | grep -- "-${SHA7}$" | head -1 || true)

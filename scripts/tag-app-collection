@@ -35,10 +35,8 @@ done
 
 [[ -z "$IMAGE" || -z "$COMPONENT_TAG" || -z "$APP_COLLECTION_VERSION" || -z "$REGISTRY" ]] && usage
 
-REPO="${REGISTRY}/${IMAGE}"
-
-echo "==> Resolving ${REPO}:${COMPONENT_TAG}" >&2
-DIGEST=$("${REPO_ROOT}/bin/crane" digest "${REPO}:${COMPONENT_TAG}" 2>&1) || {
+echo "==> Resolving ${REGISTRY}:${COMPONENT_TAG}" >&2
+DIGEST=$("${REPO_ROOT}/bin/crane" digest "${REGISTRY}:${COMPONENT_TAG}" 2>&1) || {
   echo "ERROR: crane digest failed: ${DIGEST}" >&2
   exit 1
 }
@@ -46,6 +44,6 @@ DIGEST=$("${REPO_ROOT}/bin/crane" digest "${REPO}:${COMPONENT_TAG}" 2>&1) || {
 echo "    Digest: ${DIGEST}" >&2
 echo "    Adding app-collection tag: ${APP_COLLECTION_VERSION}" >&2
 
-"${REPO_ROOT}/bin/crane" tag "${REPO}@${DIGEST}" "${APP_COLLECTION_VERSION}"
+"${REPO_ROOT}/bin/crane" tag "${REGISTRY}@${DIGEST}" "${APP_COLLECTION_VERSION}"
 
 echo "==> Tagged ${IMAGE} with ${APP_COLLECTION_VERSION}" >&2
