@@ -25,6 +25,7 @@ jobs:
     name: Resolve source PR
     runs-on: ubuntu-latest
     outputs:
+      is-pr: ${{ steps.pr.outputs.is_pr }}
       pr-number: ${{ steps.pr.outputs.number }}
       sha7: ${{ steps.pr.outputs.sha7 }}
       build-run-id: ${{ steps.build-run.outputs.run_id }}
@@ -40,13 +41,20 @@ jobs:
             --jq '.[0].head.sha // empty' 2>/dev/null || true)
           HEAD_SHA="${HEAD_SHA:-${{ github.sha }}}"
           SHA7="${HEAD_SHA::7}"
+          is_pr=$( [ "$PR_NUMBER" != "0" ] && echo "true" || echo "false" )
           echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "sha7=${SHA7}" >> "$GITHUB_OUTPUT"
-          echo "==> PR #${PR_NUMBER}, HEAD SHA: ${HEAD_SHA} (${SHA7})"
+          echo "is_pr=${is_pr}" >> "$GITHUB_OUTPUT"
+          echo "==> PR #${PR_NUMBER}, HEAD SHA: ${HEAD_SHA} (${SHA7}), is_pr: ${is_pr}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Skip if not a PR merge
+        if: steps.pr.outputs.is_pr == 'false'
+        run: echo "::notice::Not a PR merge commit — skipping pre-release"
+
       - name: Find build workflow run for PR
+        if: steps.pr.outputs.is_pr == 'true'
         id: build-run
         run: |
           SHA7="${{ steps.pr.outputs.sha7 }}"
@@ -65,6 +73,7 @@ jobs:
   resolve-version:
     name: Compute app-collection version
     needs: resolve-pr
+    if: needs.resolve-pr.outputs.is-pr == 'true'
     runs-on: ubuntu-latest
     outputs:
       app-collection-version: ${{ steps.version.outputs.app_collection_version }}
