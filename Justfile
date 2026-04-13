@@ -81,10 +81,12 @@ build image:
         esac
     done
 
-    # Generate CycloneDX SBOM via syft (DHI build produces SPDX, not CycloneDX)
+    # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
     echo ""
-    echo "=== Generating CycloneDX SBOM ==="
-    {{repo_root}}/bin/syft "docker-archive:/work/.artifacts/{{image}}/image.tar" -o cyclonedx-json > "${out}/sbom.cdx.json"
+    echo "=== Converting SPDX → CycloneDX ==="
+    {{repo_root}}/bin/syft convert "/work/.artifacts/{{image}}/sbom.spdx.json" -o cyclonedx-json > "${out}/sbom.cdx.json"
+    cdx_count=$(jq '.components | length' "${out}/sbom.cdx.json")
+    echo "  CycloneDX SBOM: ${cdx_count} components"
 
     echo ""
     echo "=== Grype vulnerability scan ==="
