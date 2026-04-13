@@ -62,6 +62,9 @@ jobs:
           ghcr-username: ${{ github.actor }}
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install cosign
+        uses: sigstore/cosign-installer@f713795cb21599bc4e5c4b58cbad1da852d7eeb9 # v3
+
       - name: Build image and generate compliance artifacts
         run: just build ${{ matrix.image }}
 
@@ -84,17 +87,17 @@ jobs:
           docker push "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Sign image
-        run: ./bin/cosign sign --yes "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
+        run: cosign sign --yes "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Attest SBOM
         run: |
-          ./bin/cosign attest --yes --type cyclonedx \
+          cosign attest --yes --type cyclonedx \
             --predicate ".artifacts/${{ matrix.image }}/sbom.cdx.json" \
             "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Attest provenance
         run: |
-          ./bin/cosign attest --yes --type slsaprovenance \
+          cosign attest --yes --type slsaprovenance \
             --predicate ".artifacts/${{ matrix.image }}/provenance.slsa.json" \
             "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
