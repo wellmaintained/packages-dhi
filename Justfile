@@ -81,8 +81,8 @@ build image:
         esac
     done
 
-    # Clean up tar and temp blobs (no longer needed)
-    rm -f "${out}/image.tar" "${out}/index.json"
+    # Clean up temp blobs (keep image.tar for scanning and debugging)
+    rm -f "${out}/index.json"
     rm -rf "${out}/blobs"
 
     # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
@@ -96,6 +96,12 @@ build image:
     echo "=== Grype vulnerability scan ==="
     {{repo_root}}/bin/grype "sbom:/work/.artifacts/{{image}}/sbom.cdx.json" -o json > "${out}/cves.json" 2>/dev/null \
         && echo "  saved ${out}/cves.json" || echo "  (scan failed)"
+
+    echo ""
+    echo "=== Gitleaks secrets scan ==="
+    {{repo_root}}/bin/gitleaks detect --source="docker-archive:/work/.artifacts/{{image}}/image.tar" \
+        -f json -r "/work/.artifacts/{{image}}/secrets.json" 2>/dev/null \
+        && echo "  saved ${out}/secrets.json" || echo "  (no secrets found)"
 
     # Copy VEX file if one exists
     vex_file=$(find "{{repo_root}}" -name "{{image}}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
