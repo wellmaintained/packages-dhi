@@ -30,7 +30,18 @@ done
 
 [[ -z "$IMAGE" || -z "$SHA7" || -z "$REGISTRY" ]] && usage
 
+# Try crane first (works locally with docker config auth)
 COMPONENT_TAG=$("${REPO_ROOT}/bin/crane" ls "${REGISTRY}/${IMAGE}" 2>/dev/null | grep -- "-${SHA7}$" | head -1 || true)
+
+# Fallback to GitHub API for private GHCR packages (works in CI with GH_TOKEN)
+if [ -z "$COMPONENT_TAG" ] && [ -n "${GH_TOKEN:-}" ]; then
+  # Extract org and image name from registry (e.g. ghcr.io/wellmaintained/hugo → wellmaintained, hugo)
+  ORG=$(echo "$REGISTRY" | cut -d/ -f2)
+  COMPONENT_TAG=$(gh api "/orgs/${ORG}/packages/container/${IMAGE}/versions" \
+    --paginate --jq '.[].metadata.container.tags[]' 2>/dev/null \
+    | grep -- "-${SHA7}$" | head -1 || true)
+fi
+
 if [ -z "$COMPONENT_TAG" ]; then
   echo "ERROR: No component tag found for ${IMAGE} with SHA ${SHA7}" >&2
   exit 1
