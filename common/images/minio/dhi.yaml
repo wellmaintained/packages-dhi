@@ -29,6 +29,10 @@ contents:
             uid: 0
             gid: 0
       pipeline:
+        - name: cache-test-1
+          runs: echo "cache test step 1"
+        - name: cache-test-2
+          runs: echo "cache test step 2"
         - name: download go modules
           work-dir: ${source.dir}/minio
           privileged: true
