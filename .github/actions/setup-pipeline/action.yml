@@ -2,6 +2,9 @@ name: Setup Pipeline
 description: Checkout, install just, and optionally login to container registries
 
 inputs:
+  cache-key:
+    description: Per-image sticky disk key for BuildKit cache (empty = use Blacksmith default)
+    default: ''
   dhi-login:
     description: Login to dhi.io registry
     default: 'true'
@@ -22,6 +25,13 @@ runs:
   steps:
     - name: Install just
       uses: extractions/setup-just@dd310ad5a97d8e7b41793f8ef055398d51ad4de6 # v2
+
+    - name: Mount per-image BuildKit cache
+      if: inputs.cache-key != ''
+      uses: useblacksmith/stickydisk@v1
+      with:
+        key: buildkit-${{ inputs.cache-key }}
+        path: /var/lib/buildkit
 
     - name: Set up Docker Buildx (Blacksmith)
       uses: useblacksmith/setup-docker-builder@v1
