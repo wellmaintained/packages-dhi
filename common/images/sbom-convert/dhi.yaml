@@ -50,8 +50,12 @@ contents:
           gid: 0
 
 annotations:
+  org.opencontainers.image.title: sbom-convert
+  org.opencontainers.image.version: "0.0.7"
   org.opencontainers.image.description: SBOM format converter (SPDX <-> CycloneDX) with relationship preservation
   org.opencontainers.image.licenses: Apache-2.0
+  org.opencontainers.image.vendor: wellmaintained
+  org.opencontainers.image.source: https://github.com/wellmaintained/packages-dhi
 
 entrypoint:
   - /usr/local/bin/sbom-convert
