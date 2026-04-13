@@ -2,16 +2,55 @@ name: Deploy Release Website
 
 on:
   release:
-    types: [published]
+    types: [released]
   workflow_dispatch:
 
 permissions:
   contents: read
+  packages: write
   pages: write
   id-token: write
 
 jobs:
+  tag-released:
+    name: Tag released images
+    if: github.event_name == 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+          ghcr-login: true
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Add released-on tags
+        run: |
+          TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
+          BODY="${{ github.event.release.body }}"
+
+          # Parse the markdown table for image names and digests
+          echo "$BODY" | grep '^|' | grep -v '^\|.*---' | grep -v '^\| Image' | while IFS='|' read -r _ name _ digest _; do
+            name=$(echo "$name" | xargs | tr -d '`')
+            digest=$(echo "$digest" | xargs | tr -d '`')
+            [ -z "$name" ] && continue
+
+            REG=$(just _image-registry "$name" 2>/dev/null || true)
+            [ -z "$REG" ] && continue
+
+            echo "==> Tagging ${name} with released-on:${TIMESTAMP}"
+            ./bin/crane tag "${REG}/${name}@${digest}" "released-on:${TIMESTAMP}" || \
+              echo "WARNING: Failed to tag ${name}"
+          done
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   deploy:
+    name: Build and deploy website
+    needs: [tag-released]
+    if: always() && (needs.tag-released.result == 'success' || needs.tag-released.result == 'skipped')
     runs-on: ubuntu-latest
     environment:
       name: github-pages
@@ -23,20 +62,23 @@ jobs:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
-      - name: Download stock attestation artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          name: stock-dhi-attestations
-          path: .artifacts/
-        continue-on-error: true
+      - name: Download compliance pack from release
+        if: github.event_name == 'release'
+        run: |
+          TAG="${{ github.event.release.tag_name }}"
+          gh release download "$TAG" \
+            --pattern "compliance-pack-*.zip" \
+            --dir /tmp/
+          mkdir -p .artifacts
+          unzip -o /tmp/compliance-pack-*.zip -d .artifacts/ || true
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Download custom image artifacts
-        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
-        with:
-          pattern: custom-*-attestations
-          path: .artifacts/
-          merge-multiple: true
-        continue-on-error: true
+      - name: Extract stock DHI attestations (fallback)
+        run: |
+          if [ ! -d ".artifacts/postgres" ]; then
+            just extract-dhi-attestations
+          fi
 
       - name: Build release website
         run: just release-website
