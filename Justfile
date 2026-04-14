@@ -1,4 +1,4 @@
-# packages-dhi — DHI-native image pipeline
+# packages-dhi — DHI-native image pipeline for wellmaintained packages
 # Prerequisites: Docker (with buildx), Just, yq
 
 set dotenv-load := false
