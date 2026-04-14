@@ -107,20 +107,20 @@ build image:
     # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
     echo ""
     echo "=== Converting SPDX → CycloneDX ==="
-    {{repo_root}}/bin/sbom-convert convert "/work/.artifacts/{{image}}/sbom.spdx.json" -f cyclonedx -o "/work/.artifacts/{{image}}/sbom.cdx.json"
+    {{repo_root}}/bin/sbom-convert convert "${out}/sbom.spdx.json" -f cyclonedx -o "${out}/sbom.cdx.json"
     cdx_components=$(jq '.components | length' "${out}/sbom.cdx.json")
     cdx_deps=$(jq '.dependencies | length' "${out}/sbom.cdx.json")
     echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"
 
     echo ""
     echo "=== Grype vulnerability scan ==="
-    {{repo_root}}/bin/grype "sbom:/work/.artifacts/{{image}}/sbom.cdx.json" -o json > "${out}/cves.json" 2>/dev/null \
+    {{repo_root}}/bin/grype "sbom:${out}/sbom.cdx.json" -o json > "${out}/cves.json" 2>/dev/null \
         && echo "  saved ${out}/cves.json" || echo "  (scan failed)"
 
     echo ""
     echo "=== Gitleaks secrets scan ==="
-    {{repo_root}}/bin/gitleaks detect --source="docker-archive:/work/.artifacts/{{image}}/image.tar" \
-        -f json -r "/work/.artifacts/{{image}}/secrets.json" 2>/dev/null \
+    {{repo_root}}/bin/gitleaks detect --source="docker-archive:${out}/image.tar" \
+        -f json -r "${out}/secrets.json" 2>/dev/null \
         && echo "  saved ${out}/secrets.json" || echo "  (no secrets found)"
 
     # Copy VEX file if one exists

@@ -46,10 +46,16 @@ if [ "${CI:-}" = "true" ]; then
     exec "$BINARY" "$@"
 fi
 
-# Locally: run inside the DHI container
+# Locally: run inside the DHI container.
+# Translate real paths to /work paths since the repo is mounted at /work.
+ARGS=()
+for arg in "$@"; do
+    ARGS+=("${arg//$REPO_ROOT//work}")
+done
+
 exec docker run --rm \
     -v "$REPO_ROOT:/work" -w /work \
     --user "$(id -u):$(id -g)" \
     -v "${HOME}/.docker/config.json:/tmp/.docker/config.json:ro" \
     -e DOCKER_CONFIG=/tmp/.docker \
-    "$IMAGE:$TAG" "$@"
+    "$IMAGE:$TAG" "${ARGS[@]}"
