@@ -10,7 +10,7 @@
 # Upstream Dockerfile: https://github.com/sbomify/sbomify/blob/master/Dockerfile
 
 name: sbomify Application
-image: ghcr.io/wellmaintained/sbomify-app
+image: ghcr.io/wellmaintained/packages-dhi/sbomify-app
 variant: runtime
 tags:
   - latest

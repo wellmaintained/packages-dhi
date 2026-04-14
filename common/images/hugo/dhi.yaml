@@ -1,7 +1,7 @@
 # syntax=dhi.io/build:2-alpine3.23
 
 name: Hugo Static Site Generator
-image: ghcr.io/wellmaintained/hugo
+image: ghcr.io/wellmaintained/packages-dhi/hugo
 variant: runtime
 tags:
   - latest

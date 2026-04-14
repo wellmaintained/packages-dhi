@@ -4,7 +4,7 @@
 # Sweeps image versions that have no released-on: tag and are older than N days.
 #
 # Usage:
-#   scripts/cleanup-stale-images sweep --image NAME [--days N]
+#   scripts/cleanup-stale-images sweep --image NAME [--prefix PREFIX] [--days N]
 #
 # Requires: gh (GitHub CLI) with packages:write permission
 set -euo pipefail
@@ -14,7 +14,7 @@ RELEASED_TAG_RE="${RELEASED_TAG_RE:-^released-on:}"
 
 usage() {
   cat >&2 <<EOF
-Usage: $0 sweep --image NAME [--days N]  (default: 7 days)
+Usage: $0 sweep --image NAME [--prefix PREFIX] [--days N]  (default: 7 days)
 
 Environment:
   GHCR_ORG            Organization name (default: wellmaintained)
@@ -53,22 +53,30 @@ delete_versions() {
 }
 
 cmd_sweep() {
-  local image="" days=7
+  local image="" days=7 prefix=""
   while [[ $# -gt 0 ]]; do
     case "$1" in
       --image) image="$2"; shift 2 ;;
       --days) days="$2"; shift 2 ;;
+      --prefix) prefix="$2"; shift 2 ;;
       *) echo "Unknown option: $1" >&2; usage ;;
     esac
   done
   [[ -z "$image" ]] && { echo "ERROR: --image required" >&2; usage; }
 
+  # Build API package name (URL-encode slashes for nested GHCR paths)
+  local api_image="$image"
+  if [[ -n "$prefix" ]]; then
+    api_image="${prefix}/${image}"
+  fi
+  local api_image_encoded="${api_image//\//%2F}"
+
   local cutoff
   cutoff=$(date -u -d "${days} days ago" '+%Y-%m-%dT%H:%M:%SZ' 2>/dev/null \
     || date -u -v-"${days}"d '+%Y-%m-%dT%H:%M:%SZ')
 
-  echo "==> Sweeping stale images for ${image} (older than ${cutoff})" >&2
-  delete_versions "$image" \
+  echo "==> Sweeping stale images for ${api_image} (older than ${cutoff})" >&2
+  delete_versions "$api_image_encoded" \
     ".[] | select((.metadata.container.tags | length > 0) and (.metadata.container.tags | all(test(\"${RELEASED_TAG_RE}\") | not)) and (.updated_at < \"${cutoff}\")) | .id"
 }
 

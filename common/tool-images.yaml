@@ -14,12 +14,12 @@ gitleaks:
   image: dhi.io/gitleaks
   tag: 8-debian13
 hugo:
-  image: ghcr.io/wellmaintained/hugo
+  image: ghcr.io/wellmaintained/packages-dhi/hugo
   tag: "0.160.1"
   definition: common/images/hugo/dhi.yaml
-  registry: ghcr.io/wellmaintained/hugo
+  registry: ghcr.io/wellmaintained/packages-dhi/hugo
 sbom-convert:
-  image: ghcr.io/wellmaintained/sbom-convert
+  image: ghcr.io/wellmaintained/packages-dhi/sbom-convert
   tag: "0.0.7"
   definition: common/images/sbom-convert/dhi.yaml
-  registry: ghcr.io/wellmaintained/sbom-convert
+  registry: ghcr.io/wellmaintained/packages-dhi/sbom-convert

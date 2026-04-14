@@ -1,7 +1,7 @@
 # syntax=dhi.io/build:2-alpine3.23
 
 name: SBOM Format Converter
-image: ghcr.io/wellmaintained/sbom-convert
+image: ghcr.io/wellmaintained/packages-dhi/sbom-convert
 variant: runtime
 tags:
   - latest

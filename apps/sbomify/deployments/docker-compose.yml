@@ -60,7 +60,7 @@ services:
       retries: 5
 
   sbomify-minio:
-    image: ghcr.io/wellmaintained/minio:latest
+    image: ghcr.io/wellmaintained/packages-dhi/minio:latest
     environment:
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
@@ -76,7 +76,7 @@ services:
       retries: 5
 
   sbomify-minio-init:
-    image: ghcr.io/wellmaintained/minio:latest
+    image: ghcr.io/wellmaintained/packages-dhi/minio:latest
     entrypoint: ["/scripts/create-minio-buckets.sh"]
     volumes:
       - ./scripts/create-minio-buckets.sh:/scripts/create-minio-buckets.sh:ro
@@ -89,7 +89,7 @@ services:
         condition: service_healthy
 
   sbomify-migrations:
-    image: ghcr.io/wellmaintained/sbomify-app:${SBOMIFY_TAG:-latest}
+    image: ghcr.io/wellmaintained/packages-dhi/sbomify-app:${SBOMIFY_TAG:-latest}
     command: ["python", "/code/bin/release.py"]
     environment:
       <<: *common-env
@@ -99,7 +99,7 @@ services:
         condition: service_healthy
 
   sbomify-backend:
-    image: ghcr.io/wellmaintained/sbomify-app:${SBOMIFY_TAG:-latest}
+    image: ghcr.io/wellmaintained/packages-dhi/sbomify-app:${SBOMIFY_TAG:-latest}
     restart: ${SBOMIFY_RESTART_POLICY:-always}
     deploy:
       replicas: ${BACKEND_REPLICAS:-2}
@@ -130,7 +130,7 @@ services:
       start_period: 30s
 
   sbomify-worker:
-    image: ghcr.io/wellmaintained/sbomify-app:${SBOMIFY_TAG:-latest}
+    image: ghcr.io/wellmaintained/packages-dhi/sbomify-app:${SBOMIFY_TAG:-latest}
     restart: ${SBOMIFY_RESTART_POLICY:-always}
     deploy:
       replicas: ${WORKER_REPLICAS:-2}

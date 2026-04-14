@@ -30,6 +30,6 @@ jobs:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Sweep stale images
-        run: ./scripts/cleanup-stale-images sweep --image "${{ matrix.image }}" --days 7
+        run: ./scripts/cleanup-stale-images sweep --image "${{ matrix.image }}" --prefix packages-dhi --days 7
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
