@@ -28,6 +28,10 @@ if [ "${CI:-}" = "true" ]; then
     if [ ! -x "$BINARY" ]; then
         mkdir -p "$TOOLS_DIR"
         echo "dhi-tools-shim: extracting ${TOOL} from ${IMAGE}:${TAG}..." >&2
+        docker pull --platform linux/amd64 "${IMAGE}:${TAG}" >&2 || {
+            echo "dhi-tools-shim: failed to pull ${IMAGE}:${TAG}" >&2
+            exit 1
+        }
         CONTAINER=$(docker create --platform linux/amd64 "${IMAGE}:${TAG}" 2>&1)
         echo "dhi-tools-shim: created container ${CONTAINER}" >&2
         for path in "/usr/local/bin/${TOOL}" "/usr/bin/${TOOL}"; do
