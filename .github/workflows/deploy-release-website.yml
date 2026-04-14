@@ -50,7 +50,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   deploy:
-    name: Build and deploy website
+    name: Deploy website
     needs: [tag-released]
     if: always() && (needs.tag-released.result == 'success' || needs.tag-released.result == 'skipped')
     runs-on: ubuntu-latest
@@ -58,32 +58,17 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: ./.github/actions/setup-pipeline
-        with:
-          dhi-username: ${{ vars.DHI_USERNAME }}
-          dhi-token: ${{ secrets.DHI_TOKEN }}
-
-      - name: Download compliance pack from release
+      - name: Download release website from release assets
         if: github.event_name == 'release'
         run: |
           TAG="${{ github.event.release.tag_name }}"
           gh release download "$TAG" \
-            --pattern "compliance-pack-*.zip" \
+            --pattern "release-website.tar.gz" \
             --dir /tmp/
-          mkdir -p .artifacts
-          unzip -o /tmp/compliance-pack-*.zip -d .artifacts/ || true
+          mkdir -p /tmp/website
+          tar -xzf /tmp/release-website.tar.gz -C /tmp/website
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract stock DHI attestations (fallback)
-        run: |
-          if [ ! -d ".artifacts/postgres" ]; then
-            just extract-dhi-attestations
-          fi
-
-      - name: Build release website
-        run: just release-website
 
       - name: Setup Pages
         uses: actions/configure-pages@1f0c5cde4bc74cd7e1254d0cb4de8d49e9068c7d # v4
@@ -91,7 +76,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3
         with:
-          path: apps/sbomify/release-website/public
+          path: /tmp/website
 
       - name: Deploy to GitHub Pages
         id: deployment

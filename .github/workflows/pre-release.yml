@@ -199,11 +199,23 @@ jobs:
       - name: Build compliance pack
         run: just compliance-pack ${{ needs.resolve-version.outputs.app-collection-version }}
 
+      - name: Build release website
+        run: just release-website
+
+      - name: Package release website
+        run: tar -czf release-website.tar.gz -C apps/sbomify/release-website/public .
+
       - name: Upload compliance pack
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: compliance-pack
           path: compliance-pack-${{ needs.resolve-version.outputs.app-collection-version }}.zip
+
+      - name: Upload release website
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: release-website
+          path: release-website.tar.gz
 
   create-release:
     name: Create pre-release
@@ -237,6 +249,11 @@ jobs:
         with:
           name: compliance-pack
 
+      - name: Download release website
+        uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
+        with:
+          name: release-website
+
       - name: Create git tag
         run: |
           git tag "${{ needs.resolve-version.outputs.app-collection-version }}"
@@ -249,6 +266,7 @@ jobs:
             --prerelease \
             --title "${{ needs.resolve-version.outputs.app-collection-version }}" \
             --notes-file /tmp/release-notes.md \
-            compliance-pack-${{ needs.resolve-version.outputs.app-collection-version }}.zip
+            compliance-pack-${{ needs.resolve-version.outputs.app-collection-version }}.zip \
+            release-website.tar.gz
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
