@@ -22,7 +22,7 @@ DHI-native image pipeline for wellmaintained packages.
 
 ```
 just build minio          # Build a custom image
-just scan minio           # Scan for vulnerabilities and secrets
+just build minio          # Build and produce all compliance artifacts
 just extract-dhi-attestations  # Pull stock image attestations
 just release-data         # Generate release website data
 ```
