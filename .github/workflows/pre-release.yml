@@ -167,6 +167,9 @@ jobs:
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
+          ghcr-login: true
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download stock attestation artifacts
         if: needs.resolve-pr.outputs.build-run-id != ''
