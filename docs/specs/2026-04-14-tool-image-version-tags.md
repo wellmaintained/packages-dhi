@@ -29,3 +29,4 @@ In `build.yml`, after pushing with the component tag:
 
 This makes tool images self-bootstrapping — no manual push needed after the
 first PR build.
+# Test full pipeline
