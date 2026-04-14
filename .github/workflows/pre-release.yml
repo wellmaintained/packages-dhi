@@ -109,6 +109,7 @@ jobs:
           # Parse: sbomify-app-{version}-{sha7} → extract {version}
           WITHOUT_SHA="${COMPONENT_TAG%-"${SHA7}"}"
           APP_VERSION="${WITHOUT_SHA#sbomify-app-}"
+          APP_VERSION="${APP_VERSION#v}"
 
           # Compute build number
           TODAY=$(date -u '+%Y%m%d')
