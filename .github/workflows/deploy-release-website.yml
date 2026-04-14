@@ -29,21 +29,23 @@ jobs:
       - name: Add released-on tags
         run: |
           TIMESTAMP=$(date -u '+%Y-%m-%dT%H:%M:%SZ')
-          BODY="${{ github.event.release.body }}"
+          TAG="${{ github.event.release.tag_name }}"
 
-          # Parse the markdown table for image names and digests
-          echo "$BODY" | grep '^|' | grep -v '^\|.*---' | grep -v '^\| Image' | while IFS='|' read -r _ name _ digest _; do
-            name=$(echo "$name" | xargs | tr -d '`')
-            digest=$(echo "$digest" | xargs | tr -d '`')
-            [ -z "$name" ] && continue
+          # Fetch release body safely via API (avoids shell escaping issues)
+          gh release view "$TAG" --json body --jq '.body' | \
+            grep '^|' | grep -v '^\|.*---' | grep -v '^\| Image' | \
+            while IFS='|' read -r _ name _ digest _; do
+              name=$(echo "$name" | xargs | tr -d '`')
+              digest=$(echo "$digest" | xargs | tr -d '`')
+              [ -z "$name" ] && continue
 
-            REG=$(just _image-registry "$name" 2>/dev/null || true)
-            [ -z "$REG" ] && continue
+              REG=$(just _image-registry "$name" 2>/dev/null || true)
+              [ -z "$REG" ] && continue
 
-            echo "==> Tagging ${name} with released-on:${TIMESTAMP}"
-            ./bin/crane tag "${REG}/${name}@${digest}" "released-on:${TIMESTAMP}" || \
-              echo "WARNING: Failed to tag ${name}"
-          done
+              echo "==> Tagging ${name} with released-on:${TIMESTAMP}"
+              ./bin/crane tag "${REG}@${digest}" "released-on:${TIMESTAMP}" || \
+                echo "WARNING: Failed to tag ${name}"
+            done
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
