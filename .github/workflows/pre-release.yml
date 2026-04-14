@@ -41,7 +41,12 @@ jobs:
         id: pr
         run: |
           COMMIT_SHA="${{ inputs.sha || github.sha }}"
-          PR_JSON=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" 2>/dev/null || echo "[]")
+          echo "==> Looking up PRs for commit ${COMMIT_SHA}"
+          PR_JSON=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" 2>&1) || {
+            echo "==> gh api failed: ${PR_JSON}"
+            PR_JSON="[]"
+          }
+          echo "==> PR_JSON: ${PR_JSON}"
           PR_NUMBER=$(echo "$PR_JSON" | jq -r 'if type == "array" then (.[0].number // 0) else 0 end')
           HEAD_SHA=$(echo "$PR_JSON" | jq -r 'if type == "array" then (.[0].head.sha // empty) else empty end')
           HEAD_SHA="${HEAD_SHA:-${COMMIT_SHA}}"
