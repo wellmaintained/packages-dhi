@@ -1,0 +1,35 @@
+crane:
+  version: "0.21.5"
+  url: https://github.com/google/go-containerregistry/releases/download/v${version}/go-containerregistry_Linux_x86_64.tar.gz
+  binary: crane
+
+cosign:
+  version: "2.6.3"
+  url: https://github.com/sigstore/cosign/releases/download/v${version}/cosign-linux-amd64
+  binary: cosign
+  raw: true
+
+grype:
+  version: "0.111.0"
+  url: https://github.com/anchore/grype/releases/download/v${version}/grype_${version}_linux_amd64.tar.gz
+  binary: grype
+
+syft:
+  version: "1.42.4"
+  url: https://github.com/anchore/syft/releases/download/v${version}/syft_${version}_linux_amd64.tar.gz
+  binary: syft
+
+gitleaks:
+  version: "8.30.1"
+  url: https://github.com/gitleaks/gitleaks/releases/download/v${version}/gitleaks_${version}_linux_x64.tar.gz
+  binary: gitleaks
+
+hugo:
+  version: "0.160.1"
+  url: https://github.com/gohugoio/hugo/releases/download/v${version}/hugo_extended_${version}_linux-amd64.tar.gz
+  binary: hugo
+
+sbom-convert:
+  version: "0.0.7"
+  url: https://github.com/protobom/sbom-convert/releases/download/v${version}/sbom-convert_linux_amd64.tar.gz
+  binary: sbom-convert

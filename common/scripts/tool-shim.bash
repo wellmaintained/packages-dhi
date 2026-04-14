@@ -8,21 +8,21 @@ set -euo pipefail
 
 TOOL="$1"; shift
 
-# Find repo root by walking up to find tool-versions.yaml
+# Find repo root by walking up to find common/tool-versions.lock.yaml
 dir="$PWD"
 while [[ "$dir" != "/" ]]; do
-    [[ -f "$dir/tool-versions.yaml" ]] && break
+    [[ -f "$dir/common/tool-versions.lock.yaml" ]] && break
     dir="$(dirname "$dir")"
 done
 REPO_ROOT="$dir"
-MANIFEST="$REPO_ROOT/tool-versions.yaml"
+LOCKFILE="$REPO_ROOT/common/tool-versions.lock.yaml"
 
-# Read tool metadata
-VERSION="$(yq -r ".$TOOL.version" "$MANIFEST")"
-URL="$(yq -r ".$TOOL.url" "$MANIFEST")"
-CHECKSUM="$(yq -r ".$TOOL.checksum" "$MANIFEST")"
-BINARY_NAME="$(yq -r ".$TOOL.binary" "$MANIFEST")"
-RAW="$(yq -r ".$TOOL.raw // false" "$MANIFEST")"
+# Read tool metadata from lock file
+VERSION="$(yq -r ".$TOOL.version" "$LOCKFILE")"
+URL="$(yq -r ".$TOOL.url" "$LOCKFILE")"
+CHECKSUM="$(yq -r ".$TOOL.checksum" "$LOCKFILE")"
+BINARY_NAME="$(yq -r ".$TOOL.binary" "$LOCKFILE")"
+RAW="$(yq -r ".$TOOL.raw // false" "$LOCKFILE")"
 
 [[ "$VERSION" == "null" || -z "$VERSION" ]] && { echo "tool-shim: unknown tool '$TOOL'" >&2; exit 1; }
 
