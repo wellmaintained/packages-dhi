@@ -28,7 +28,10 @@ if [ "${CI:-}" = "true" ]; then
     if [ ! -x "$BINARY" ]; then
         mkdir -p "$TOOLS_DIR"
         echo "dhi-tools-shim: extracting ${TOOL} from ${IMAGE}:${TAG}..." >&2
-        CONTAINER=$(docker create "${IMAGE}:${TAG}" 2>/dev/null)
+        CONTAINER=$(docker create --platform linux/amd64 "${IMAGE}:${TAG}" 2>&1) || {
+            echo "dhi-tools-shim: docker create failed: ${CONTAINER}" >&2
+            exit 1
+        }
         for path in "/usr/bin/${TOOL}" "/usr/local/bin/${TOOL}"; do
             if docker cp "${CONTAINER}:${path}" "$BINARY" 2>/dev/null; then
                 chmod +x "$BINARY"
