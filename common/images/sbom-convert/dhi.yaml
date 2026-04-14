@@ -56,6 +56,7 @@ annotations:
   org.opencontainers.image.licenses: Apache-2.0
   org.opencontainers.image.vendor: wellmaintained
   org.opencontainers.image.source: https://github.com/wellmaintained/packages-dhi
+  org.opencontainers.image.url: https://wellmaintained.github.io/packages-dhi/
 
 entrypoint:
   - /usr/local/bin/sbom-convert
