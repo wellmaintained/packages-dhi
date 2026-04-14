@@ -39,7 +39,6 @@ done
 
 [[ -z "$APP_COLLECTION_VERSION" || -z "$PR_NUMBER" || -z "$APP_VERSION" || -z "$SHA7" || -z "$OUTPUT" ]] && usage
 
-TOOL_MANIFEST="${REPO_ROOT}/common/tool-images.yaml"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 
 {
@@ -55,7 +54,7 @@ APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 } > "$OUTPUT"
 
 for IMAGE in $("${REPO_ROOT}/scripts/list-custom-images" | jq -r '.[]'); do
-  REGISTRY=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$TOOL_MANIFEST" "$APP_MANIFEST" | head -1)
+  REGISTRY=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$APP_MANIFEST")
   [ -z "$REGISTRY" ] && continue
 
   COMPONENT_TAG=$("${REPO_ROOT}/scripts/resolve-component-tag" \

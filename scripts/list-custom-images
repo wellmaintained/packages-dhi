@@ -3,11 +3,6 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOL_MANIFEST="${REPO_ROOT}/common/tool-images.yaml"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 
-names=""
-for manifest in "$TOOL_MANIFEST" "$APP_MANIFEST"; do
-    names+=$(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest")$'\n'
-done
-echo "$names" | grep -v '^$' | jq -cRn '[inputs]'
+yq -o=json -I0 '[to_entries[] | select(.value | has("definition")) | .key]' "$APP_MANIFEST"

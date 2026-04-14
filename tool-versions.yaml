@@ -1,0 +1,42 @@
+crane:
+  version: "0.21.5"
+  url: https://github.com/google/go-containerregistry/releases/download/v0.21.5/go-containerregistry_Linux_x86_64.tar.gz
+  checksum: "sha256:9f823ae5ee25803161110f957b5fd4538f714d40cdf25dacb4914fefafd246bf"
+  binary: crane
+
+cosign:
+  version: "2.6.3"
+  url: https://github.com/sigstore/cosign/releases/download/v2.6.3/cosign-linux-amd64
+  checksum: "sha256:7c78a7f2efc00088bd788a758db6e0928e79f3e0eb83eb5d3c499ed98da4c4f4"
+  binary: cosign
+  raw: true
+
+grype:
+  version: "0.111.0"
+  url: https://github.com/anchore/grype/releases/download/v0.111.0/grype_0.111.0_linux_amd64.tar.gz
+  checksum: "sha256:18ed2048d7a233566b681121d4632364f5f25d72cca86acc4c7ac57210d78a87"
+  binary: grype
+
+syft:
+  version: "1.42.4"
+  url: https://github.com/anchore/syft/releases/download/v1.42.4/syft_1.42.4_linux_amd64.tar.gz
+  checksum: "sha256:590650c2743b83f327d1bf9bec64f6f83b7fec504187bb84f500c862bf8f2a0f"
+  binary: syft
+
+gitleaks:
+  version: "8.30.1"
+  url: https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+  checksum: "sha256:551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb"
+  binary: gitleaks
+
+hugo:
+  version: "0.160.1"
+  url: https://github.com/gohugoio/hugo/releases/download/v0.160.1/hugo_extended_0.160.1_linux-amd64.tar.gz
+  checksum: "sha256:133adf4932c1b626b6fe6aa28d56791555abe3ceff167e03be534e8324c9ed39"
+  binary: hugo
+
+sbom-convert:
+  version: "0.0.7"
+  url: https://github.com/protobom/sbom-convert/releases/download/v0.0.7/sbom-convert_linux_amd64.tar.gz
+  checksum: "sha256:79e581fa36a0d05c1e29130494f1757672f5e12d209e9b6270b7b17b70fe6a58"
+  binary: sbom-convert

@@ -3,4 +3,4 @@ compliance-pack-*.zip
 .compliance-pack/
 .direnv/
 .worktrees/
-.dhi-tools-extracted/
+.tool-cache/

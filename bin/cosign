@@ -1,2 +1,2 @@
 #!/bin/sh
-exec "$(dirname "$0")/../common/scripts/dhi-tools-shim.bash" cosign "$@"
+exec "$(dirname "$0")/../common/scripts/tool-shim.bash" cosign "$@"

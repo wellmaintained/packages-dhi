@@ -5,7 +5,6 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TOOL_MANIFEST="${REPO_ROOT}/common/tool-images.yaml"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
 ARTIFACTS="${REPO_ROOT}/.artifacts"
@@ -42,7 +41,7 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
 done
 
 # Process custom images (from both manifests — tools with definitions + app custom images)
-for manifest in "$TOOL_MANIFEST" "$APP_MANIFEST"; do
+for manifest in "$APP_MANIFEST"; do
     for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest"); do
         registry=$(yq -r ".$name.registry" "$manifest")
 

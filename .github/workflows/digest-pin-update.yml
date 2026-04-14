@@ -19,10 +19,8 @@ jobs:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
-      - name: Save current lock files
-        run: |
-          cp common/tool-images.lock.yaml /tmp/tool-images-before.lock.yaml
-          cp apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml
+      - name: Save current lock file
+        run: cp apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml
 
       - name: Pin latest digests
         run: just update
@@ -31,11 +29,6 @@ jobs:
         id: diff
         run: |
           changed=false
-          if ! diff -q common/tool-images.lock.yaml /tmp/tool-images-before.lock.yaml > /dev/null 2>&1; then
-            changed=true
-            echo "Tool image changes:"
-            diff /tmp/tool-images-before.lock.yaml common/tool-images.lock.yaml || true
-          fi
           if ! diff -q apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml > /dev/null 2>&1; then
             changed=true
             echo "App image changes:"
@@ -50,21 +43,17 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="update-dhi-digests-$(date +%Y%m%d)"
           git checkout -b "$branch"
-          git add common/tool-images.yaml common/tool-images.lock.yaml
           git add apps/sbomify/app-images.yaml apps/sbomify/app-images.lock.yaml
-          git commit -m "chore: update image digest pins"
+          git commit -m "chore: update stock image digest pins"
           git push -u origin HEAD
           gh pr create \
-            --title "Update image digest pins" \
+            --title "Update stock image digest pins" \
             --body "$(cat <<'PREOF'
           ## Summary
-          - Weekly digest pin update detected new image versions
+          - Weekly digest pin update detected new stock image versions
           - Quality gate will validate the updated images
 
-          ## Tool image changes
-          $(diff /tmp/tool-images-before.lock.yaml common/tool-images.lock.yaml || true)
-
-          ## App image changes
+          ## Changes
           $(diff /tmp/app-images-before.lock.yaml apps/sbomify/app-images.lock.yaml || true)
           PREOF
           )"

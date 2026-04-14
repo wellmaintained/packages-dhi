@@ -78,16 +78,10 @@ jobs:
           echo "registry=${REG}" >> "$GITHUB_OUTPUT"
           echo "==> Component tag: ${COMPONENT_TAG}"
 
-      - name: Push to GHCR
+      - name: Push to GHCR with component tag
         run: |
-          REG="${{ steps.tag.outputs.registry }}"
-          # Push with component tag (for promotion pipeline)
-          docker tag "${REG}:dev" "${REG}:${{ steps.tag.outputs.component_tag }}"
-          docker push "${REG}:${{ steps.tag.outputs.component_tag }}"
-          # Push with version tag (for dhi-tools-shim extraction)
-          VERSION=$(just _image-version "${{ matrix.image }}")
-          docker tag "${REG}:dev" "${REG}:${VERSION}"
-          docker push "${REG}:${VERSION}"
+          docker tag "${{ steps.tag.outputs.registry }}:dev" "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
+          docker push "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Sign image
         run: ./bin/cosign sign --yes "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
