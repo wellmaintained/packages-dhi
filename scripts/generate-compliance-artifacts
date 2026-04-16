@@ -17,7 +17,6 @@ REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 LOCKFILE="${REPO_ROOT}/common/tool-versions.lock.yaml"
 ARTIFACTS="${REPO_ROOT}/artifacts"
-CACHE_DIR="${PACKAGES_DHI_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/packages-dhi}/compliance-artifacts"
 
 usage() {
     echo "Usage: $0 --image NAME"
@@ -76,45 +75,21 @@ done
 rm -f "${OUT}/index.json"
 rm -rf "${OUT}/blobs"
 
-# ── Convert and enrich SBOM (with caching) ───────────────────
+# ── Convert SPDX → CycloneDX ──────────────────────────────────
 
-# Compute cache key from SPDX content + tool versions
-spdx_hash=$(sha256sum "${OUT}/sbom.spdx.json" | cut -d' ' -f1)
-sbomify_version=$(yq -r '."sbomify-action".version' "$LOCKFILE")
-sbom_convert_version=$(yq -r '."sbom-convert".version' "$LOCKFILE")
-cache_key=$(echo -n "${spdx_hash}:${sbomify_version}:${sbom_convert_version}" | sha256sum | cut -d' ' -f1)
-cached_cdx="${CACHE_DIR}/${cache_key}/sbom.cdx.json"
+echo ""
+echo "=== Converting SPDX → CycloneDX ==="
+"${REPO_ROOT}/bin/sbom-convert" convert "${OUT}/sbom.spdx.json" -f cyclonedx -o "${OUT}/sbom.cdx.json"
+cdx_components=$(jq '.components | length' "${OUT}/sbom.cdx.json")
+cdx_deps=$(jq '.dependencies | length' "${OUT}/sbom.cdx.json")
+echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"
 
-if [ -f "$cached_cdx" ]; then
-    echo ""
-    echo "=== SBOM cache hit ==="
-    echo "  Cache key: ${cache_key:0:12}..."
-    cp "$cached_cdx" "${OUT}/sbom.cdx.json"
-    cdx_components=$(jq '.components | length' "${OUT}/sbom.cdx.json")
-    echo "  CycloneDX SBOM: ${cdx_components} components (cached)"
-else
-    echo ""
-    echo "=== Converting SPDX → CycloneDX ==="
-    "${REPO_ROOT}/bin/sbom-convert" convert "${OUT}/sbom.spdx.json" -f cyclonedx -o "${OUT}/sbom.cdx.json"
-    cdx_components=$(jq '.components | length' "${OUT}/sbom.cdx.json")
-    cdx_deps=$(jq '.dependencies | length' "${OUT}/sbom.cdx.json")
-    echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"
+# ── Enrich SBOM (with caching) ────────────────────────────────
 
-    echo ""
-    echo "=== Enriching SBOM ==="
-    "${REPO_ROOT}/bin/sbomify-action" \
-        --sbom-file "${OUT}/sbom.cdx.json" \
-        --enrich --no-upload \
-        --component-name "${IMAGE}" \
-        -o "${OUT}/sbom.cdx.enriched.tmp.json"
-    mv "${OUT}/sbom.cdx.enriched.tmp.json" "${OUT}/sbom.cdx.json"
-    echo "  enriched"
-
-    # Store in cache
-    mkdir -p "${CACHE_DIR}/${cache_key}"
-    cp "${OUT}/sbom.cdx.json" "$cached_cdx"
-    echo "  Cache key: ${cache_key:0:12}... (stored)"
-fi
+echo ""
+echo "=== Enriching SBOM ==="
+result=$("${REPO_ROOT}/common/scripts/enrich-sbom.bash" "${OUT}/sbom.cdx.json" "${IMAGE}")
+echo "  ${result}"
 
 # ── Scans (always run — inputs change frequently) ────────────
 
