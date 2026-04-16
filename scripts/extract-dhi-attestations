@@ -160,16 +160,11 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
         extract_attestation "$registry" "$repo" "$att_digest" "$token" "${out_dir}/${filename}"
     done
 
-    # Enrich CycloneDX SBOM
+    # Enrich CycloneDX SBOM (with caching)
     echo "    - Enrich SBOM:"
     if [ -f "${out_dir}/sbom.cdx.json" ]; then
-        "${REPO_ROOT}/bin/sbomify-action" \
-          --sbom-file "${out_dir}/sbom.cdx.json" \
-          --enrich --no-upload \
-          --component-name "${name}" \
-          -o "${out_dir}/sbom.cdx.enriched.tmp.json"
-        mv "${out_dir}/sbom.cdx.enriched.tmp.json" "${out_dir}/sbom.cdx.json"
-        echo "      enriched"
+        result=$("${REPO_ROOT}/common/scripts/enrich-sbom.bash" "${out_dir}/sbom.cdx.json" "${name}")
+        echo "      ${result}"
     else
         echo "      (no SBOM available)"
     fi
