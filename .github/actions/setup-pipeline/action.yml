@@ -34,13 +34,13 @@ runs:
       uses: useblacksmith/stickydisk@41873b1513bb679f9c115504cbd13d3660432504 # v1.1.0
       with:
         key: packages-dhi-cache-${{ inputs.cache-key }}
-        path: ~/.cache/packages-dhi
+        path: /home/runner/.cache/packages-dhi
 
     - name: Cache sbomify enrichment data
       uses: useblacksmith/stickydisk@41873b1513bb679f9c115504cbd13d3660432504 # v1.1.0
       with:
         key: sbomify-cache-${{ inputs.cache-key }}
-        path: ~/.cache/sbomify
+        path: /home/runner/.cache/sbomify
 
     - name: Set cache environment variables
       shell: bash
