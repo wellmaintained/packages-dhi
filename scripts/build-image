@@ -37,10 +37,10 @@ REG=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$APP_MANIFEST")
 
 echo "=== Building ${DEF} → ${REG}:dev ==="
 docker buildx build \
-    -f "${DEF}" \
+    -f "${REPO_ROOT}/${DEF}" \
     --platform linux/amd64 \
     --sbom=generator=dhi.io/scout-sbom-indexer:1 \
     --provenance=1 \
     --tag "${REG}:dev" \
     --load \
-    .
+    "${REPO_ROOT}"
