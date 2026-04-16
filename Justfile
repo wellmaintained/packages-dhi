@@ -7,129 +7,7 @@ repo_root := justfile_directory()
 app_manifest := repo_root / "apps/sbomify/app-images.yaml"
 artifacts_dir := repo_root / ".artifacts"
 
-# ── Helpers ────────────────────────────────────────
-
-# Resolve the DHI YAML path for a custom image name
-_image-path image:
-    @yq -r '."{{image}}".definition | select(. != null)' {{app_manifest}}
-
-# Resolve the registry for a custom image name
-_image-registry image:
-    @yq -r '."{{image}}".registry | select(. != null)' {{app_manifest}}
-
-# Resolve the version for a custom image (from DHI YAML git URL)
-_image-version image:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    def=$(just _image-path {{image}})
-    version=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$def" | head -1 || true)
-    if [ -n "$version" ]; then
-        echo "$version"
-        exit 0
-    fi
-    echo "unknown"
-
-# ── Build ──────────────────────────────────────────
-
-# Build all custom DHI images
-build-all:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "{{app_manifest}}"); do
-        echo "=== Building ${name} ==="
-        just build "$name"
-    done
-
-# Build a custom DHI image and produce all compliance artifacts
-build image:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    def=$(just _image-path {{image}})
-    reg=$(just _image-registry {{image}})
-    out="{{artifacts_dir}}/{{image}}"
-    mkdir -p "$out"
-
-    echo "=== Building ${def} → ${reg}:dev ==="
-    docker buildx build \
-        -f "${def}" \
-        --platform linux/amd64 \
-        --sbom=generator=dhi.io/scout-sbom-indexer:1 \
-        --provenance=1 \
-        --tag "${reg}:dev" \
-        --load \
-        .
-
-    # Export image as tar to extract build attestations
-    echo ""
-    echo "=== Exporting image ==="
-    docker save "${reg}:dev" -o "${out}/image.tar"
-
-    # Extract SPDX SBOM and SLSA provenance from build attestations
-    echo ""
-    echo "=== Extracting build attestations ==="
-    tar -xf "${out}/image.tar" -C "${out}" index.json
-    manifest_list_digest=$(jq -r '.manifests[0].digest' "${out}/index.json" | cut -d: -f2)
-    tar -xf "${out}/image.tar" -C "${out}" "blobs/sha256/${manifest_list_digest}"
-    att_digest=$(jq -r '.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest") | .digest' "${out}/blobs/sha256/${manifest_list_digest}" | cut -d: -f2)
-    tar -xf "${out}/image.tar" -C "${out}" "blobs/sha256/${att_digest}"
-
-    for layer in $(jq -r '.layers[] | @base64' "${out}/blobs/sha256/${att_digest}"); do
-        predicate_type=$(echo "$layer" | base64 -d | jq -r '.annotations["in-toto.io/predicate-type"]')
-        layer_digest=$(echo "$layer" | base64 -d | jq -r '.digest' | cut -d: -f2)
-        tar -xf "${out}/image.tar" -C "${out}" "blobs/sha256/${layer_digest}"
-        case "$predicate_type" in
-            *spdx*)
-                jq '.predicate' "${out}/blobs/sha256/${layer_digest}" > "${out}/sbom.spdx.json"
-                pkg_count=$(jq '.packages | length' "${out}/sbom.spdx.json")
-                echo "  SPDX SBOM: ${pkg_count} packages"
-                ;;
-            *provenance*)
-                jq '.predicate' "${out}/blobs/sha256/${layer_digest}" > "${out}/provenance.slsa.json"
-                echo "  SLSA provenance extracted"
-                ;;
-        esac
-    done
-
-    # Clean up temp blobs (keep image.tar for scanning and debugging)
-    rm -f "${out}/index.json"
-    rm -rf "${out}/blobs"
-
-    # Convert SPDX to CycloneDX (DHI build produces SPDX; convert for consistency with stock images)
-    echo ""
-    echo "=== Converting SPDX → CycloneDX ==="
-    {{repo_root}}/bin/sbom-convert convert "${out}/sbom.spdx.json" -f cyclonedx -o "${out}/sbom.cdx.json"
-    cdx_components=$(jq '.components | length' "${out}/sbom.cdx.json")
-    cdx_deps=$(jq '.dependencies | length' "${out}/sbom.cdx.json")
-    echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"
-
-    echo ""
-    echo "=== Enriching SBOM ==="
-    {{repo_root}}/bin/sbomify-action \
-        --sbom-file "${out}/sbom.cdx.json" \
-        --enrich --no-upload \
-        --component-name "{{image}}" \
-        -o "${out}/sbom.cdx.enriched.tmp.json"
-    mv "${out}/sbom.cdx.enriched.tmp.json" "${out}/sbom.cdx.json"
-    echo "  enriched"
-
-    echo ""
-    echo "=== Grype vulnerability scan ==="
-    {{repo_root}}/bin/grype "sbom:${out}/sbom.cdx.json" -o json > "${out}/cves.json" 2>/dev/null \
-        && echo "  saved ${out}/cves.json" || echo "  (scan failed)"
-
-    echo ""
-    echo "=== Gitleaks secrets scan ==="
-    {{repo_root}}/bin/gitleaks detect --source="docker-archive:${out}/image.tar" \
-        -f json -r "${out}/secrets.json" 2>/dev/null \
-        && echo "  saved ${out}/secrets.json" || echo "  (no secrets found)"
-
-    # Copy VEX file if one exists
-    vex_file=$(find "{{repo_root}}" -name "{{image}}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
-    [ -n "$vex_file" ] && cp "$vex_file" "${out}/vex.yaml" && echo "  copied VEX: ${vex_file}"
-
-    echo ""
-    echo "=== Artifacts ==="
-    ls -lh "${out}/"
+mod ci
 
 # ── Stock DHI Images ──────────────────────────────
 
@@ -267,7 +145,7 @@ lint-yaml:
     echo "=== Linting YAML ==="
     find "{{repo_root}}" \
         -name '*.yaml' -o -name '*.yml' \
-        | grep -v -e '\.artifacts/' -e '\.tmp/' -e '\.tool-cache/' \
+        | grep -v -e '\.artifacts/' -e '\.tmp/' \
                   -e 'release-website/public/' -e 'release-website/static/artifacts/' \
         | sort \
         | xargs "{{repo_root}}/bin/yamllint" -c "{{repo_root}}/.yamllint.yaml"

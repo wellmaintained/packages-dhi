@@ -1,0 +1,46 @@
+#!/usr/bin/env bash
+# scripts/build-image — Build a custom DHI image via docker buildx.
+#
+# Usage:
+#   scripts/build-image --image <name>
+#
+# Reads app-images.yaml to resolve the DHI definition path and registry,
+# then runs docker buildx build with SBOM and provenance generators.
+# Tags the image as <registry>:dev and loads it into local Docker.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
+
+usage() {
+    echo "Usage: $0 --image NAME"
+    exit 1
+}
+
+IMAGE=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --image) IMAGE="$2"; shift 2 ;;
+        *) echo "Unknown option: $1"; usage ;;
+    esac
+done
+
+[[ -z "$IMAGE" ]] && usage
+
+# Resolve DHI definition path and registry from manifest
+DEF=$(yq -r ".\"${IMAGE}\".definition | select(. != null)" "$APP_MANIFEST")
+REG=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$APP_MANIFEST")
+
+[[ -z "$DEF" ]] && { echo "ERROR: no definition found for image '${IMAGE}'" >&2; exit 1; }
+[[ -z "$REG" ]] && { echo "ERROR: no registry found for image '${IMAGE}'" >&2; exit 1; }
+
+echo "=== Building ${DEF} → ${REG}:dev ==="
+docker buildx build \
+    -f "${DEF}" \
+    --platform linux/amd64 \
+    --sbom=generator=dhi.io/scout-sbom-indexer:1 \
+    --provenance=1 \
+    --tag "${REG}:dev" \
+    --load \
+    .

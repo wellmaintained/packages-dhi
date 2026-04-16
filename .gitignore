@@ -4,4 +4,3 @@ compliance-pack-*.zip
 .direnv/
 .worktrees/
 .tmp/
-.tool-cache/

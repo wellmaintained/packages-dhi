@@ -26,7 +26,7 @@ RAW="$(yq -r ".$TOOL.raw // false" "$LOCKFILE")"
 
 [[ "$VERSION" == "null" || -z "$VERSION" ]] && { echo "tool-shim: unknown tool '$TOOL'" >&2; exit 1; }
 
-CACHE_DIR="${REPO_ROOT}/.tool-cache"
+CACHE_DIR="${PACKAGES_DHI_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/packages-dhi}/tools"
 BINARY="${CACHE_DIR}/${TOOL}-${VERSION}"
 
 if [ ! -x "$BINARY" ]; then
