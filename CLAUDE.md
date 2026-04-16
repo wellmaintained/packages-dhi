@@ -17,6 +17,7 @@ DHI-native image pipeline for wellmaintained packages.
 - Docker (with buildx)
 - Just
 - yq
+- uv (provides uvx for sbomify-action)
 
 ## Quick Start
 

@@ -33,3 +33,9 @@ sbom-convert:
   version: "0.0.7"
   url: https://github.com/protobom/sbom-convert/releases/download/v${version}/sbom-convert_linux_amd64.tar.gz
   binary: sbom-convert
+
+sbomify-action:
+  type: uvx
+
+yamllint:
+  type: uvx

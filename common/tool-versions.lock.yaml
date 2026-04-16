@@ -41,3 +41,11 @@ sbom-convert:
   url: https://github.com/protobom/sbom-convert/releases/download/v0.0.7/sbom-convert_linux_amd64.tar.gz
   checksum: "sha256:79e581fa36a0d05c1e29130494f1757672f5e12d209e9b6270b7b17b70fe6a58"
   binary: sbom-convert
+
+sbomify-action:
+  version: "26.1.0"
+  type: uvx
+
+yamllint:
+  version: "1.38.0"
+  type: uvx
