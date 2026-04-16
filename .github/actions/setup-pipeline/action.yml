@@ -16,6 +16,9 @@ inputs:
     description: GHCR username (typically github.actor)
   ghcr-token:
     description: GHCR token (typically secrets.GITHUB_TOKEN)
+  cache-key:
+    description: Suffix for sticky disk keys (use matrix.image or job name to avoid cross-job conflicts)
+    default: 'default'
 runs:
   using: composite
   steps:
@@ -30,13 +33,13 @@ runs:
     - name: Cache packages-dhi tools and data
       uses: useblacksmith/stickydisk@41873b1513bb679f9c115504cbd13d3660432504 # v1.1.0
       with:
-        key: packages-dhi-cache
+        key: packages-dhi-cache-${{ inputs.cache-key }}
         path: ~/.cache/packages-dhi
 
     - name: Cache sbomify enrichment data
       uses: useblacksmith/stickydisk@41873b1513bb679f9c115504cbd13d3660432504 # v1.1.0
       with:
-        key: sbomify-cache
+        key: sbomify-cache-${{ inputs.cache-key }}
         path: ~/.cache/sbomify
 
     - name: Set cache environment variables
