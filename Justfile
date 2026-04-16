@@ -9,6 +9,12 @@ artifacts_dir := repo_root / "artifacts"
 
 mod ci
 
+# ── Helpers ────────────────────────────────────────
+
+# Resolve the registry for a custom image name
+_image-registry image:
+    @yq -r '."{{image}}".registry | select(. != null)' {{app_manifest}}
+
 # ── Stock DHI Images ──────────────────────────────
 
 # Extract attestations for all stock DHI images

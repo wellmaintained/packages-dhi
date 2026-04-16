@@ -71,7 +71,8 @@ jobs:
           SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
           SHA7="${SHA7::7}"
           IMAGE="${{ matrix.image }}"
-          VERSION=$(just _image-version "$IMAGE")
+          DEF=$(yq -r ".\"${IMAGE}\".definition | select(. != null)" apps/sbomify/app-images.yaml)
+          VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$DEF" 2>/dev/null | head -1 || echo "unknown")
           COMPONENT_TAG="${IMAGE}-${VERSION}-${SHA7}"
           REG=$(just _image-registry "$IMAGE")
           echo "component_tag=${COMPONENT_TAG}" >> "$GITHUB_OUTPUT"
