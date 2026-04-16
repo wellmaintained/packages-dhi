@@ -1,4 +1,4 @@
-.artifacts/
+artifacts/
 compliance-pack-*.zip
 .compliance-pack/
 .direnv/

@@ -5,7 +5,7 @@ set dotenv-load := false
 
 repo_root := justfile_directory()
 app_manifest := repo_root / "apps/sbomify/app-images.yaml"
-artifacts_dir := repo_root / ".artifacts"
+artifacts_dir := repo_root / "artifacts"
 
 mod ci
 
@@ -145,7 +145,7 @@ lint-yaml:
     echo "=== Linting YAML ==="
     find "{{repo_root}}" \
         -name '*.yaml' -o -name '*.yml' \
-        | grep -v -e '\.artifacts/' -e '\.tmp/' \
+        | grep -v -e 'artifacts/' -e '\.tmp/' \
                   -e 'release-website/public/' -e 'release-website/static/artifacts/' \
         | sort \
         | xargs "{{repo_root}}/bin/yamllint" -c "{{repo_root}}/.yamllint.yaml"

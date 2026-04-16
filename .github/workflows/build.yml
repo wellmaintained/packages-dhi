@@ -43,7 +43,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stock-dhi-attestations
-          path: .artifacts/
+          path: artifacts/
 
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
@@ -89,17 +89,17 @@ jobs:
       - name: Attest SBOM
         run: |
           ./bin/cosign attest --yes --type cyclonedx \
-            --predicate ".artifacts/${{ matrix.image }}/sbom.cdx.json" \
+            --predicate "artifacts/${{ matrix.image }}/sbom.cdx.json" \
             "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Attest provenance
         run: |
           ./bin/cosign attest --yes --type slsaprovenance \
-            --predicate ".artifacts/${{ matrix.image }}/provenance.slsa.json" \
+            --predicate "artifacts/${{ matrix.image }}/provenance.slsa.json" \
             "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: custom-${{ matrix.image }}-attestations
-          path: .artifacts/${{ matrix.image }}/
+          path: artifacts/${{ matrix.image }}/

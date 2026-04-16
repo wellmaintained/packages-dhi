@@ -1,5 +1,5 @@
 # Source compose file for sbomify deployment.
-# Run 'just build sbomify-compose' to produce .artifacts/docker-compose.yml
+# Run 'just build sbomify-compose' to produce artifacts/docker-compose.yml
 # with digest-pinned image refs from apps/sbomify/app-images.lock.yaml
 
 x-common-env: &common-env

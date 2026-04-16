@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Transform build artifacts into Hugo data files for the release website.
-# Reads from .artifacts/ (populated by build.yml or local just commands).
+# Reads from artifacts/ (populated by build.yml or local just commands).
 # Writes to apps/sbomify/release-website/data/
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
-ARTIFACTS="${REPO_ROOT}/.artifacts"
+ARTIFACTS="${REPO_ROOT}/artifacts"
 DATA_DIR="${REPO_ROOT}/apps/sbomify/release-website/data"
 STATIC_DIR="${REPO_ROOT}/apps/sbomify/release-website/static/artifacts"
 

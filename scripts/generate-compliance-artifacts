@@ -7,7 +7,7 @@
 # Expects the image to already be built and tagged as <registry>:dev.
 # Produces: sbom.spdx.json, sbom.cdx.json, provenance.slsa.json,
 #           cves.json, secrets.json, and optionally vex.yaml
-# in .artifacts/<image>/.
+# in artifacts/<image>/.
 #
 # Caches the enriched CycloneDX SBOM keyed on SPDX content + tool versions.
 # Cache hit skips the SPDX→CycloneDX conversion and sbomify enrichment steps.
@@ -16,7 +16,7 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 LOCKFILE="${REPO_ROOT}/common/tool-versions.lock.yaml"
-ARTIFACTS="${REPO_ROOT}/.artifacts"
+ARTIFACTS="${REPO_ROOT}/artifacts"
 CACHE_DIR="${PACKAGES_DHI_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/packages-dhi}/compliance-artifacts"
 
 usage() {

@@ -4,7 +4,7 @@
 
 repo_root := justfile_directory()
 app_manifest := repo_root / "apps/sbomify/app-images.yaml"
-artifacts_dir := repo_root / ".artifacts"
+artifacts_dir := repo_root / "artifacts"
 
 # ── Full pipeline ─────────────────────────────────────────────
 
