@@ -160,11 +160,25 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
         extract_attestation "$registry" "$repo" "$att_digest" "$token" "${out_dir}/${filename}"
     done
 
+    # Enrich CycloneDX SBOM
+    echo "    - Enrich SBOM:"
+    if [ -f "${out_dir}/sbom.cdx.json" ]; then
+        "${REPO_ROOT}/bin/sbomify-action" \
+          --sbom-file "${out_dir}/sbom.cdx.json" \
+          --enrich --no-upload \
+          --component-name "${name}" \
+          -o "${out_dir}/sbom.cdx.enriched.tmp.json"
+        mv "${out_dir}/sbom.cdx.enriched.tmp.json" "${out_dir}/sbom.cdx.json"
+        echo "      enriched"
+    else
+        echo "      (no SBOM available)"
+    fi
+
     # Run grype scan using the extracted SBOM
     echo "    - CVE scan:"
     if [ -f "${out_dir}/sbom.cdx.json" ]; then
         "${REPO_ROOT}/bin/grype" \
-            "sbom:/work/.artifacts/${name}/sbom.cdx.json" -o json \
+            "sbom:${out_dir}/sbom.cdx.json" -o json \
             > "${out_dir}/cves.json" 2>/dev/null && echo "      saved" || echo "      (scan failed)"
     else
         echo "      (no SBOM available)"

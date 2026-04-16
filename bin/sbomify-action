@@ -1,0 +1,75 @@
+#!/usr/bin/env bash
+# sbomify-action shim — runs sbomify-action via uvx with workarounds for
+# known bugs in <= 26.1.0 (compound license expressions in license.id).
+# TODO: Remove workaround once upgraded past 26.1.0 — see #7
+set -euo pipefail
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+LOCKFILE="$REPO_ROOT/common/tool-versions.lock.yaml"
+
+VERSION=$(yq -r '."sbomify-action".version' "$LOCKFILE")
+[[ "$VERSION" == "null" || -z "$VERSION" ]] && { echo "sbomify-action: no version in lock file" >&2; exit 1; }
+
+# --- helpers ---
+
+fix_cdx_license_expressions() {
+    local sbom="$1"
+    jq '
+      .components |= map(
+        if .licenses then
+          .licenses |= map(
+            if .license.id and (.license.id | test(" (OR|AND) "))
+            then {"expression": .license.id}
+            else .
+            end
+          )
+        else .
+        end
+      )
+    ' "$sbom" > "${sbom}.tmp" && mv "${sbom}.tmp" "$sbom"
+}
+
+# --- main ---
+
+# Check if we need the license expression workaround
+needs_license_fix=false
+if [ "$(printf '%s\n' "26.1.0" "$VERSION" | sort -V | tail -1)" = "26.1.0" ]; then
+    needs_license_fix=true
+fi
+
+# Parse -o/--output-file from args so we know where the output goes
+output_file=""
+args=("$@")
+for ((i=0; i<${#args[@]}; i++)); do
+    case "${args[$i]}" in
+        -o|--output-file)
+            output_file="${args[$((i+1))]}"
+            break
+            ;;
+    esac
+done
+
+if [ "$needs_license_fix" = "false" ] || [ -z "$output_file" ]; then
+    # No workaround needed, or no output file (e.g. --help, --version)
+    exec uvx "sbomify-action@$VERSION" "$@"
+fi
+
+# Run with --working-dir so we can recover step_3.json on validation failure
+# Use repo-relative temp dir — sbomify-action in GHA rejects /tmp paths
+mkdir -p "$REPO_ROOT/.tmp"
+workdir=$(mktemp -d "$REPO_ROOT/.tmp/sbomify-workdir.XXXXXX")
+trap 'rm -rf "$workdir"' EXIT
+
+if uvx "sbomify-action@$VERSION" --working-dir "$workdir" "$@"; then
+    # Enrichment + validation succeeded — apply fix to output just in case
+    fix_cdx_license_expressions "$output_file"
+elif [ -f "$workdir/step_3.json" ]; then
+    # Enrichment succeeded but validation failed — recover and fix
+    cp "$workdir/step_3.json" "$output_file"
+    fix_cdx_license_expressions "$output_file"
+    echo "  recovered enriched SBOM with license expression fix" >&2
+else
+    # Enrichment itself failed
+    exit 1
+fi
