@@ -1,7 +1,6 @@
-.artifacts/
+artifacts/
 compliance-pack-*.zip
 .compliance-pack/
 .direnv/
 .worktrees/
 .tmp/
-.tool-cache/

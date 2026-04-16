@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Extract attestations (SBOM, VEX, provenance) for all stock DHI images.
 # Uses the OCI Referrers API to pull DHI's own attestations — NOT regenerated SBOMs.
-# Stores artifacts in .artifacts/<image-name>/ for use by release website and compliance pack.
+# Stores artifacts in artifacts/<image-name>/ for use by release website and compliance pack.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
-ARTIFACTS="${REPO_ROOT}/.artifacts"
+ARTIFACTS="${REPO_ROOT}/artifacts"
 
 mkdir -p "$ARTIFACTS"
 

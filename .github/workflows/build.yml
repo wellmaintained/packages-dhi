@@ -35,7 +35,7 @@ jobs:
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
-          sbomify-cache-key: sbomify-cache-stock
+          cache-key: stock
 
       - name: Extract attestations
         run: just extract-dhi-attestations
@@ -44,7 +44,7 @@ jobs:
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: stock-dhi-attestations
-          path: .artifacts/
+          path: artifacts/
 
   custom-dhi-builds:
     name: Build ${{ matrix.image }}
@@ -62,10 +62,10 @@ jobs:
           ghcr-login: true
           ghcr-username: ${{ github.actor }}
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
-          sbomify-cache-key: sbomify-cache-${{ matrix.image }}
+          cache-key: ${{ matrix.image }}
 
       - name: Build image and generate compliance artifacts
-        run: just build ${{ matrix.image }}
+        run: just ci build ${{ matrix.image }}
 
       - name: Compute component tag
         id: tag
@@ -73,7 +73,8 @@ jobs:
           SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
           SHA7="${SHA7::7}"
           IMAGE="${{ matrix.image }}"
-          VERSION=$(just _image-version "$IMAGE")
+          DEF=$(yq -r ".\"${IMAGE}\".definition | select(. != null)" apps/sbomify/app-images.yaml)
+          VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$DEF" 2>/dev/null | head -1 || echo "unknown")
           COMPONENT_TAG="${IMAGE}-${VERSION}-${SHA7}"
           REG=$(just _image-registry "$IMAGE")
           echo "component_tag=${COMPONENT_TAG}" >> "$GITHUB_OUTPUT"
@@ -91,17 +92,17 @@ jobs:
       - name: Attest SBOM
         run: |
           ./bin/cosign attest --yes --type cyclonedx \
-            --predicate ".artifacts/${{ matrix.image }}/sbom.cdx.json" \
+            --predicate "artifacts/${{ matrix.image }}/sbom.cdx.json" \
             "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Attest provenance
         run: |
           ./bin/cosign attest --yes --type slsaprovenance \
-            --predicate ".artifacts/${{ matrix.image }}/provenance.slsa.json" \
+            --predicate "artifacts/${{ matrix.image }}/provenance.slsa.json" \
             "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.component_tag }}"
 
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: custom-${{ matrix.image }}-attestations
-          path: .artifacts/${{ matrix.image }}/
+          path: artifacts/${{ matrix.image }}/

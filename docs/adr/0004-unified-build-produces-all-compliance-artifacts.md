@@ -20,7 +20,7 @@ problems:
 ## Decision
 
 `just build <image>` produces the image and all compliance artifacts in a single
-invocation. The output directory `.artifacts/<image>/` contains everything needed
+invocation. The output directory `artifacts/<image>/` contains everything needed
 for compliance after one command:
 
 1. Build the Docker image with DHI SBOM and provenance attestations.
@@ -37,6 +37,6 @@ The separate `scan` and `sbom-spdx` targets were removed.
 
 - One command produces a complete, consistent set of artifacts. No partial state.
 - CI workflows call `just build` once per image. No separate scan or SBOM steps.
-- The image tar remains in `.artifacts/<image>/` for debugging and secrets
+- The image tar remains in `artifacts/<image>/` for debugging and secrets
   scanning.
 - Local and CI builds produce identical artifact sets.

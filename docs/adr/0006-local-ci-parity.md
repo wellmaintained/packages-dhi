@@ -40,12 +40,37 @@ bump.
 
 ### Same scripts
 
-`just` targets are the unit of work. CI workflows are thin wrappers that call
-`just build`, `just extract-dhi-attestations`, `just release-website`, etc.
-CI-specific concerns (checkout, registry login, artifact upload, release
-creation) live in the workflow files. Build logic, scanning, SBOM generation,
-and compliance packaging live in `Justfile` and `scripts/` — shared between
-local and CI.
+Core build logic lives in `scripts/` — self-contained bash scripts that handle
+image building, compliance artifact generation, attestation extraction, and
+scanning. Both `just` targets and CI workflows call these same scripts.
+
+The `ci` just module (`ci/mod.just`) provides orchestration targets whose names
+match the GitHub Actions workflow steps:
+
+- `just ci build <image>` — full pipeline (build, extract, scan, dry-run push/sign)
+- `just ci build-image <image>` — Docker buildx build only
+- `just ci generate-compliance-artifacts <image>` — SBOM extraction, conversion, enrichment, scanning
+- `just ci compute-component-tag <image>` — compute the component tag
+- `just ci push-to-ghcr <image>` — push to registry (dry-run locally)
+- `just ci sign-image <image>` — cosign sign (dry-run locally)
+- `just ci attest-sbom <image>` — cosign attest SBOM (dry-run locally)
+- `just ci attest-provenance <image>` — cosign attest provenance (dry-run locally)
+
+CI-only steps (push, sign, attest) run as dry-runs locally — they verify that
+prerequisites and artifacts exist and print the commands that CI would execute,
+without requiring registry credentials or OIDC tokens.
+
+### Unified caching
+
+All project caches live under `${XDG_CACHE_HOME:-$HOME/.cache}/packages-dhi/`.
+This directory is shared across git worktrees (because it lives in `$HOME`)
+and persisted in CI via a single Blacksmith sticky disk. The `.envrc` file
+exports env vars (`PACKAGES_DHI_CACHE`, `GRYPE_DB_CACHE_DIR`, `UV_CACHE_DIR`,
+`HUGO_CACHEDIR`) so tools use the unified cache automatically.
+
+The SBOM enrichment pipeline caches its output keyed on the SPDX SBOM content
+hash and tool versions — identical SBOMs skip the slow conversion and
+enrichment steps on subsequent builds.
 
 ### CI adds, never replaces
 
@@ -56,13 +81,15 @@ CI workflows add orchestration on top of local scripts:
 - **Tagging and promotion** — component tags, app-collection tags, released-on tags
 - **Publishing** — GitHub releases, GitHub Pages deployment
 
-None of these change what gets built or how. A developer running `just build minio`
-locally produces the same image and compliance artifacts as CI does.
+None of these change what gets built or how. A developer running
+`just ci build minio` locally produces the same image and compliance artifacts
+as CI does. The CI-only steps execute for real in CI but dry-run locally.
 
 ## Consequences
 
 - A developer can reproduce any CI step locally by running the corresponding
-  `just` target.
+  `just ci` target. Running `just ci build minio` before pushing gives
+  confidence that the CI pipeline will pass.
 - Tool version updates follow the spec + lock pattern: edit the version,
   run `just update-tools`, commit both files. The checksum in the lock file
   guarantees the same binary runs everywhere.

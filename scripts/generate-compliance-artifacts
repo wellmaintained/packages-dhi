@@ -1,0 +1,138 @@
+#!/usr/bin/env bash
+# scripts/generate-compliance-artifacts — Extract and process compliance artifacts from a built image.
+#
+# Usage:
+#   scripts/generate-compliance-artifacts --image <name>
+#
+# Expects the image to already be built and tagged as <registry>:dev.
+# Produces: sbom.spdx.json, sbom.cdx.json, provenance.slsa.json,
+#           cves.json, secrets.json, and optionally vex.yaml
+# in artifacts/<image>/.
+#
+# Caches the enriched CycloneDX SBOM keyed on SPDX content + tool versions.
+# Cache hit skips the SPDX→CycloneDX conversion and sbomify enrichment steps.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
+LOCKFILE="${REPO_ROOT}/common/tool-versions.lock.yaml"
+ARTIFACTS="${REPO_ROOT}/artifacts"
+CACHE_DIR="${PACKAGES_DHI_CACHE:-${XDG_CACHE_HOME:-$HOME/.cache}/packages-dhi}/compliance-artifacts"
+
+usage() {
+    echo "Usage: $0 --image NAME"
+    exit 1
+}
+
+IMAGE=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --image) IMAGE="$2"; shift 2 ;;
+        *) echo "Unknown option: $1"; usage ;;
+    esac
+done
+
+[[ -z "$IMAGE" ]] && usage
+
+REG=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$APP_MANIFEST")
+[[ -z "$REG" ]] && { echo "ERROR: no registry found for image '${IMAGE}'" >&2; exit 1; }
+
+OUT="${ARTIFACTS}/${IMAGE}"
+mkdir -p "$OUT"
+
+# ── Export image and extract build attestations ──────────────
+
+echo ""
+echo "=== Exporting image ==="
+docker save "${REG}:dev" -o "${OUT}/image.tar"
+
+echo ""
+echo "=== Extracting build attestations ==="
+tar -xf "${OUT}/image.tar" -C "${OUT}" index.json
+manifest_list_digest=$(jq -r '.manifests[0].digest' "${OUT}/index.json" | cut -d: -f2)
+tar -xf "${OUT}/image.tar" -C "${OUT}" "blobs/sha256/${manifest_list_digest}"
+att_digest=$(jq -r '.manifests[] | select(.annotations["vnd.docker.reference.type"] == "attestation-manifest") | .digest' "${OUT}/blobs/sha256/${manifest_list_digest}" | cut -d: -f2)
+tar -xf "${OUT}/image.tar" -C "${OUT}" "blobs/sha256/${att_digest}"
+
+for layer in $(jq -r '.layers[] | @base64' "${OUT}/blobs/sha256/${att_digest}"); do
+    predicate_type=$(echo "$layer" | base64 -d | jq -r '.annotations["in-toto.io/predicate-type"]')
+    layer_digest=$(echo "$layer" | base64 -d | jq -r '.digest' | cut -d: -f2)
+    tar -xf "${OUT}/image.tar" -C "${OUT}" "blobs/sha256/${layer_digest}"
+    case "$predicate_type" in
+        *spdx*)
+            jq '.predicate' "${OUT}/blobs/sha256/${layer_digest}" > "${OUT}/sbom.spdx.json"
+            pkg_count=$(jq '.packages | length' "${OUT}/sbom.spdx.json")
+            echo "  SPDX SBOM: ${pkg_count} packages"
+            ;;
+        *provenance*)
+            jq '.predicate' "${OUT}/blobs/sha256/${layer_digest}" > "${OUT}/provenance.slsa.json"
+            echo "  SLSA provenance extracted"
+            ;;
+    esac
+done
+
+# Clean up temp blobs
+rm -f "${OUT}/index.json"
+rm -rf "${OUT}/blobs"
+
+# ── Convert and enrich SBOM (with caching) ───────────────────
+
+# Compute cache key from SPDX content + tool versions
+spdx_hash=$(sha256sum "${OUT}/sbom.spdx.json" | cut -d' ' -f1)
+sbomify_version=$(yq -r '."sbomify-action".version' "$LOCKFILE")
+sbom_convert_version=$(yq -r '."sbom-convert".version' "$LOCKFILE")
+cache_key=$(echo -n "${spdx_hash}:${sbomify_version}:${sbom_convert_version}" | sha256sum | cut -d' ' -f1)
+cached_cdx="${CACHE_DIR}/${cache_key}/sbom.cdx.json"
+
+if [ -f "$cached_cdx" ]; then
+    echo ""
+    echo "=== SBOM cache hit ==="
+    echo "  Cache key: ${cache_key:0:12}..."
+    cp "$cached_cdx" "${OUT}/sbom.cdx.json"
+    cdx_components=$(jq '.components | length' "${OUT}/sbom.cdx.json")
+    echo "  CycloneDX SBOM: ${cdx_components} components (cached)"
+else
+    echo ""
+    echo "=== Converting SPDX → CycloneDX ==="
+    "${REPO_ROOT}/bin/sbom-convert" convert "${OUT}/sbom.spdx.json" -f cyclonedx -o "${OUT}/sbom.cdx.json"
+    cdx_components=$(jq '.components | length' "${OUT}/sbom.cdx.json")
+    cdx_deps=$(jq '.dependencies | length' "${OUT}/sbom.cdx.json")
+    echo "  CycloneDX SBOM: ${cdx_components} components, ${cdx_deps} dependencies"
+
+    echo ""
+    echo "=== Enriching SBOM ==="
+    "${REPO_ROOT}/bin/sbomify-action" \
+        --sbom-file "${OUT}/sbom.cdx.json" \
+        --enrich --no-upload \
+        --component-name "${IMAGE}" \
+        -o "${OUT}/sbom.cdx.enriched.tmp.json"
+    mv "${OUT}/sbom.cdx.enriched.tmp.json" "${OUT}/sbom.cdx.json"
+    echo "  enriched"
+
+    # Store in cache
+    mkdir -p "${CACHE_DIR}/${cache_key}"
+    cp "${OUT}/sbom.cdx.json" "$cached_cdx"
+    echo "  Cache key: ${cache_key:0:12}... (stored)"
+fi
+
+# ── Scans (always run — inputs change frequently) ────────────
+
+echo ""
+echo "=== Grype vulnerability scan ==="
+"${REPO_ROOT}/bin/grype" "sbom:${OUT}/sbom.cdx.json" -o json > "${OUT}/cves.json" 2>/dev/null \
+    && echo "  saved ${OUT}/cves.json" || echo "  (scan failed)"
+
+echo ""
+echo "=== Gitleaks secrets scan ==="
+"${REPO_ROOT}/bin/gitleaks" detect --source="docker-archive:${OUT}/image.tar" \
+    -f json -r "${OUT}/secrets.json" 2>/dev/null \
+    && echo "  saved ${OUT}/secrets.json" || echo "  (no secrets found)"
+
+# Copy VEX file if one exists
+vex_file=$(find "${REPO_ROOT}" -name "${IMAGE}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
+[ -n "$vex_file" ] && cp "$vex_file" "${OUT}/vex.yaml" && echo "  copied VEX: ${vex_file}"
+
+echo ""
+echo "=== Artifacts ==="
+ls -lh "${OUT}/"

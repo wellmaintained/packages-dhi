@@ -176,28 +176,19 @@ jobs:
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           name: stock-dhi-attestations
-          path: .artifacts/
+          path: artifacts/
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.resolve-pr.outputs.build-run-id }}
-        continue-on-error: true
 
       - name: Download custom image artifacts
         if: needs.resolve-pr.outputs.build-run-id != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
           pattern: custom-*-attestations
-          path: .artifacts/
+          path: artifacts/
           merge-multiple: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.resolve-pr.outputs.build-run-id }}
-        continue-on-error: true
-
-      - name: Extract stock DHI attestations (fallback)
-        run: |
-          if [ ! -d ".artifacts/postgres" ]; then
-            echo "Build artifacts not found, extracting fresh..."
-            just extract-dhi-attestations
-          fi
 
       - name: Build compliance pack
         run: just compliance-pack ${{ needs.resolve-version.outputs.app-collection-version }}

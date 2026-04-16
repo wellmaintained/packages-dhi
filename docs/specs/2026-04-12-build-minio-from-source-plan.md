@@ -320,7 +320,7 @@ Both should print version strings matching the pinned releases, not `0.0.0-UNKNO
 
 ```bash
 just sbom-spdx minio
-jq '.packages | length' .artifacts/minio/sbom.spdx.json
+jq '.packages | length' artifacts/minio/sbom.spdx.json
 ```
 
 Expected: significantly more than 2 packages (the old SBOM had ~2-3; the new one should have hundreds of Go module dependencies).
@@ -665,7 +665,7 @@ Expected: grype and gitleaks scans complete (vulnerabilities are informational, 
 
 ```bash
 just sbom-spdx minio
-jq '.packages[] | .name' .artifacts/minio/sbom.spdx.json | head -20
+jq '.packages[] | .name' artifacts/minio/sbom.spdx.json | head -20
 ```
 
 Expected: Go module names visible in the SBOM (e.g., `github.com/minio/minio`, `golang.org/x/net`, `google.golang.org/grpc`).

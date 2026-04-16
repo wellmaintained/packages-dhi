@@ -36,15 +36,15 @@ Triggers on `pull_request`.
 
 **Job: custom-dhi-builds** (matrix over custom images)
 1. `just build {image}` — build image, produce all compliance artifacts in
-   `.artifacts/{image}/`
+   `artifacts/{image}/`
 2. Compute component tag: parse image name+version from manifest, append
    `-{sha7}` from `github.event.pull_request.head.sha`
 3. `docker tag {reg}:dev {reg}:{component_tag}`
 4. `docker push {reg}:{component_tag}`
 5. `cosign sign {reg}:{component_tag}`
-6. `cosign attest --type cyclonedx` with `.artifacts/{image}/sbom.cdx.json`
-7. `cosign attest --type slsaprovenance` with `.artifacts/{image}/provenance.slsa.json`
-8. Upload `.artifacts/{image}/` as GitHub Actions artifact (7-day retention)
+6. `cosign attest --type cyclonedx` with `artifacts/{image}/sbom.cdx.json`
+7. `cosign attest --type slsaprovenance` with `artifacts/{image}/provenance.slsa.json`
+8. Upload `artifacts/{image}/` as GitHub Actions artifact (7-day retention)
 
 **Job: sbom-quality-gate** (dependent on custom-dhi-builds)
 - Validate SBOM exists and has packages (as now)
