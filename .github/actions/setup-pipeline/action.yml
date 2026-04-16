@@ -50,6 +50,16 @@ runs:
         echo "UV_CACHE_DIR=$HOME/.cache/packages-dhi/uv" >> "$GITHUB_ENV"
         echo "HUGO_CACHEDIR=$HOME/.cache/packages-dhi/hugo" >> "$GITHUB_ENV"
 
+    - name: Debug sticky disk contents
+      shell: bash
+      run: |
+        echo "=== packages-dhi cache ==="
+        ls -la ~/.cache/packages-dhi/ 2>/dev/null || echo "(empty or missing)"
+        ls -la ~/.cache/packages-dhi/tools/ 2>/dev/null || echo "  tools/ (empty or missing)"
+        ls -la ~/.cache/packages-dhi/compliance-artifacts/ 2>/dev/null || echo "  compliance-artifacts/ (empty or missing)"
+        echo "=== sbomify cache ==="
+        ls -la ~/.cache/sbomify/ 2>/dev/null || echo "(empty or missing)"
+
     - name: Enable containerd image store
       shell: bash
       run: |
