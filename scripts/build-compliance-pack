@@ -6,7 +6,7 @@ VERSION="${1:?Usage: build-compliance-pack <version>}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 ARTIFACTS="${REPO_ROOT}/artifacts"
-TOOL_LOCK="${REPO_ROOT}/common/tool-images.lock.yaml"
+TOOL_LOCK="${REPO_ROOT}/common/tool-versions.lock.yaml"
 APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
 PACK_DIR="${REPO_ROOT}/.compliance-pack"
 OUTPUT="${REPO_ROOT}/compliance-pack-${VERSION}.zip"
@@ -15,7 +15,7 @@ rm -rf "$PACK_DIR"
 mkdir -p "$PACK_DIR"/{sboms,vex,provenance,scans}
 
 # Copy manifests
-cp "$TOOL_LOCK" "$PACK_DIR/tool-images.lock.yaml"
+cp "$TOOL_LOCK" "$PACK_DIR/tool-versions.lock.yaml"
 cp "$APP_LOCK" "$PACK_DIR/app-images.lock.yaml"
 
 # Copy artifacts for each image
