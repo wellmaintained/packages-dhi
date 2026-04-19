@@ -1,5 +1,6 @@
 # packages-dhi — DHI-native image pipeline for wellmaintained packages
 # Prerequisites: Docker (with buildx), Just, yq
+# Build & release pipeline: build.yml (PR) → pre-release.yml (PR closed/merged) → deploy-release-website.yml (release published)
 
 set dotenv-load := false
 
