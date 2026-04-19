@@ -1,5 +1,7 @@
 # packages-dhi
 
+@.claude/principles.md
+
 DHI-native image pipeline for wellmaintained packages.
 
 ## Structure
