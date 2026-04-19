@@ -1,7 +1,8 @@
 name: Pre-Release
 
 on:
-  push:
+  pull_request:
+    types: [closed]
     branches: [main]
   workflow_dispatch:
     inputs:
@@ -18,44 +19,60 @@ permissions:
 jobs:
   resolve-images:
     name: Resolve image lists
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || inputs.sha || github.sha }}
       - id: images
         run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
 
   resolve-pr:
     name: Resolve source PR
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       is-pr: ${{ steps.pr.outputs.is_pr }}
       pr-number: ${{ steps.pr.outputs.number }}
       sha7: ${{ steps.pr.outputs.sha7 }}
+      merge-sha: ${{ steps.pr.outputs.merge_sha }}
       build-run-id: ${{ steps.build-run.outputs.run_id }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ github.event.pull_request.merge_commit_sha || inputs.sha || github.sha }}
 
-      - name: Find PR from merge commit
+      - name: Resolve PR metadata
         id: pr
         run: |
-          COMMIT_SHA="${{ inputs.sha || github.sha }}"
-          echo "==> Looking up PRs for commit ${COMMIT_SHA}"
-          PR_JSON=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" 2>&1) || {
-            echo "==> gh api failed: ${PR_JSON}"
-            PR_JSON="[]"
-          }
-          echo "==> PR_JSON: ${PR_JSON}"
-          PR_NUMBER=$(echo "$PR_JSON" | jq -r 'if type == "array" then (.[0].number // 0) else 0 end')
-          HEAD_SHA=$(echo "$PR_JSON" | jq -r 'if type == "array" then (.[0].head.sha // empty) else empty end')
-          HEAD_SHA="${HEAD_SHA:-${COMMIT_SHA}}"
+          if [ "${{ github.event_name }}" = "pull_request" ]; then
+            PR_NUMBER="${{ github.event.pull_request.number }}"
+            HEAD_SHA="${{ github.event.pull_request.head.sha }}"
+            MERGE_SHA="${{ github.event.pull_request.merge_commit_sha }}"
+            echo "==> pull_request event: PR #${PR_NUMBER}, head ${HEAD_SHA}, merge ${MERGE_SHA}"
+            is_pr=true
+          else
+            COMMIT_SHA="${{ inputs.sha || github.sha }}"
+            echo "==> workflow_dispatch: looking up PR for ${COMMIT_SHA}"
+            PR_JSON=$(gh api "repos/${{ github.repository }}/commits/${COMMIT_SHA}/pulls" 2>&1) || {
+              echo "==> gh api failed: ${PR_JSON}"
+              PR_JSON="[]"
+            }
+            PR_NUMBER=$(echo "$PR_JSON" | jq -r 'if type == "array" then (.[0].number // 0) else 0 end')
+            HEAD_SHA=$(echo "$PR_JSON" | jq -r 'if type == "array" then (.[0].head.sha // empty) else empty end')
+            HEAD_SHA="${HEAD_SHA:-${COMMIT_SHA}}"
+            MERGE_SHA="${COMMIT_SHA}"
+            is_pr=$( [ "$PR_NUMBER" != "0" ] && [ "$PR_NUMBER" != "null" ] && echo "true" || echo "false" )
+          fi
           SHA7="${HEAD_SHA::7}"
-          is_pr=$( [ "$PR_NUMBER" != "0" ] && [ "$PR_NUMBER" != "null" ] && echo "true" || echo "false" )
           echo "number=${PR_NUMBER}" >> "$GITHUB_OUTPUT"
           echo "sha7=${SHA7}" >> "$GITHUB_OUTPUT"
+          echo "merge_sha=${MERGE_SHA}" >> "$GITHUB_OUTPUT"
           echo "is_pr=${is_pr}" >> "$GITHUB_OUTPUT"
-          echo "==> PR #${PR_NUMBER}, HEAD SHA: ${HEAD_SHA} (${SHA7}), is_pr: ${is_pr}"
+          echo "==> PR #${PR_NUMBER}, HEAD SHA: ${HEAD_SHA} (${SHA7}), merge SHA: ${MERGE_SHA}, is_pr: ${is_pr}"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -91,6 +108,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          ref: ${{ needs.resolve-pr.outputs.merge-sha }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -136,6 +154,8 @@ jobs:
         image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ needs.resolve-pr.outputs.merge-sha }}
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
@@ -163,6 +183,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          ref: ${{ needs.resolve-pr.outputs.merge-sha }}
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
@@ -218,6 +240,7 @@ jobs:
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
+          ref: ${{ needs.resolve-pr.outputs.merge-sha }}
           fetch-depth: 0
           fetch-tags: true
 
@@ -256,7 +279,7 @@ jobs:
       - name: Create GitHub pre-release
         run: |
           gh release create "${{ needs.resolve-version.outputs.app-collection-version }}" \
-            --target "${{ github.sha }}" \
+            --target "${{ needs.resolve-pr.outputs.merge-sha }}" \
             --prerelease \
             --title "${{ needs.resolve-version.outputs.app-collection-version }}" \
             --notes-file /tmp/release-notes.md \
