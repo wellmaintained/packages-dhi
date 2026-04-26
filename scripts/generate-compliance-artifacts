@@ -108,7 +108,7 @@ echo "=== Scanning SBOM for vulnerabilities ==="
 # guessing. Stderr is shown unguarded — the previous 2>/dev/null swallowed
 # the actual failure cause when grype hit a network/DB error in CI.
 "${REPO_ROOT}/bin/grype" db status 2>&1 | sed 's/^/  /'
-if "${REPO_ROOT}/bin/grype" sbom:"${OUT}/sbom.cdx.json" -o json --quiet \
+if "${REPO_ROOT}/bin/grype" sbom:"${OUT}/sbom.cdx.json" -o json \
         > "${OUT}/cves.json" \
    && jq -e empty "${OUT}/cves.json" >/dev/null 2>&1; then
     matches=$(jq '.matches | length' "${OUT}/cves.json")
