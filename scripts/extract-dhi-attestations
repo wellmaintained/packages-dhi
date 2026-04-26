@@ -104,6 +104,13 @@ extract_attestation() {
 echo "Extracting DHI attestations for stock images..."
 echo ""
 
+# Print grype DB status once up front so a missing/stale DB is visible
+# in the workflow log; the per-image scan failures we saw in PR #16's
+# release build had stderr suppressed, hiding the real cause.
+echo "Grype vulnerability DB:"
+"${REPO_ROOT}/bin/grype" db status 2>&1 | sed 's/^/  /'
+echo ""
+
 for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP_LOCK"); do
     source=$(yq -r ".$name.source" "$APP_LOCK")
     digest=$(yq -r ".$name.digest // \"\"" "$APP_LOCK")
@@ -172,12 +179,14 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
     # Scan the enriched SBOM for vulnerabilities (provides CVE descriptions
     # for the release-website matrix). Tolerate grype/jq failures so one
     # flaky scan doesn't abort the per-image loop and leave artifacts/
-    # half-populated — cves.json is best-effort enrichment.
+    # half-populated — cves.json is best-effort enrichment. Stderr is
+    # shown unguarded so a CI failure (DB missing, network error) is
+    # visible in the workflow log instead of swallowed.
     echo "    - Scan SBOM for vulnerabilities:"
     if [ ! -f "${out_dir}/sbom.cdx.json" ]; then
         echo "      (no SBOM available)"
     elif "${REPO_ROOT}/bin/grype" sbom:"${out_dir}/sbom.cdx.json" -o json --quiet \
-            2>/dev/null > "${out_dir}/cves.json" \
+            > "${out_dir}/cves.json" \
          && jq -e empty "${out_dir}/cves.json" >/dev/null 2>&1; then
         matches=$(jq '.matches | length' "${out_dir}/cves.json")
         echo "      ${matches} matches → ${out_dir}/cves.json"
