@@ -2,6 +2,13 @@
 # Transform build artifacts into Hugo data files for the release website.
 # Reads from artifacts/ (populated by build.yml or local just commands).
 # Writes to apps/sbomify/release-website/data/
+#
+# The vulnerabilities data is VEX-only: we publish our analysis ("CVEs we
+# looked at and deemed not applicable, with justification"), not a
+# point-in-time grype dump. The CVE database drifts daily; VEX statements
+# are the durable signal that stays valid between republishes. Consumers
+# who want today's live CVE view re-scan the shipped SBOM + VEX with
+# `grype sbom:<file> --vex <vex>`.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -15,10 +22,28 @@ mkdir -p "$DATA_DIR" "$STATIC_DIR/sboms" "$STATIC_DIR/vex" "$STATIC_DIR/provenan
 
 echo "Generating release data..."
 
-# Build release.json from manifest + artifact metadata
+# ── release.json + static artifact copies ────────────────────────────────
+
 release_images="[]"
 
-# Process stock images (from app manifest lock)
+# Resolve the VEX source for an image and return its kind + path.
+# Preference: artifacts/<name>/vex.dhi.json (DHI vendor VEX) →
+#             artifacts/<name>/vex.json    (hand-authored, copied in by
+#                                           generate-compliance-artifacts)
+# Echoes "<kind>\t<path>" where kind is one of: dhi | project | none
+_vex_source() {
+    local name="$1"
+    local art_dir="${ARTIFACTS}/${name}"
+    if [ -f "${art_dir}/vex.dhi.json" ] && [ -s "${art_dir}/vex.dhi.json" ]; then
+        printf '%s\t%s\n' "dhi" "${art_dir}/vex.dhi.json"; return
+    fi
+    if [ -f "${art_dir}/vex.json" ] && [ -s "${art_dir}/vex.json" ]; then
+        printf '%s\t%s\n' "project" "${art_dir}/vex.json"; return
+    fi
+    printf '%s\t%s\n' "none" ""
+}
+
+# Stock images (from app manifest lock)
 for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP_LOCK"); do
     source=$(yq -r ".$name.source" "$APP_LOCK")
     digest=$(yq -r ".$name.digest // \"\"" "$APP_LOCK")
@@ -31,7 +56,6 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
         '{name: $name, source: $source, digest: $digest, attestation_source: $attestation_source, type: "stock"}')
     release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
 
-    # Copy artifacts to static dir
     [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
         cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
     [ -f "${ARTIFACTS}/${name}/vex.dhi.json" ] && [ -s "${ARTIFACTS}/${name}/vex.dhi.json" ] && \
@@ -40,51 +64,213 @@ for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP
         cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
 done
 
-# Process custom images (from both manifests — tools with definitions + app custom images)
-for manifest in "$APP_MANIFEST"; do
-    for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$manifest"); do
-        registry=$(yq -r ".$name.registry" "$manifest")
+# Custom images (from the app manifest)
+for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$APP_MANIFEST"); do
+    registry=$(yq -r ".$name.registry" "$APP_MANIFEST")
 
-        entry=$(jq -n \
-            --arg name "$name" \
-            --arg source "$registry" \
-            --arg attestation_source "wellmaintained" \
-            '{name: $name, source: $source, attestation_source: $attestation_source, type: "custom"}')
-        release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
+    entry=$(jq -n \
+        --arg name "$name" \
+        --arg source "$registry" \
+        --arg attestation_source "wellmaintained" \
+        '{name: $name, source: $source, attestation_source: $attestation_source, type: "custom"}')
+    release_images=$(echo "$release_images" | jq --argjson entry "$entry" '. + [$entry]')
 
-        # Copy artifacts
-        [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
-            cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
-        [ -f "${ARTIFACTS}/${name}/sbom.spdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.spdx.json" ] && \
-            cp "${ARTIFACTS}/${name}/sbom.spdx.json" "${STATIC_DIR}/sboms/${name}.spdx.json"
-        [ -f "${ARTIFACTS}/${name}/provenance.slsa.json" ] && [ -s "${ARTIFACTS}/${name}/provenance.slsa.json" ] && \
-            cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
+    [ -f "${ARTIFACTS}/${name}/sbom.cdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.cdx.json" ] && \
+        cp "${ARTIFACTS}/${name}/sbom.cdx.json" "${STATIC_DIR}/sboms/${name}.cdx.json"
+    [ -f "${ARTIFACTS}/${name}/sbom.spdx.json" ] && [ -s "${ARTIFACTS}/${name}/sbom.spdx.json" ] && \
+        cp "${ARTIFACTS}/${name}/sbom.spdx.json" "${STATIC_DIR}/sboms/${name}.spdx.json"
+    [ -f "${ARTIFACTS}/${name}/provenance.slsa.json" ] && [ -s "${ARTIFACTS}/${name}/provenance.slsa.json" ] && \
+        cp "${ARTIFACTS}/${name}/provenance.slsa.json" "${STATIC_DIR}/provenance/${name}.slsa.json"
 
-        # Copy VEX (our hand-written YAML)
-        vex_file=$(find "${REPO_ROOT}" -name "${name}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
-        [ -n "$vex_file" ] && cp "$vex_file" "${STATIC_DIR}/vex/${name}.vex.yaml"
-    done
+    # VEX for custom images — hand-authored OpenVEX JSON.
+    if [ -f "${ARTIFACTS}/${name}/vex.json" ] && [ -s "${ARTIFACTS}/${name}/vex.json" ]; then
+        cp "${ARTIFACTS}/${name}/vex.json" "${STATIC_DIR}/vex/${name}.vex.json"
+    fi
 done
 
 echo "$release_images" | jq '{images: .}' > "${DATA_DIR}/release.json"
 
-# Build vulnerabilities.json — merge CVE data from all images
-vuln_tmp=$(mktemp)
-echo "[]" > "$vuln_tmp"
-for dir in "${ARTIFACTS}"/*/; do
-    name=$(basename "$dir")
-    cves_file="${dir}cves.json"
-    if [ -f "$cves_file" ] && [ -s "$cves_file" ]; then
-        jq --arg name "$name" \
-            '[.matches[] | {image: $name, id: .vulnerability.id, severity: .vulnerability.severity, package: .artifact.name, version: .artifact.version, fix: (.vulnerability.fix.versions // [] | join(", "))}]' \
-            "$cves_file" 2>/dev/null > "${vuln_tmp}.part" || echo "[]" > "${vuln_tmp}.part"
-        jq -s '.[0] + .[1]' "$vuln_tmp" "${vuln_tmp}.part" > "${vuln_tmp}.merged" && mv "${vuln_tmp}.merged" "$vuln_tmp"
-    fi
-done
-jq '{vulnerabilities: .}' "$vuln_tmp" > "${DATA_DIR}/vulnerabilities.json"
-rm -f "$vuln_tmp" "${vuln_tmp}.part"
+# ── vulnerabilities.json — VEX only ──────────────────────────────────────
+#
+# Schema:
+#   {
+#     images: [
+#       {
+#         name, type, source, attestation_source,
+#         vex_source,             # dhi | project | none
+#         vex_statement_count,
+#         vex_statements: [
+#           { cve, status, justification, impact_statement,
+#             action_statement, status_notes, products, severity }
+#         ]
+#       }
+#     ],
+#     cve_severity: { "<CVE-ID>": "critical" | "high" | "medium" | "low" },
+#     totals: { vex_statement_count, vex_image_count }
+#   }
+#
+# Dedupes by (cve, status, justification) — DHI ships multiple UUID-stamped
+# copies of the same analysis.
+#
+# Severity is read from artifacts/<name>/vulns.json (Docker Scout output)
+# via the cvss_severity method. A single CVE can appear in multiple images;
+# the top-level cve_severity map holds the highest severity observed, and
+# each statement carries its own per-image severity too so the Hugo
+# template can choose.
 
-# Build licenses.json — extract license data from SBOMs
+# Build a global CVE → severity map by union across all vulns.json files.
+# Docker Scout uses CRITICAL / HIGH / MEDIUM / LOW (uppercase) under
+# .scanner.result[].severity[] with method == "cvss_severity". Lowercase
+# it for downstream consumers.
+cve_severity="{}"
+severity_rank='{"critical":4,"high":3,"medium":2,"low":1}'
+for dir in "${ARTIFACTS}"/*/; do
+    vfile="${dir}vulns.json"
+    [ -f "$vfile" ] && [ -s "$vfile" ] || continue
+    image_sev=$(jq '
+        [ (.scanner.result // [])[]
+          | { cve: .id,
+              severity: (([ (.severity // [])[]
+                           | select(.method == "cvss_severity")
+                           | .score ] | first // "") | ascii_downcase) }
+          | select(.severity != "")
+        ]' "$vfile")
+    cve_severity=$(jq -n \
+        --argjson existing "$cve_severity" \
+        --argjson new "$image_sev" \
+        --argjson rank "$severity_rank" '
+        reduce $new[] as $s ($existing;
+          .[$s.cve] as $cur
+          | if $cur == null or ($rank[$s.severity] // 0) > ($rank[$cur] // 0)
+            then .[$s.cve] = $s.severity
+            else .
+            end)')
+done
+
+# Build CVE → description and CVE → severity maps from grype output
+# (cves.json per image). Grype emits descriptions for most CVEs against a
+# packaged advisory DB; source purl qualifiers feed .distro detection once
+# the SBOM carries an operating-system component (handled by
+# enrich-sbom.bash). Grype sometimes emits GHSA-/ALAS-style primary IDs;
+# the CVE mapping can live in either .matches[].relatedVulnerabilities[]
+# or in urls containing nvd.nist.gov.
+#
+# Severity from grype is the only path for custom-image CVEs (vulns.json
+# is DHI-only); without this, CVEs that only show up on minio/sbomify-app
+# would land in the "Unknown" band even when grype has them as High.
+cve_description="{}"
+for dir in "${ARTIFACTS}"/*/; do
+    cfile="${dir}cves.json"
+    [ -f "$cfile" ] && [ -s "$cfile" ] || continue
+    image_pairs=$(jq '
+        def pick_cves($v):
+          [ $v.id // empty
+          , ( $v.relatedVulnerabilities // [] | .[]? | .id // empty )
+          , ( $v.urls // [] | .[]? | capture("(?<cve>CVE-[0-9]+-[0-9]+)"; "g")? | .cve )
+          ] | map(select(test("^CVE-[0-9]+-[0-9]+$"))) | unique;
+        [ (.matches // [])[]
+          | .vulnerability as $v
+          | ((($v.description // "") | gsub("^\\s+|\\s+$"; "")) as $d
+             | (($v.severity // "") | ascii_downcase) as $sev
+             | pick_cves($v)[] | {cve: ., description: $d, severity: $sev})
+        ]' "$cfile")
+    cve_description=$(jq -n \
+        --argjson existing "$cve_description" \
+        --argjson new "$image_pairs" '
+        reduce $new[] as $d ($existing;
+          if $d.description != "" and .[$d.cve] == null
+          then .[$d.cve] = $d.description
+          else . end)')
+    cve_severity=$(jq -n \
+        --argjson existing "$cve_severity" \
+        --argjson new "$image_pairs" \
+        --argjson rank "$severity_rank" '
+        reduce $new[] as $s ($existing;
+          .[$s.cve] as $cur
+          | if $s.severity != "" and ($rank[$s.severity] // 0) > 0
+              and ($cur == null or ($rank[$s.severity] // 0) > ($rank[$cur] // 0))
+            then .[$s.cve] = $s.severity
+            else .
+            end)')
+done
+
+vuln_images="[]"
+
+# Walk the release-image list (which already carries type/source/attestation
+# metadata) in the same order we rendered it above, so the per-image pages
+# match release.json 1:1.
+while IFS= read -r entry; do
+    name=$(echo "$entry" | jq -r '.name')
+    IFS=$'\t' read -r vex_kind vex_path < <(_vex_source "$name")
+
+    statements="[]"
+    if [ -n "$vex_path" ] && [ -s "$vex_path" ]; then
+        # Extract the package name from a purl like
+        #   "pkg:deb/debian/openssl@3.5.5-1~deb13u2?os_name=..." → "openssl"
+        #   "pkg:npm/@types/node@1.0.0"                          → "@types/node"
+        # Allow a leading `@` in the namespace so scoped npm packages survive.
+        # Strip ecosystem prefix, optional namespace, and version/qualifiers.
+        #
+        # CVE id extraction: prefer .vulnerability.name when it's a CVE
+        # token; otherwise pull the first CVE-NNNN-NNNN out of the @id IRI
+        # (OpenVEX 0.2 spec puts a URL there, not a bare token). Statements
+        # whose CVE doesn't match the canonical pattern are dropped to
+        # avoid 404 EUVD links and ghost rows in the Unknown band.
+        statements=$(jq --arg image "$name" \
+            --argjson sev_map "$cve_severity" '
+            def purl_pkg($s):
+              ($s | sub("^pkg:[^/]+/"; "")     # drop "pkg:deb/"
+                  | sub("^@?[^/@?]+/"; "")     # drop namespace, allowing leading @
+                  | sub("@[^?]*$"; "")         # drop "@<version>" trailing segment
+                  | sub("\\?.*$"; ""));        # belt-and-braces for no-version
+            def normalize_cve($v):
+              [ $v.name // empty, $v["@id"] // empty ]
+              | map(capture("(?<cve>CVE-[0-9]+-[0-9]+)")? | .cve)
+              | first(.[] | select(test("^CVE-[0-9]+-[0-9]+$"))) // "";
+            [ (.statements // [])[]
+              | normalize_cve(.vulnerability) as $cve
+              | select($cve != "")
+              | {
+                  image: $image,
+                  cve: $cve,
+                  status: (.status // ""),
+                  justification: (.justification // ""),
+                  impact_statement: (.impact_statement // ""),
+                  action_statement: (.action_statement // ""),
+                  status_notes: (.status_notes // ""),
+                  products: ([ (.products // [])[] | (.["@id"] // "") ] | unique),
+                  packages: ([ (.products // [])[] | purl_pkg(.["@id"] // "") ]
+                             | map(select(. != "")) | unique)
+                }
+              | .severity = ($sev_map[.cve] // "") ]
+            | unique_by([.cve, .status, .justification])' "$vex_path")
+    fi
+
+    image_entry=$(echo "$entry" | jq \
+        --arg vex_source "$vex_kind" \
+        --argjson statements "$statements" \
+        '. + {
+            vex_source: $vex_source,
+            vex_statement_count: ($statements | length),
+            vex_statements: $statements
+        }')
+    vuln_images=$(echo "$vuln_images" | jq --argjson e "$image_entry" '. + [$e]')
+done < <(echo "$release_images" | jq -c '.[]')
+
+totals=$(echo "$vuln_images" | jq '{
+    vex_statement_count: (map(.vex_statement_count) | add // 0),
+    vex_image_count: (map(select(.vex_statement_count > 0)) | length)
+}')
+
+echo "$vuln_images" \
+    | jq --argjson totals "$totals" \
+         --argjson cve_severity "$cve_severity" \
+         --argjson cve_description "$cve_description" \
+         '{images: ., cve_severity: $cve_severity, cve_description: $cve_description, totals: $totals}' \
+    > "${DATA_DIR}/vulnerabilities.json"
+
+# ── licenses.json (unchanged) ────────────────────────────────────────────
+
 license_tmp=$(mktemp)
 echo "[]" > "$license_tmp"
 for dir in "${ARTIFACTS}"/*/; do
@@ -102,5 +288,9 @@ rm -f "$license_tmp" "${license_tmp}.part"
 
 echo "Release data written to ${DATA_DIR}/"
 echo "  - release.json: $(jq '.images | length' "${DATA_DIR}/release.json") images"
-echo "  - vulnerabilities.json: $(jq '.vulnerabilities | length' "${DATA_DIR}/vulnerabilities.json") findings"
+echo "  - vulnerabilities.json:"
+jq -r '
+    "      total VEX statements:      \(.totals.vex_statement_count)",
+    "      images with VEX coverage:  \(.totals.vex_image_count) / \(.images | length)"
+    ' "${DATA_DIR}/vulnerabilities.json"
 echo "  - licenses.json: $(jq '.licenses | length' "${DATA_DIR}/licenses.json") components"

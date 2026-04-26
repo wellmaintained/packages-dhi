@@ -6,7 +6,7 @@
 #
 # Expects the image to already be built and tagged as <registry>:dev.
 # Produces: sbom.spdx.json, sbom.cdx.json, provenance.slsa.json,
-#           cves.json, secrets.json, and optionally vex.yaml
+#           secrets.json, and optionally vex.json
 # in artifacts/<image>/.
 #
 # Caches the enriched CycloneDX SBOM keyed on SPDX content + tool versions.
@@ -91,22 +91,45 @@ echo "=== Enriching SBOM ==="
 result=$("${REPO_ROOT}/common/scripts/enrich-sbom.bash" "${OUT}/sbom.cdx.json" "${IMAGE}")
 echo "  ${result}"
 
-# ── Scans (always run — inputs change frequently) ────────────
-
+# ── Vulnerability scan (grype) ────────────────────────────────
+#
+# Runs against the enriched SBOM (which now carries an operating-system
+# component — see enrich-sbom.bash), so `sbom:` lookup finds the distro
+# without needing --distro. Output feeds the release-website via
+# extract-release-data, which reads per-vulnerability descriptions and
+# surfaces them in the matrix.
+#
+# Grype/jq failures (DB update glitch, transient network error, malformed
+# SBOM) are tolerated: cves.json is best-effort enrichment, not a build
+# input, and we don't want one flaky scan to abort the build.
 echo ""
-echo "=== Grype vulnerability scan ==="
-"${REPO_ROOT}/bin/grype" "sbom:${OUT}/sbom.cdx.json" -o json > "${OUT}/cves.json" 2>/dev/null \
-    && echo "  saved ${OUT}/cves.json" || echo "  (scan failed)"
+echo "=== Scanning SBOM for vulnerabilities ==="
+if "${REPO_ROOT}/bin/grype" sbom:"${OUT}/sbom.cdx.json" -o json --quiet \
+        2>/dev/null > "${OUT}/cves.json" \
+   && jq -e empty "${OUT}/cves.json" >/dev/null 2>&1; then
+    matches=$(jq '.matches | length' "${OUT}/cves.json")
+    echo "  grype found ${matches} matches → ${OUT}/cves.json"
+else
+    echo "  (scan failed — cves.json missing or empty; matrix will fall back to no-description)"
+    rm -f "${OUT}/cves.json"
+fi
+
+# ── VEX ───────────────────────────────────────────────────────
+#
+# Custom images carry a hand-authored OpenVEX JSON next to their DHI
+# definition (common/images/<name>/<name>.vex.json or similar). We ship it
+# as-is — consumers pass it straight to `grype --vex`.
+vex_file=$(find "${REPO_ROOT}" -name "${IMAGE}.vex.json" -path "*/images/*" 2>/dev/null | head -1)
+if [ -n "$vex_file" ]; then
+    cp "$vex_file" "${OUT}/vex.json"
+    echo "  copied VEX: ${vex_file}"
+fi
 
 echo ""
 echo "=== Gitleaks secrets scan ==="
 "${REPO_ROOT}/bin/gitleaks" detect --source="docker-archive:${OUT}/image.tar" \
     -f json -r "${OUT}/secrets.json" 2>/dev/null \
     && echo "  saved ${OUT}/secrets.json" || echo "  (no secrets found)"
-
-# Copy VEX file if one exists
-vex_file=$(find "${REPO_ROOT}" -name "${IMAGE}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
-[ -n "$vex_file" ] && cp "$vex_file" "${OUT}/vex.yaml" && echo "  copied VEX: ${vex_file}"
 
 echo ""
 echo "=== Artifacts ==="

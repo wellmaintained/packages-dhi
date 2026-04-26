@@ -12,7 +12,7 @@ PACK_DIR="${REPO_ROOT}/.compliance-pack"
 OUTPUT="${REPO_ROOT}/compliance-pack-${VERSION}.zip"
 
 rm -rf "$PACK_DIR"
-mkdir -p "$PACK_DIR"/{sboms,vex,provenance,scans}
+mkdir -p "$PACK_DIR"/{sboms,vex,provenance,secrets}
 
 # Copy manifests
 cp "$TOOL_LOCK" "$PACK_DIR/tool-versions.lock.yaml"
@@ -28,16 +28,23 @@ for dir in "${ARTIFACTS}"/*/; do
         cp "${dir}sbom.spdx.json" "$PACK_DIR/sboms/${name}.spdx.json"
     [ -f "${dir}provenance.slsa.json" ] && [ -s "${dir}provenance.slsa.json" ] && \
         cp "${dir}provenance.slsa.json" "$PACK_DIR/provenance/${name}.slsa.json"
-    [ -f "${dir}cves.json" ] && [ -s "${dir}cves.json" ] && \
-        cp "${dir}cves.json" "$PACK_DIR/scans/${name}.cves.json"
+    # CVE scan output is deliberately excluded — a point-in-time grype snapshot
+    # goes stale immediately. Consumers re-scan the shipped SBOM + VEX locally
+    # with `grype sbom:<file> --vex <vex>` for the current view.
     [ -f "${dir}secrets.json" ] && [ -s "${dir}secrets.json" ] && \
-        cp "${dir}secrets.json" "$PACK_DIR/scans/${name}.secrets.json"
+        cp "${dir}secrets.json" "$PACK_DIR/secrets/${name}.secrets.json"
 
-    # VEX: DHI or ours
-    [ -f "${dir}vex.dhi.json" ] && [ -s "${dir}vex.dhi.json" ] && \
+    # VEX — prefer DHI vendor OpenVEX (vex.dhi.json) over hand-authored
+    # vex.json. Mirrors _vex_source() in scripts/extract-release-data, so
+    # the compliance pack and the release-website matrix agree on which
+    # VEX document we publish for each image. (The two scripts pre-PR
+    # never collided because their destinations differed by extension;
+    # they share .vex.json now, hence the explicit gate.)
+    if [ -f "${dir}vex.dhi.json" ] && [ -s "${dir}vex.dhi.json" ]; then
         cp "${dir}vex.dhi.json" "$PACK_DIR/vex/${name}.vex.json"
-    vex_file=$(find "${REPO_ROOT}" -name "${name}.vex.yaml" -path "*/images/*" 2>/dev/null | head -1)
-    [ -n "$vex_file" ] && cp "$vex_file" "$PACK_DIR/vex/${name}.vex.yaml"
+    elif [ -f "${dir}vex.json" ] && [ -s "${dir}vex.json" ]; then
+        cp "${dir}vex.json" "$PACK_DIR/vex/${name}.vex.json"
+    fi
 done
 
 # Copy docker-compose for deployment reference

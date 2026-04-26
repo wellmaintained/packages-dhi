@@ -48,3 +48,40 @@ else
     components=$(jq '.components | length' "$SBOM_FILE")
     echo "enriched (${components} components, cached ${cache_key:0:12}...)"
 fi
+
+# Inject an operating-system component from the deb purl qualifiers if the
+# SBOM doesn't already declare one. Without this, grype can't auto-detect
+# the distro (it doesn't look at purl qualifiers), so `grype sbom:<file>`
+# returns zero matches against a debian rootfs. This mirrors what syft emits
+# natively and is the minimum needed to make the SBOM self-describing. See
+# docs/adr for the rationale behind injecting locally instead of waiting on
+# sbomify-action upstream.
+tmp_os="${SBOM_FILE}.os.tmp"
+jq '
+def purl_qualifiers($p):
+  ($p | split("?")[1] // "")
+  | split("&")
+  | map(split("=") | select(length == 2) | {(.[0]): .[1]})
+  | add // {};
+
+([.components[]?
+  | select(.purl? != null)
+  | purl_qualifiers(.purl)
+  | select(.os_name? and .os_version?)][0]) as $os
+| if $os and ([.components[]? | select(.type? == "operating-system")] | length == 0)
+  then .components += [{
+    "type": "operating-system",
+    "name": $os.os_name,
+    "version": $os.os_version,
+    "bom-ref": ("operating-system:\($os.os_name)@\($os.os_version)"),
+    "description": ($os.os_distro // $os.os_name)
+  }]
+  else .
+  end
+' "$SBOM_FILE" > "$tmp_os"
+mv "$tmp_os" "$SBOM_FILE"
+if jq -e '[.components[] | select(.type == "operating-system")] | length > 0' "$SBOM_FILE" > /dev/null; then
+    os_name=$(jq -r '[.components[] | select(.type == "operating-system")][0].name' "$SBOM_FILE")
+    os_version=$(jq -r '[.components[] | select(.type == "operating-system")][0].version' "$SBOM_FILE")
+    echo "os component: ${os_name}@${os_version}"
+fi
