@@ -110,7 +110,7 @@ echo "=== Scanning SBOM for vulnerabilities ==="
 "${REPO_ROOT}/bin/grype" db status 2>&1 | sed 's/^/  /'
 if "${REPO_ROOT}/bin/grype" sbom:"${OUT}/sbom.cdx.json" -o json \
         > "${OUT}/cves.json" \
-   && jq -e empty "${OUT}/cves.json" >/dev/null 2>&1; then
+   && jq -e '.matches' "${OUT}/cves.json" >/dev/null 2>&1; then
     matches=$(jq '.matches | length' "${OUT}/cves.json")
     echo "  grype found ${matches} matches → ${OUT}/cves.json"
 else
