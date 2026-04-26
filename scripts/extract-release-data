@@ -221,8 +221,11 @@ while IFS= read -r entry; do
             def purl_pkg($s):
               ($s | sub("^pkg:[^/]+/"; "")     # drop "pkg:deb/"
                   | sub("^@?[^/@?]+/"; "")     # drop namespace, allowing leading @
-                  | sub("@[^?]*$"; "")         # drop "@<version>" trailing segment
-                  | sub("\\?.*$"; ""));        # belt-and-braces for no-version
+                  | sub("\\?.*$"; "")          # drop "?<qualifiers>" first (deb purls
+                                               # nest the version inside qualifiers
+                                               # for some encodings, so strip-by-`?`
+                                               # has to come before strip-by-`@`)
+                  | sub("@.*$"; ""));          # then drop "@<version>"
             def normalize_cve($v):
               [ $v.name // empty, $v["@id"] // empty ]
               | map(capture("(?<cve>CVE-[0-9]+-[0-9]+)")? | .cve)
