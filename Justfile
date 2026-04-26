@@ -24,18 +24,21 @@ extract-dhi-attestations:
 
 # ── Release ────────────────────────────────────────
 
-# Generate Hugo data files from build artifacts
-release-data:
-    {{repo_root}}/scripts/extract-release-data
+# Generate Hugo data files from build artifacts. Optional VERSION (e.g.
+# sbomify-v26.1.0-20260426.2) is the release tag we're building for;
+# pre-release.yml passes the resolved value, local builds default to
+# `git describe`.
+release-data version="":
+    {{repo_root}}/scripts/extract-release-data {{ if version != "" { "--app-collection-version " + version } else { "" } }}
 
 # Build the release website locally
-release-website:
-    just release-data
+release-website version="":
+    just release-data "{{version}}"
     {{repo_root}}/bin/hugo --source apps/sbomify/release-website --minify
 
 # Serve the release website locally for preview
-release-website-serve:
-    just release-data
+release-website-serve version="":
+    just release-data "{{version}}"
     {{repo_root}}/bin/hugo server --source apps/sbomify/release-website --bind 0.0.0.0 --port 1313
 
 # Assemble compliance pack ZIP
