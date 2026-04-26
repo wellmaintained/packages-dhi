@@ -1,0 +1,145 @@
+{{- /*
+  VEX matrix — single CVE × container table with severity bands.
+
+  Severity bands render as <tr id="critical"> etc. so the custom toc.html
+  partial can link directly to each band row. The "on this page" panel
+  is populated by toc.html by introspecting this data, not via markdown
+  heading fragments — the matrix stays one contiguous table.
+
+  Multiple statements for the same (cve, image) can exist; the cell
+  resolution rule is: under_investigation outranks not_affected. The
+  reviewer's status_notes are appended to each pill's title attribute
+  so hover reveals the full rationale.
+*/ -}}
+{{- $vuln := hugo.Data.vulnerabilities -}}
+{{- if not (and $vuln $vuln.images) -}}
+  <p><em>Vulnerability data not available. Run <code>just release-data</code> to generate.</em></p>
+{{- else -}}
+
+{{- $containers := slice "postgres" "redis" "keycloak" "caddy" "minio" "sbomify-app" -}}
+
+{{- $justifications := dict
+    "vulnerable_code_not_present"                       (dict "code" "code n/p"    "label" "Vulnerable code not present")
+    "vulnerable_code_not_in_execute_path"               (dict "code" "not in path" "label" "Vulnerable code not in execute path")
+    "vulnerable_code_cannot_be_controlled_by_adversary" (dict "code" "no ctrl"     "label" "Vulnerable code cannot be controlled by adversary")
+    "inline_mitigations_already_exist"                  (dict "code" "mitigated"   "label" "Inline mitigations already exist")
+-}}
+
+{{- $cellMap := dict -}}
+{{- $cveSet := dict -}}
+{{- range $vuln.images -}}
+  {{- $img := .name -}}
+  {{- range .vex_statements -}}
+    {{- $cve := .cve -}}
+    {{- $key := printf "%s|%s" $cve $img -}}
+    {{- $new := dict -}}
+    {{- $notes := .status_notes | default "" -}}
+    {{- if eq .status "under_investigation" -}}
+      {{- $new = dict "kind" "wait" "code" "WAIT" "label" "Under investigation — waiting on upstream" "notes" $notes -}}
+    {{- else if eq .status "not_affected" -}}
+      {{- with index $justifications .justification -}}
+        {{- $new = dict "kind" "na" "code" .code "label" (printf "Not affected — %s" .label) "notes" $notes -}}
+      {{- end -}}
+    {{- end -}}
+    {{- if $new -}}
+      {{- $existing := index $cellMap $key -}}
+      {{- if or (not $existing) (eq $new.kind "wait") -}}
+        {{- $cellMap = merge $cellMap (dict $key $new) -}}
+      {{- end -}}
+      {{- $cveSet = merge $cveSet (dict $cve true) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $pkgsByCve := dict -}}
+{{- range $vuln.images -}}
+  {{- range .vex_statements -}}
+    {{- $cve := .cve -}}
+    {{- with .packages -}}
+      {{- $existing := index $pkgsByCve $cve -}}
+      {{- if not $existing -}}{{- $existing = slice -}}{{- end -}}
+      {{- range . -}}
+        {{- if not (in $existing .) -}}
+          {{- $existing = $existing | append . -}}
+        {{- end -}}
+      {{- end -}}
+      {{- $pkgsByCve = merge $pkgsByCve (dict $cve $existing) -}}
+    {{- end -}}
+  {{- end -}}
+{{- end -}}
+
+{{- $descMap := $vuln.cve_description | default (dict) -}}
+
+{{- $sevOrder := slice "critical" "high" "medium" "low" "unknown" -}}
+{{- $sevLabel := dict "critical" "Critical" "high" "High" "medium" "Medium" "low" "Low" "unknown" "Unknown" -}}
+{{- $groups := dict "critical" (slice) "high" (slice) "medium" (slice) "low" (slice) "unknown" (slice) -}}
+{{- $cveSeverity := $vuln.cve_severity | default (dict) -}}
+{{- range $cve, $_ := $cveSet -}}
+  {{- $sev := index $cveSeverity $cve -}}
+  {{- if not (in (slice "critical" "high" "medium" "low") $sev) -}}
+    {{- $sev = "unknown" -}}
+  {{- end -}}
+  {{- $groups = merge $groups (dict $sev (index $groups $sev | append $cve)) -}}
+{{- end -}}
+
+<div class="vex-matrix-wrapper">
+<table class="vex-matrix">
+  <thead>
+    <tr>
+      <th scope="col">CVE</th>
+      <th scope="col">Summary</th>
+      {{- range $c := $containers }}
+      <th scope="col">
+        <a href="{{ printf "artifacts/vex/%s.vex.json" $c | relURL }}" title="Download vex.json for {{ $c }}" download>{{ $c }}</a>
+      </th>
+      {{- end }}
+    </tr>
+  </thead>
+  {{- range $sev := $sevOrder }}
+    {{- $cves := index $groups $sev }}
+    {{- if gt (len $cves) 0 }}
+      {{- $sorted := sort $cves "value" "desc" }}
+  <tbody class="vex-sev vex-sev--{{ $sev }}">
+    <tr class="vex-sev-band" id="{{ $sev }}">
+      <th scope="rowgroup" colspan="{{ add 2 (len $containers) }}">{{ index $sevLabel $sev }} · {{ len $sorted }} {{ if eq (len $sorted) 1 }}CVE{{ else }}CVEs{{ end }}</th>
+    </tr>
+    {{- range $cve := $sorted }}
+      {{- $pkgs := index $pkgsByCve $cve | default (slice) }}
+      {{- $desc := index $descMap $cve | default "" }}
+      {{- $pkgLabel := delimit $pkgs ", " }}
+    <tr>
+      <th scope="row"><a href="https://euvd.enisa.europa.eu/vulnerability/{{ $cve }}" target="_blank" rel="noreferrer" title="View {{ $cve }} in EUVD{{ with $pkgLabel }} ({{ . }}){{ end }}"><code>{{ $cve }}</code></a></th>
+      <td class="vex-summary-cell">
+        {{- if $desc -}}
+          {{- $short := $desc | plainify | truncate 100 "…" -}}
+          <span class="vex-summary-text" {{ if ne $short $desc }}title="{{ $desc }}"{{ end }}>{{ $short }}</span>
+          {{- if $pkgLabel }}<span class="vex-summary-pkgs">{{ $pkgLabel }}</span>{{ end -}}
+        {{- else if $pkgLabel -}}
+          <span class="vex-summary-pkgs">{{ $pkgLabel }}</span>
+        {{- else -}}
+          —
+        {{- end -}}
+      </td>
+      {{- range $c := $containers }}
+        {{- $entry := index $cellMap (printf "%s|%s" $cve $c) }}
+      <td class="vex-cell">
+        {{- if $entry -}}
+          {{- $tip := $entry.label -}}
+          {{- with $entry.notes -}}{{- $tip = printf "%s\n\n%s" $entry.label . -}}{{- end -}}
+          {{- if eq $entry.kind "wait" -}}
+          <code class="vex-pill vex-pill--wait" title="{{ $tip }}">WAIT</code>
+          {{- else -}}
+          <code class="vex-pill vex-pill--na" title="{{ $tip }}">{{ $entry.code }}</code>
+          {{- end -}}
+        {{- end -}}
+      </td>
+      {{- end }}
+    </tr>
+    {{- end }}
+  </tbody>
+    {{- end }}
+  {{- end }}
+</table>
+</div>
+
+{{- end -}}
