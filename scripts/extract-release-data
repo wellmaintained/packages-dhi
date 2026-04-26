@@ -11,6 +11,18 @@
 # `grype sbom:<file> --vex <vex>`.
 set -euo pipefail
 
+# Optional --app-collection-version is the release tag we're building for
+# (e.g. sbomify-v26.1.0-20260426.2). pre-release.yml passes the resolved
+# value; local builds default to `git describe` for a sensible label, or
+# empty if the repo isn't a git checkout.
+APP_COLLECTION_VERSION=""
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        --app-collection-version) APP_COLLECTION_VERSION="$2"; shift 2 ;;
+        *) echo "Unknown option: $1" >&2; exit 1 ;;
+    esac
+done
+
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
 APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
@@ -18,9 +30,16 @@ ARTIFACTS="${REPO_ROOT}/artifacts"
 DATA_DIR="${REPO_ROOT}/apps/sbomify/release-website/data"
 STATIC_DIR="${REPO_ROOT}/apps/sbomify/release-website/static/artifacts"
 
+if [ -z "$APP_COLLECTION_VERSION" ]; then
+    APP_COLLECTION_VERSION=$(git -C "$REPO_ROOT" describe --tags --always --dirty 2>/dev/null || echo "")
+fi
+
 mkdir -p "$DATA_DIR" "$STATIC_DIR/sboms" "$STATIC_DIR/vex" "$STATIC_DIR/provenance"
 
 echo "Generating release data..."
+if [ -n "$APP_COLLECTION_VERSION" ]; then
+    echo "  release version: ${APP_COLLECTION_VERSION}"
+fi
 
 # ── release.json + static artifact copies ────────────────────────────────
 
@@ -88,7 +107,10 @@ for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "
     fi
 done
 
-echo "$release_images" | jq '{images: .}' > "${DATA_DIR}/release.json"
+echo "$release_images" | jq \
+    --arg version "$APP_COLLECTION_VERSION" \
+    '{version: $version, images: .}' \
+    > "${DATA_DIR}/release.json"
 
 # ── vulnerabilities.json — VEX only ──────────────────────────────────────
 #

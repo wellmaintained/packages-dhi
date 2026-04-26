@@ -216,7 +216,7 @@ jobs:
         run: just compliance-pack ${{ needs.resolve-version.outputs.app-collection-version }}
 
       - name: Build release website
-        run: just release-website
+        run: just release-website ${{ needs.resolve-version.outputs.app-collection-version }}
 
       - name: Package release website
         run: tar -czf release-website.tar.gz -C apps/sbomify/release-website/public .
