@@ -1,30 +1,13 @@
 ---
 title: "Vulnerabilities"
-description: "Vulnerability scan results and VEX triage decisions for this release, grouped by severity."
+description: "Per-image OpenVEX statements for this release."
 weight: 3
 sidebar:
-  open: true
+  hide: true
 ---
 
-All container images are scanned with [Grype](https://github.com/anchore/grype)
-against the latest vulnerability database. Scans run weekly (Monday 06:00 UTC)
-and on every pre-release build. Known false positives are suppressed via
-per-image [VEX](https://openvex.dev) statements.
+The table below maps the status of known CVEs at the time of release.
+Details are available in the [OpenVEX](https://openvex.dev/) format as
+part of the [compliance pack]({{< relref "quickstart#audit-pack" >}}).
 
-{{< vuln-summary-table >}}
-
-## Methodology
-
-1. SBOMs are extracted from OCI attestations attached to each container image
-2. Grype scans each SBOM against the latest vulnerability database
-3. Known false positives are suppressed via per-image VEX statements — the
-   VEX status column shows the triage decision and justification
-4. Remaining findings are triaged per the remediation SLA
-
-**Stock DHI images** receive VEX documents from Docker Hardened Images (OpenVEX
-JSON, signed, broad coverage). **Custom images** use hand-written OpenVEX YAML
-maintained alongside the DHI YAML definitions.
-
-## VEX Assessments
-
-{{< vex-assessments >}}
+{{< vex-matrix >}}

@@ -19,16 +19,16 @@ Container images in this repo come from two sources. **Stock** images (postgres,
 - `apps/sbomify/app-images.yaml` — per-image entry with a `source` (stock) or `definition` path (custom) and the target `registry`. Stock entries pin a digest; custom entries reference a `dhi.yaml` path.
 - `apps/sbomify/app-images.lock.yaml` — generated: resolves stock entries to concrete digests.
 - `common/images/<name>/dhi.yaml` — DHI YAML image definition for a custom image (e.g. `common/images/minio/dhi.yaml`).
-- `common/images/<name>/<name>.vex.yaml` — optional VEX overlay copied into `artifacts/<image>/` by the unified build.
+- `common/images/<name>/<name>.vex.json` — optional hand-authored OpenVEX JSON copied into `artifacts/<image>/` by the unified build.
 - `scripts/build-image` — invokes `docker buildx build` with the DHI SBOM generator and provenance flags; tags as `<registry>:dev`.
-- `scripts/generate-compliance-artifacts` — exports the image tar, extracts the attestation layers (SPDX SBOM + SLSA provenance), runs `sbom-convert` for CycloneDX, runs `grype` for CVEs, `gitleaks` for secrets, and copies VEX if present.
+- `scripts/generate-compliance-artifacts` — exports the image tar, extracts the attestation layers (SPDX SBOM + SLSA provenance), runs `sbom-convert` for CycloneDX, `gitleaks` for secrets, and copies VEX if present.
 - `scripts/extract-dhi-attestations` — pulls attestations for stock DHI images (no local build involved).
 - `bin/sbom-convert`, `bin/grype`, `bin/gitleaks`, `bin/cosign`, `bin/crane` — versioned tool shims used by the scripts above.
 
 ## Procedure: adding a new custom image
 
 1. Create the image definition file at `common/images/<name>/dhi.yaml`. Use an existing custom image (e.g. `common/images/minio/dhi.yaml`) as the reference shape.
-2. If the image has known unexploitable CVEs, add `common/images/<name>/<name>.vex.yaml`.
+2. If the image has known unexploitable CVEs, add `common/images/<name>/<name>.vex.json` (OpenVEX v0.2.0).
 3. Register the image in `apps/sbomify/app-images.yaml`:
    ```yaml
    <name>:
@@ -36,7 +36,7 @@ Container images in this repo come from two sources. **Stock** images (postgres,
      registry: <ghcr-or-other>/...
    ```
    (Custom entries use `definition`; stock entries use `source`.)
-4. Run `just build <name>` and verify `artifacts/<name>/` contains all of: `image.tar`, `sbom.spdx.json`, `sbom.cdx.json`, `provenance.slsa.json`, `cves.json`, `secrets.json` (and `vex.yaml` if declared).
+4. Run `just build <name>` and verify `artifacts/<name>/` contains all of: `image.tar`, `sbom.spdx.json`, `sbom.cdx.json`, `provenance.slsa.json`, `secrets.json` (and `vex.json` if declared).
 5. If a stock entry is being replaced by a custom build of the same component, remove the stock entry in the same commit and update any downstream manifests that referenced the stock digest.
 
 ## Procedure: switching a stock image to a custom build

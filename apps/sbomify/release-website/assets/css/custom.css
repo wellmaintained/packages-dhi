@@ -123,3 +123,171 @@ td a[target="_blank"] {
 .sbom-dimmed {
   color: var(--sbom-dimmed);
 }
+
+/* ─────────────────────────────────────────────────────────────────────────
+ * VEX matrix — CVE × container grid for /vulnerabilities/
+ * Uses Hextra's default table styling; only adds pill shape, severity
+ * row emphasis, and horizontal scroll for narrow viewports.
+ * ───────────────────────────────────────────────────────────────────── */
+
+/* Widen the article column beyond Hextra's 72rem cap — only used on the
+ * vulnerabilities list page (see layouts/vulnerabilities/list.html). */
+.vex-wide-content {
+  max-width: none;
+}
+
+.vex-matrix-wrapper {
+  overflow-x: auto;
+  margin-bottom: 1.5em;
+}
+
+.vex-matrix {
+  width: 100%;
+  min-width: 900px;
+}
+
+/* Shrink-to-fit on the CVE and image columns: width:1% plus
+ * white-space:nowrap collapses each column to the width of its widest
+ * cell, so the Summary column absorbs the remaining horizontal space
+ * (the table is set to width:100% above). */
+.vex-matrix th[scope="col"]:nth-child(1),
+.vex-matrix th[scope="col"]:nth-child(n+3),
+.vex-matrix th[scope="row"],
+.vex-matrix td.vex-cell {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.vex-matrix th,
+.vex-matrix td {
+  text-align: center;
+  vertical-align: middle;
+}
+
+.vex-matrix th[scope="col"]:first-child,
+.vex-matrix th[scope="row"],
+.vex-matrix td:nth-child(2) {
+  text-align: left;
+}
+
+.vex-matrix th[scope="col"] a {
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.vex-summary-cell {
+  font-size: 0.9em;
+  line-height: 1.35;
+}
+
+.vex-summary-text {
+  display: block;
+}
+
+.vex-summary-pkgs {
+  display: block;
+  font-family: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+  font-size: 0.85em;
+  color: var(--sbom-muted);
+  margin-top: 0.15em;
+}
+
+.vex-sev-band th {
+  text-align: left;
+  font-size: 0.75em;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  padding: 0.4em 0.75em;
+}
+
+.vex-sev--critical .vex-sev-band th { background: rgba(220, 38, 38, 0.1);  color: #991b1b; }
+.vex-sev--high     .vex-sev-band th { background: rgba(234, 88, 12, 0.1);  color: #9a3412; }
+.vex-sev--medium   .vex-sev-band th { background: rgba(202, 138, 4, 0.1);  color: #854d0e; }
+.vex-sev--low      .vex-sev-band th { background: rgba(22, 101, 52, 0.08); color: #166534; }
+.vex-sev--unknown  .vex-sev-band th { background: rgba(0, 0, 0, 0.05);     color: var(--sbom-muted); }
+
+.dark .vex-sev--critical .vex-sev-band th { background: rgba(220, 38, 38, 0.2);  color: #fca5a5; }
+.dark .vex-sev--high     .vex-sev-band th { background: rgba(234, 88, 12, 0.2);  color: #fdba74; }
+.dark .vex-sev--medium   .vex-sev-band th { background: rgba(202, 138, 4, 0.2);  color: #fde047; }
+.dark .vex-sev--low      .vex-sev-band th { background: rgba(22, 101, 52, 0.2);  color: #86efac; }
+.dark .vex-sev--unknown  .vex-sev-band th { background: rgba(255, 255, 255, 0.05); color: var(--sbom-muted); }
+
+.vex-pill {
+  font-size: 0.75em;
+  padding: 0.1em 0.5em;
+  border-radius: 999px;
+  white-space: nowrap;
+  border: 1px solid currentColor;
+}
+
+.vex-pill--wait {
+  color: #92400e;
+  background: rgba(234, 179, 8, 0.12);
+  border-style: dashed;
+}
+
+.vex-pill--na {
+  color: #166534;
+  background: rgba(22, 163, 74, 0.08);
+}
+
+.dark .vex-pill--wait { color: #fcd34d; background: rgba(234, 179, 8, 0.15); }
+.dark .vex-pill--na   { color: #86efac; background: rgba(22, 163, 74, 0.15); }
+
+/* Pill legend inside the "On this page" TOC. Compact vertical list, not
+ * a navigation group, so entries are non-clickable. */
+.vex-toc-legend {
+  margin-top: 1.25em;
+  padding-top: 0.75em;
+  border-top: 1px solid var(--sbom-border);
+}
+
+.vex-toc-legend__title {
+  margin: 0 0 0.5em;
+  font-size: 0.75em;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--sbom-muted);
+}
+
+.vex-toc-legend dl {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.3em 0.5em;
+  align-items: baseline;
+  margin: 0;
+  font-size: 0.75em;
+}
+
+.vex-toc-legend dt { margin: 0; }
+.vex-toc-legend dd {
+  margin: 0;
+  color: var(--sbom-muted);
+  line-height: 1.3;
+}
+
+.vex-toc-count {
+  color: var(--sbom-muted);
+  font-weight: 400;
+  font-size: 0.85em;
+}
+
+/* Hextra ships the navbar as position:sticky with a frosted-glass backdrop.
+ * We want it opaque and non-sticky: scroll off with the page rather than
+ * hover above content. There's no Hextra config toggle for this — only
+ * params for width/logo — so we override the CSS directly. */
+.hextra-nav-container {
+  position: static;
+}
+
+.hextra-nav-container-blur {
+  background-color: var(--hx-color-white);
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+
+.dark .hextra-nav-container-blur {
+  background-color: var(--hx-color-dark);
+}
+
