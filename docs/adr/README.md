@@ -14,7 +14,7 @@ ADRs document significant architectural and design decisions.
 | [0006](0006-local-ci-parity.md) | Local and CI Parity | accepted |
 | [0007](0007-enrich-sboms-with-sbomify-action.md) | Enrich SBOMs with sbomify-action | accepted |
 | [0008](0008-uvx-tool-packaging.md) | uvx tool packaging for Python-based tools | accepted |
-| [0009](0009-publish-vex-not-point-in-time-cves.md) | Publish VEX, Not Point-in-Time CVE Lists | proposed |
+| [0009](0009-publish-vex-not-point-in-time-cves.md) | Publish VEX, Not Point-in-Time CVE Lists | accepted |
 
 ## When to Write an ADR
 
