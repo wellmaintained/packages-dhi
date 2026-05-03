@@ -3,5 +3,391 @@
   "@id": "https://github.com/wellmaintained/packages-dhi/vex/python-2.7",
   "author": "wellmaintained/packages-dhi maintainers",
   "timestamp": "2026-05-03T00:00:00Z",
-  "statements": []
+  "statements": [
+    {
+      "@id": "wm-python27-glibc-CVE-2010-4756",
+      "vulnerability": {"name": "CVE-2010-4756"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "glibc's glob() recursion limit is documented POSIX behaviour and Debian Security Team marks this as unimportant. Python 2.7 exposes glob via the glob/fnmatch modules, both of which take pattern strings from the calling application, never from network input — this base image ships no application that takes glob patterns from untrusted sources. Inherited from DHI debian13 hardening; status will reduce when DHI updates the base."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2018-20796",
+      "vulnerability": {"name": "CVE-2018-20796"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Listed under glibc Security Exceptions; upstream does not treat regex-recursion stack consumption as a vulnerability. Python 2.7's `re` module uses its own engine, not glibc regex, so any consumer of this base image that calls Python regex never reaches the vulnerable glibc code path. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2019-1010022",
+      "vulnerability": {"name": "CVE-2019-1010022"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Stack-guard bypass disclosure that upstream classifies as a non-security bug. The technique requires an attacker who already has process-level code-execution; there is no remote vector. Python 2.7's runtime does not provide an arbitrary-code-execution surface that this CVE could escalate. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2019-1010023",
+      "vulnerability": {"name": "CVE-2019-1010023"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Requires the local user to explicitly run `ldd` on a malicious ELF file; classified as non-security by upstream glibc. The python-2.7 runtime image is distroless (no shell, no `ldd` binary), so an interactive caller cannot execute the vulnerable program. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2019-1010024",
+      "vulnerability": {"name": "CVE-2019-1010024"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "ASLR-bypass disclosure; upstream states ASLR weakening is not itself a vulnerability. Exploitation requires a separate primitive that this image does not provide (no setuid binaries, no exposed network listener at the base layer). Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2019-1010025",
+      "vulnerability": {"name": "CVE-2019-1010025"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "ASLR bypass for pthread_create thread heap addresses; upstream disputes that ASLR bypass alone is a vulnerability. No exploit primitive exists at the base-image layer (no exposed listeners, no setuid surfaces). Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2019-9192",
+      "vulnerability": {"name": "CVE-2019-9192"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Uncontrolled-recursion in glibc regex compilation against attacker-controlled patterns; upstream disputes it as a vulnerability since it fires only on crafted patterns. Python 2.7 ships its own `re` engine and does not call glibc regcomp/regexec; a consumer of this base image only reaches glibc regex if they bind to libc's `<regex.h>` via ctypes — neither the interpreter nor the bootstrap toolchain does. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-4046",
+      "vulnerability": {"name": "CVE-2026-4046"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent glibc CVE in trixie's 2.41-12+deb13u2; Debian Security Team has not yet shipped a fixed package and DHI's debian13 base inherits the unfixed version. Status will reduce when DHI publishes a rebuilt base image; until then we lack confidence that no Python 2.7 stdlib path reaches the affected glibc call."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-4437",
+      "vulnerability": {"name": "CVE-2026-4437"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent glibc CVE awaiting Debian/glibc security update for trixie. Inherited from DHI debian13 base; status will reduce when DHI rebuilds with the fixed package."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-4438",
+      "vulnerability": {"name": "CVE-2026-4438"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent glibc CVE awaiting Debian/glibc security update for trixie. Inherited from DHI debian13 base; status will reduce when DHI rebuilds with the fixed package."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-5435",
+      "vulnerability": {"name": "CVE-2026-5435"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent glibc CVE; not yet fixed in trixie. Inherited from DHI debian13 base; status will reduce when DHI rebuilds with the fixed package."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-5450",
+      "vulnerability": {"name": "CVE-2026-5450"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Critical glibc CVE in trixie's 2.41-12+deb13u2; Debian Security Team marked wont-fix at the time of this scan. Principal-review-blocking until we confirm whether Python 2.7's stdlib reaches the vulnerable glibc primitive (and on what input). DHI base rebuild remains the upstream fix path."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-5928",
+      "vulnerability": {"name": "CVE-2026-5928"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent glibc CVE; Debian Security Team marked wont-fix at the time of this scan. Inherited from DHI debian13 base; status will reduce when DHI rebuilds with a fixed package or the affected code path is shown to be unreachable from Python 2.7's stdlib."
+    },
+    {
+      "@id": "wm-python27-glibc-CVE-2026-6238",
+      "vulnerability": {"name": "CVE-2026-6238"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent glibc CVE; not yet fixed in trixie. Inherited from DHI debian13 base; status will reduce when DHI rebuilds with the fixed package."
+    },
+    {
+      "@id": "wm-python27-ncurses-CVE-2025-69720",
+      "vulnerability": {"name": "CVE-2025-69720"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/ncurses@6.5%2B20250216-2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Marked no-dsa by Debian Security Team (https://security-tracker.debian.org/tracker/CVE-2025-69720). Python 2.7's `curses` module wraps libncursesw and is exercised only when an application explicitly initialises a curses session; the python-2.7 base image ships no application and the interpreter's default invocation does not load curses. Consumers running curses-based apps would need to additionally feed terminfo/terminal data from an attacker — not a path that exists in any non-interactive runtime. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-ncurses-CVE-2025-6141",
+      "vulnerability": {"name": "CVE-2025-6141"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/ncurses@6.5%2B20250216-2?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Marked no-dsa by Debian Security Team (https://security-tracker.debian.org/tracker/CVE-2025-6141). Same reasoning as CVE-2025-69720: ncurses is loaded only by curses-using callers, and the interpreter's default execution path does not initialise curses. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-pip-GHSA-5xp3-jfq3-5q8x",
+      "vulnerability": {"name": "GHSA-5xp3-jfq3-5q8x"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/pip@20.3.4"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is bootstrapped via get-pip.py during the python-2.7 builder stage and lands in /opt/python-2.7/lib/python2.7/site-packages of the runtime image, but the runtime never invokes it. The image entrypoint is /opt/python-2.7/bin/python; downstream images (e.g. senaite-lims) call pip only at their own build time, not at runtime. The image filesystem is read-only at runtime and no shell or scheduler is shipped that could exec pip on a deployed container."
+    },
+    {
+      "@id": "wm-python27-pip-GHSA-mq26-g339-26xf",
+      "vulnerability": {"name": "GHSA-mq26-g339-26xf"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/pip@20.3.4"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is shipped as a side-effect of the get-pip.py bootstrap but is never invoked at runtime. The runtime entrypoint is the Python interpreter, and the image filesystem is read-only — there is no scheduler, shell, or service in this base image that could exec pip on a deployed container."
+    },
+    {
+      "@id": "wm-python27-pip-GHSA-4xh5-x5gv-qwph",
+      "vulnerability": {"name": "GHSA-4xh5-x5gv-qwph"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/pip@20.3.4"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 ships in /opt/python-2.7 from the get-pip.py bootstrap but the runtime image never invokes it. pip 20.3.4 is the last release that supports Python 2.7 (per dhi.yaml header); upgrading is not an option for the heritage line. The mitigation is path-based: the runtime never exec's pip, so the vulnerability cannot fire."
+    },
+    {
+      "@id": "wm-python27-pip-GHSA-58qw-9mgm-455v",
+      "vulnerability": {"name": "GHSA-58qw-9mgm-455v"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/pip@20.3.4"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is present in the runtime image as a build-time bootstrap artefact but is not invoked at runtime. Heritage Python 2.7 cannot upgrade past 20.3.4 (the last 2.7-compatible pip); we mitigate by not running pip at runtime, full stop."
+    },
+    {
+      "@id": "wm-python27-pip-GHSA-6vgw-5pg2-w6jp",
+      "vulnerability": {"name": "GHSA-6vgw-5pg2-w6jp"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/pip@20.3.4"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is shipped from the bootstrap step but never exec'd at runtime. The same path-not-reached reasoning applies as for the higher-severity pip findings."
+    },
+    {
+      "@id": "wm-python27-setuptools-GHSA-5rjg-fvgr-3xxf",
+      "vulnerability": {"name": "GHSA-5rjg-fvgr-3xxf"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/setuptools@44.1.1"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "setuptools 44.1.1 (the last release that targets Python 2.7) ships in /opt/python-2.7 from the get-pip.py bootstrap. The runtime image is read-only and the entrypoint is the Python interpreter; setuptools' easy_install / package-fetch primitives are never reached at runtime. Heritage Python 2.7 cannot move past setuptools <45 (per dhi.yaml: `\"setuptools<45\"` is pinned in the bootstrap)."
+    },
+    {
+      "@id": "wm-python27-setuptools-GHSA-cx63-2mw6-8hw5",
+      "vulnerability": {"name": "GHSA-cx63-2mw6-8hw5"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/setuptools@44.1.1"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "setuptools 44.1.1 is shipped as a build-time bootstrap artefact; it is not invoked at runtime. Heritage Python 2.7 cannot upgrade setuptools past <45 (the last Python-2-compatible series); the mitigation is path-based — setuptools' vulnerable surfaces are never executed in a deployed container."
+    },
+    {
+      "@id": "wm-python27-setuptools-GHSA-r9hx-vwmv-q579",
+      "vulnerability": {"name": "GHSA-r9hx-vwmv-q579"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/setuptools@44.1.1"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "setuptools 44.1.1 is on disk but never exec'd at runtime. Same reasoning as the other setuptools findings: heritage Python 2.7 cannot move to a fixed setuptools, and the mitigation is to never call setuptools at runtime."
+    },
+    {
+      "@id": "wm-python27-sqlite3-CVE-2021-45346",
+      "vulnerability": {"name": "CVE-2021-45346"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/sqlite3@3.46.1-7%2Bdeb13u1?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Marked no-dsa by Debian Security Team. Python 2.7's `sqlite3` module accepts SQL only from the calling application; this base image ships no application that takes SQL from external input. Consumers of the base image are responsible for validating their own SQL surface; for those that use sqlite3 with admin-only inputs, this CVE remains not_affected for the same reason. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-sqlite3-CVE-2025-70873",
+      "vulnerability": {"name": "CVE-2025-70873"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/sqlite3@3.46.1-7%2Bdeb13u1?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Marked no-dsa by Debian Security Team. Same reasoning as CVE-2021-45346: SQL is supplied by the calling application, not from external input. Inherited from DHI debian13 hardening."
+    },
+    {
+      "@id": "wm-python27-util-linux-CVE-2022-0563",
+      "vulnerability": {"name": "CVE-2022-0563"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "component_not_present",
+      "status_notes": "CVE-2022-0563 affects util-linux's `chfn`/`chsh`/`login` PAM-readline path. The python-2.7 image ships only `libuuid1` from the util-linux source package — none of `chfn`, `chsh`, or `login` are installed. The vulnerable binaries are not present in the runtime image."
+    },
+    {
+      "@id": "wm-python27-util-linux-CVE-2025-14104",
+      "vulnerability": {"name": "CVE-2025-14104"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent util-linux CVE; the python-2.7 image ships only libuuid1 from the util-linux source package (per dhi.yaml `contents.packages`), not the CLI utilities. Pending NVD detail to confirm whether the vulnerable code path is in libuuid (in which case principal review will determine library reachability) or in a binary that is not installed (in which case status reduces to not_affected/component_not_present)."
+    },
+    {
+      "@id": "wm-python27-util-linux-CVE-2026-27456",
+      "vulnerability": {"name": "CVE-2026-27456"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent util-linux CVE; the python-2.7 image ships only libuuid1, not the util-linux CLI. Awaiting principal review to confirm the vulnerable component (library vs. binary) and reachability from Python 2.7's stdlib."
+    },
+    {
+      "@id": "wm-python27-util-linux-CVE-2026-3184",
+      "vulnerability": {"name": "CVE-2026-3184"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent util-linux CVE; the python-2.7 image ships only libuuid1. Pending principal review to confirm whether the vulnerable code is in libuuid (reachable via Python's `uuid` module) or in a CLI binary (not present)."
+    },
+    {
+      "@id": "wm-python27-wheel-GHSA-qwmp-2cf2-g9g6",
+      "vulnerability": {"name": "GHSA-qwmp-2cf2-g9g6"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:pypi/wheel@0.33.6"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "wheel 0.33.6 (last 2.7-compatible release; pinned `<0.34` in the get-pip.py bootstrap) ships in /opt/python-2.7 but is never invoked at runtime. wheel's vulnerable code path is regex-based filename matching during `pip install` of wheel files; the runtime image does not exec pip and does not exec the `wheel` CLI."
+    },
+    {
+      "@id": "wm-python27-xz-utils-CVE-2026-34743",
+      "vulnerability": {"name": "CVE-2026-34743"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/xz-utils@5.8.1-1?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Recent xz-utils CVE; the python-2.7 image ships only liblzma5 from the xz-utils source package (per dhi.yaml `contents.packages`), not the CLI tools (xz, unxz, xzcat). Pending NVD/Debian detail to confirm whether the vulnerable code is in liblzma (reachable via Python's `lzma`/`tarfile`/`bz2` modules) or in a CLI binary (not installed). Inherited from DHI debian13 base."
+    },
+    {
+      "@id": "wm-python27-zlib-CVE-2026-27171",
+      "vulnerability": {"name": "CVE-2026-27171"},
+      "timestamp": "2026-05-03T00:00:00Z",
+      "products": [
+        {"@id": "pkg:oci/python-2.7@v2.7.18"},
+        {"@id": "pkg:deb/debian/zlib@1:1.3.dfsg%2Breally1.3.1-1?os_distro=trixie&os_name=debian&os_version=13"}
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Marked no-dsa by Debian Security Team (https://security-tracker.debian.org/tracker/CVE-2026-27171). Python 2.7's `zlib` module passes data through to libz only when an application explicitly compresses or decompresses; this base image ships no application. Consumers of the base image must control their own zlib input; for those processing only authenticated/trusted data, this CVE remains not_affected for the same reason. Inherited from DHI debian13 hardening."
+    }
+  ]
 }
