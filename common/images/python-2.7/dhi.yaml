@@ -1,0 +1,172 @@
+# syntax=dhi.io/build:2-debian13
+#
+# Python 2.7 (wellmaintained heritage build) DHI YAML image definition.
+#
+# Builds CPython 2.7.18 from the upstream tag, against debian13 runtime
+# shared libraries. The image is intended as the SENAITE LIMS heritage
+# base — Python 2.7 reached upstream EOL 2020-01-01; wellmaintained
+# carries it forward by backporting CVE patches (see
+# common/images/python-2.7/patches/CVE-LOG.md).
+#
+# Patches: the patch series scaffold lives at
+# common/images/python-2.7/patches/{series,*.patch} (Step 2 deliverable).
+# Today the series is intentionally empty — the build applies the upstream
+# tag as-is. When the first real patch lands (via the CVE triage yak),
+# that yak owns wiring the patches/ directory into the builder context.
+# No precedent exists in this repo for copying local files into a DHI
+# build (every existing contents.files entry uses git+https:// or
+# https:// URLs); a follow-up will resolve the mechanism.
+#
+# To build: just ci build python-2.7
+
+name: Python 2.7 (wellmaintained)
+image: ghcr.io/wellmaintained/packages-dhi/python-2.7
+variant: runtime
+tags:
+  - latest
+platforms:
+  - linux/amd64
+
+contents:
+  packages:
+    - base-files
+    - ca-certificates
+    # Runtime shared libraries required by CPython 2.7 stdlib modules.
+    # Names follow Debian 13's time64 transition (t64 suffix where applicable).
+    - libssl3t64
+    - libsqlite3-0
+    - libffi8
+    - libreadline8t64
+    - libncursesw6
+    - libtinfo6
+    - zlib1g
+    - libbz2-1.0
+    - liblzma5
+    - libgdbm6t64
+    - libgdbm-compat4t64
+    - libuuid1
+  builds:
+    - name: cpython-build
+      uses: dhi.io/python:3.14-debian13-dev@sha256:6d08fa284915b06d2fcc0405c0732871a6b95973174e43ceed16c4452a1233d5
+      contents:
+        packages:
+          # Build toolchain. The DHI python:3.14-debian13-dev image is
+          # used as a generic build host — DHI does not catalog a
+          # python:2.7-debian13-dev variant (verified 2026-05-03 via
+          # `bin/crane manifest`).
+          - build-essential
+          # Headers for CPython optional stdlib modules.
+          - libssl-dev
+          - libsqlite3-dev
+          - libncurses-dev
+          - libreadline-dev
+          - zlib1g-dev
+          - libffi-dev
+          - libbz2-dev
+          - liblzma-dev
+          - libgdbm-dev
+          - libgdbm-compat-dev
+          - uuid-dev
+        files:
+          # CPython upstream source. The git+https URL form is required by
+          # ci/mod.just::_component-tag, which greps the YAML for the source
+          # ref to derive the version segment of the output image's
+          # component tag. Tarball URLs would produce -unknown- in the tag.
+          - url: "git+https://github.com/python/cpython.git#v2.7.18"
+            path: ${source.dir}/cpython
+            spdx:
+              name: cpython
+              version: "v2.7.18"
+              packages:
+                - name: cpython
+                  purl: "pkg:github/python/cpython@v2.7.18"
+                  license: PSF-2.0
+            uid: 0
+            gid: 0
+          # pip 20.3.4 is the last release that supports Python 2.7. The
+          # bootstrap script is fetched from PyPA's pinned-per-version path.
+          # The bootstrap step itself runs privileged because get-pip.py
+          # downloads pip + setuptools + wheel from PyPI at install time.
+          - url: "https://bootstrap.pypa.io/pip/2.7/get-pip.py"
+            checksum: "sha256:40ee07eac6674b8d60fce2bbabc148cf0e2f1408c167683f110fd608b8d6f416"
+            path: ${source.dir}/get-pip.py
+            spdx:
+              name: get-pip
+              version: "2.7"
+              packages:
+                - name: get-pip
+                  purl: "pkg:generic/get-pip@2.7"
+                  license: MIT
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: configure cpython
+          work-dir: ${source.dir}/cpython
+          runs: |
+            set -eux -o pipefail
+            # --enable-optimizations is intentionally omitted: PGO runs the
+            # CPython 2.7 regression test suite to collect a profile, and
+            # test_ftplib hangs indefinitely against OpenSSL 3.x (the
+            # version shipped in debian13). 2.7 reached upstream EOL well
+            # before that test was rewritten to handle modern TLS errors.
+            # Skipping PGO trades ~10-20% interpreter speed for a build
+            # that completes — appropriate for a heritage image.
+            ./configure \
+                --prefix=/opt/python-2.7 \
+                --enable-shared \
+                --with-ensurepip=no
+        - name: compile cpython
+          work-dir: ${source.dir}/cpython
+          runs: |
+            set -eux -o pipefail
+            make -j"$(nproc)"
+        - name: install cpython
+          work-dir: ${source.dir}/cpython
+          runs: |
+            set -eux -o pipefail
+            make install DESTDIR=${target.dir}
+            # Symlink python → python2.7 so the runtime's `python` invocation
+            # resolves regardless of how callers reference it.
+            ln -sf python2.7 ${target.dir}/opt/python-2.7/bin/python
+            ln -sf python2.7 ${target.dir}/opt/python-2.7/bin/python2
+        - name: bootstrap pip
+          work-dir: ${source.dir}/cpython
+          # get-pip.py downloads pip / setuptools / wheel from PyPI at
+          # install time; this step needs network. Once a Python 2.7
+          # compatible pip wheel is mirrored locally we can drop this.
+          privileged: true
+          runs: |
+            set -eux -o pipefail
+            LD_LIBRARY_PATH=${target.dir}/opt/python-2.7/lib \
+                ${target.dir}/opt/python-2.7/bin/python \
+                ${source.dir}/get-pip.py \
+                "pip==20.3.4" \
+                "setuptools<45" \
+                "wheel<0.34" \
+                --no-warn-script-location
+      outputs:
+        - source: ${target.dir}/opt/python-2.7
+          target: /opt/python-2.7
+          uid: 0
+          gid: 0
+
+environment:
+  PATH: /opt/python-2.7/bin:/usr/local/bin:/usr/bin:/bin
+  # CPython is built with --enable-shared; libpython2.7.so lives next to
+  # the interpreter. ld.so doesn't search /opt/python-2.7/lib by default.
+  LD_LIBRARY_PATH: /opt/python-2.7/lib
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+annotations:
+  org.opencontainers.image.title: python-2.7
+  org.opencontainers.image.version: v2.7.18
+  org.opencontainers.image.description: CPython 2.7.18 (wellmaintained heritage build) on debian13
+  org.opencontainers.image.licenses: PSF-2.0
+  org.opencontainers.image.vendor: wellmaintained
+  org.opencontainers.image.source: https://github.com/wellmaintained/packages-dhi
+
+entrypoint:
+  - /opt/python-2.7/bin/python
+
+cmd: []

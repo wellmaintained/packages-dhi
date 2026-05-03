@@ -17,3 +17,10 @@ sbomify-app:
   definition: apps/sbomify/images/sbomify-app/prod.yaml
   registry: ghcr.io/wellmaintained/packages-dhi/sbomify-app
   sbomify_component_id: VP42I4XQgpDE
+# python-2.7 is a SENAITE heritage base image, registered here temporarily
+# because scripts/build-image et al. resolve definitions through this manifest
+# only. The Step 5 senaite-app-manifest yak will move it into
+# apps/senaite/app-images.yaml and generalise the build scripts.
+python-2.7:
+  definition: common/images/python-2.7/dhi.yaml
+  registry: ghcr.io/wellmaintained/packages-dhi/python-2.7
