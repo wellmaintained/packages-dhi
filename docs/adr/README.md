@@ -15,6 +15,11 @@ ADRs document significant architectural and design decisions.
 | [0007](0007-enrich-sboms-with-sbomify-action.md) | Enrich SBOMs with sbomify-action | accepted |
 | [0008](0008-uvx-tool-packaging.md) | uvx tool packaging for Python-based tools | accepted |
 | [0009](0009-publish-vex-not-point-in-time-cves.md) | Publish VEX, Not Point-in-Time CVE Lists | accepted |
+| [0010](0010-senaite-2.0.0-as-heritage-demo-target.md) | SENAITE 2.0.0 as Primary Heritage Demo Target | proposed |
+| [0011](0011-build-python-2.7-from-canonical-sources.md) | Build Python 2.7 from Canonical Sources | proposed |
+| [0012](0012-layer-python-2.7-on-debian13-base.md) | Layer Python 2.7 on debian13 Base | proposed |
+| [0013](0013-patch-backport-policy-for-eol-runtimes.md) | Patch Backport Policy for EOL Runtimes | proposed |
+| [0014](0014-vex-policy-for-heritage-application-images.md) | VEX Policy for Heritage Application Images | proposed |
 
 ## When to Write an ADR
 
