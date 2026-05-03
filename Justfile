@@ -64,6 +64,22 @@ build-sbomify-compose:
     done
     echo "Written to ${out}"
 
+# ── SENAITE Deployment ────────────────────────────
+
+senaite_compose := repo_root / "apps" / "senaite" / "deployments" / "docker-compose.yaml"
+
+# Bring up the local SENAITE LIMS stack (senaite-lims + nginx)
+senaite-up:
+    docker compose -f {{senaite_compose}} up -d
+
+# Stop the SENAITE stack and remove containers + the ZODB volume
+senaite-down:
+    docker compose -f {{senaite_compose}} down -v
+
+# Tail logs from all SENAITE services
+senaite-logs:
+    docker compose -f {{senaite_compose}} logs -f
+
 # ── Update ────────────────────────────────────────
 
 # Update everything: tool checksums, stock image digests, then lint

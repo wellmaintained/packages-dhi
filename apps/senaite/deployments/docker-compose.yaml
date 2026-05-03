@@ -1,0 +1,60 @@
+# Source compose file for the SENAITE LIMS local deployment.
+#
+# This file references images by plain tag so it stays human-readable
+# and editable. A digest-pinned variant (mirroring the sbomify pattern at
+# Justfile:49 build-sbomify-compose) can be produced from
+# apps/senaite/app-images.lock.yaml when one is needed for production.
+#
+# Bring up with:
+#   just senaite-up
+# Tear down (and wipe the ZODB volume) with:
+#   just senaite-down
+#
+# Default credentials: admin / admin (baked into the senaite-lims image's
+# buildout config — see apps/senaite/images/senaite-lims/prod.yaml for the
+# `user = admin:admin` line). For anything beyond local demo use, override
+# by initialising your own zope user before exposing the service.
+
+services:
+  senaite-lims:
+    # NOTE: ":dev" is the locally-built tag produced by
+    # `APP=senaite just ci build senaite-lims`. Production deployments will
+    # reference the GHCR-published digest from
+    # apps/senaite/app-images.lock.yaml once the pre-release pipeline pushes
+    # senaite-lims component tags.
+    image: ghcr.io/wellmaintained/packages-dhi/senaite-lims:dev
+    restart: ${SENAITE_RESTART_POLICY:-unless-stopped}
+    expose:
+      - "8080"
+    volumes:
+      # ZODB Data.fs and BlobStorage live under /opt/senaite/var/filestorage.
+      # The rest of /opt/senaite/var (logs, instance.pid) is ephemeral and
+      # regenerated on each container start.
+      - senaite_filestorage:/opt/senaite/var/filestorage
+    healthcheck:
+      # The image is distroless — no curl/wget. Python 2.7's urllib2 is the
+      # built-in HTTP client. Plone responds 200 on / even before a SENAITE
+      # site has been created (the response is the addsite form).
+      test:
+        - CMD
+        - python
+        - -c
+        - import urllib2; urllib2.urlopen('http://localhost:8080/', timeout=4).close()
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 60s
+
+  senaite-nginx:
+    image: dhi.io/nginx:1.29
+    restart: ${NGINX_RESTART_POLICY:-unless-stopped}
+    ports:
+      - "${BIND_IP:-127.0.0.1}:${HTTP_PORT:-80}:80"
+    volumes:
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      senaite-lims:
+        condition: service_healthy
+
+volumes:
+  senaite_filestorage:
