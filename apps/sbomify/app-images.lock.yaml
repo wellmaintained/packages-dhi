@@ -10,10 +10,10 @@ redis:
 keycloak:
   source: dhi.io/keycloak:26
   sbomify_component_id: N4agQD8pvej8
-  digest: sha256:f1aa59bc953b4c4bd012e22f417a0fc8701dfb696c358f206c2549ce39551e3d
+  digest: sha256:a46b1aee6d6b5d1c72d114c86482f2ed1befcf1a55cd0c189d552bfdaee51d8f
 caddy:
   source: dhi.io/caddy:2
-  digest: sha256:f68547afbf9739a80ba25758b5e50b199314ad4af46cf6998949b5a3db759e13
+  digest: sha256:a620325bd1c654cae826c8dafd9516c11b58c651aa383a8b4d8e304d731d9619
 minio:
   definition: common/images/minio/dhi.yaml
   registry: ghcr.io/wellmaintained/packages-dhi/minio

@@ -5,7 +5,8 @@
 set dotenv-load := false
 
 repo_root := justfile_directory()
-app_manifest := repo_root / "apps/sbomify/app-images.yaml"
+app := env("APP", "sbomify")
+app_manifest := repo_root / "apps" / app / "app-images.yaml"
 artifacts_dir := repo_root / "artifacts"
 
 mod ci
@@ -126,7 +127,7 @@ update-app-images:
     #!/usr/bin/env bash
     set -euo pipefail
     manifest="{{app_manifest}}"
-    lock="{{repo_root}}/apps/sbomify/app-images.lock.yaml"
+    lock="${manifest%.yaml}.lock.yaml"
 
     echo "=== Pinning app image digests ==="
     cp "$manifest" "$lock"
