@@ -1,0 +1,13 @@
+# Python 2.7 patch series — quilt-style apply order.
+# One patch filename per line, in the order they should be applied with
+# `patch -p1` (or `quilt push -a`).
+#
+# Lines beginning with '#' are comments. Blank lines are ignored.
+#
+# When adding a new patch:
+#   1. Save it as common/images/python-2.7/patches/NNNN-short-kebab.patch
+#      using the next 4-digit sequence number.
+#   2. Append the filename below.
+#   3. Update CVE-LOG.md with the CVE → patch mapping.
+#
+# (No patches applied yet — this scaffold is intentionally empty.)
