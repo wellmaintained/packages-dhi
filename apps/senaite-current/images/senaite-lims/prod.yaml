@@ -159,6 +159,12 @@ contents:
                 https://dist.plone.org/release/5.2.15/
                 https://dist.plone.org/thirdparty/
 
+            # senaite.impress 2.6.0 from a local checkout with patched
+            # setup.py — see the install step for the pyphen-pin rationale.
+            # Without develop, easy_install would fetch from PyPI and the
+            # pyphen==0.11.0 hard pin would conflict with our [versions].
+            develop = src/senaite.impress
+
             parts =
                 instance
                 test
@@ -286,6 +292,29 @@ contents:
                 "idna==2.10" \
                 "unittest2==1.1.0"
 
+            # senaite.impress 2.6.0 — pyphen pin override via develop egg.
+            #
+            # senaite.impress 2.6.0's setup.py hard-pins pyphen==0.11.0 with
+            # the comment "pyphen 0.12.0 does not support Python 2.x anymore"
+            # — but pyphen 0.11.0 itself ships only as a Python-3 wheel and a
+            # tar.gz that build-isolates against flit_core>=3.2 (Py3-only).
+            # On Python 2.7 there is literally no installable pyphen 0.11.0,
+            # so buildout's [versions] constraint check fails when it reads
+            # senaite.impress's install_requires. (Same pattern Yakora hit
+            # in the senaite-2.3 build — borrowing her workaround verbatim.)
+            #
+            # The fix: clone the senaite.impress 2.6.0 source, sed-patch the
+            # offending pin to a loose `pyphen` requirement (the pre-installed
+            # pyphen 0.9.5 satisfies it), and let buildout install it as a
+            # `develop = src/senaite.impress` egg (per buildout.cfg). With the
+            # develop egg, easy_install never reaches PyPI for senaite.impress
+            # and the patched setup.py drives the constraint resolution.
+            mkdir -p src
+            git clone --depth=1 --branch=2.6.0 \
+                https://github.com/senaite/senaite.impress.git \
+                src/senaite.impress
+            sed -i 's|"pyphen==0\.11\.0"|"pyphen"|' src/senaite.impress/setup.py
+
         - name: run buildout
           privileged: true
           work-dir: ${target.dir}/opt/senaite
@@ -398,6 +427,15 @@ contents:
                 '_tkinter',  # C extension; not built into our cpython
                 'winreg',    # Py3 Windows registry module
                 '_winreg',   # Py2 Windows registry module, Linux has none
+                # attrs 21.4.0 ships a Py3-only `attrs` namespace alongside
+                # the legacy `attr` namespace; `import attrs` evaluates
+                # `from attr._next_gen import ...` which references
+                # symbols (`define`, `field`, `frozen`) added in attrs 22+
+                # and unavailable on the Py2-compatible 21.4.0 final. The
+                # legacy `import attr` namespace (without the `s`) imports
+                # cleanly and is what SENAITE/Plone code uses. Same SKIP
+                # entry Yakora added for the senaite-2.3 build.
+                'attrs',
             }
 
             site_packages = '${target.dir}/opt/senaite/lib/python2.7/site-packages'
