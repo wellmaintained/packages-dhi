@@ -111,6 +111,28 @@ senaite-down:
 senaite-logs:
     APP=senaite just app-logs
 
+# Heritage 1.3.x deployment runs as a sibling of the 2.0.0 stack, not as
+# a variant of it. These recipes target docker-compose-1.3.yml directly
+# (rather than going through APP=senaite just app-up, which is hardcoded
+# to docker-compose.yml). The duplication is deliberate: a "release line"
+# abstraction will emerge from this work + the smoke-tests + release-website
+# integration siblings, not be designed upfront.
+
+senaite_compose_13 := repo_root / "apps" / "senaite" / "deployments" / "docker-compose-1.3.yml"
+
+# Bring up the senaite 1.3.x stack (just disallows '.' in recipe names,
+# so the recipe is named senaite-1-3-up instead of senaite-1.3-up)
+senaite-1-3-up:
+    docker compose -f {{senaite_compose_13}} up -d
+
+# Stop the senaite 1.3.x stack and remove containers + volumes
+senaite-1-3-down:
+    docker compose -f {{senaite_compose_13}} down -v
+
+# Tail logs from the senaite 1.3.x stack
+senaite-1-3-logs:
+    docker compose -f {{senaite_compose_13}} logs -f
+
 # ── Update ────────────────────────────────────────
 
 # Update everything: tool checksums, stock image digests, then lint
