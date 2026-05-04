@@ -1,0 +1,29 @@
+{{- $data := hugo.Data.licenses -}}
+{{- if $data -}}
+{{- $licenses := $data.licenses -}}
+{{- $images := slice -}}
+{{- range $licenses -}}
+  {{- if not (in $images .image) -}}
+    {{- $images = $images | append .image -}}
+  {{- end -}}
+{{- end -}}
+{{- range $img := $images }}
+<h3>{{ $img }}</h3>
+<table>
+<thead><tr><th>Component</th><th>Version</th><th>License</th></tr></thead>
+<tbody>
+{{- range $licenses }}
+{{- if eq .image $img }}
+<tr>
+  <td>{{ .component }}</td>
+  <td>{{ .version }}</td>
+  <td>{{ if and .license (ne .license "unknown") }}<a href="https://spdx.org/licenses/{{ .license }}.html">{{ .license }}</a>{{ else }}{{ .license | default "unknown" }}{{ end }}</td>
+</tr>
+{{- end }}
+{{- end }}
+</tbody>
+</table>
+{{ end -}}
+{{- else -}}
+<em>License data not available. Run <code>just release-data</code> to generate.</em>
+{{- end -}}

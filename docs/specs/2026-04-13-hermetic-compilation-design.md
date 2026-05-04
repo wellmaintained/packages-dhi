@@ -11,7 +11,7 @@ Split each `privileged: true` pipeline step that mixes downloading and compiling
 1. A **download step** (`privileged: true`) that fetches dependencies
 2. A **compile step** (no `privileged`, hermetic) that builds from the fetched dependencies
 
-This follows the pattern already used in `apps/sbomify/images/sbomify-app/prod.yaml` where `install python deps` (privileged) is separate from `collect static files` and `prepare runtime` (hermetic).
+This follows the pattern already used in `apps/sbomify-current/images/sbomify-app/prod.yaml` where `install python deps` (privileged) is separate from `collect static files` and `prepare runtime` (hermetic).
 
 ## Changes
 
@@ -22,7 +22,7 @@ Both build stages (`minio-server`, `mc-client`) currently have a single pipeline
 - **Step 1** `download go modules` — `privileged: true`, runs `go mod download`
 - **Step 2** `compile minio server` / `compile mc client` — hermetic, runs `go build` + `install`
 
-### `apps/sbomify/images/sbomify-app/prod.yaml`
+### `apps/sbomify-current/images/sbomify-app/prod.yaml`
 
 The `install and build frontend` step runs `bun install` then `vite build` then copies assets. Split into:
 
@@ -34,7 +34,7 @@ If the hermetic vite build step fails because `bun x` needs network, move `bun x
 ### No changes needed
 
 - `common/images/hugo/dhi.yaml` — no `privileged: true` steps; binary downloaded via HTTPS
-- `apps/sbomify/images/sbomify-app/prod.yaml` python-app stage — already correctly split
+- `apps/sbomify-current/images/sbomify-app/prod.yaml` python-app stage — already correctly split
 
 ## Verification
 

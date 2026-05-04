@@ -1,0 +1,606 @@
+# syntax=dhi.io/build:2-debian13
+#
+# SENAITE LIMS 1.3.5 DHI YAML image definition (heritage 1.3.x demo).
+#
+# Plone 4.3.20 + Zope 2.13.30 + senaite.lims 1.3.5 (and sibling addons)
+# installed via zc.buildout against the wellmaintained python-2.7 heritage
+# base image.
+#
+# This is the heritage release line — Zope 2.13's classic ZServer (no WSGI)
+# and the older senaite.core.* sibling-package naming (vs senaite.app.* in
+# the 2.x line). Lives in its own app per the 4-criteria version-line rule
+# (see docs/research/version-line-criteria.md).
+#
+# NOTE: DHI pipelines run without network access (hermetic builds).
+# The buildout install step needs network for PyPI fetches, so it sets
+# privileged: true.
+#
+# To build:
+#   APP=senaite-1.3 just ci build python-2.7     # base must exist locally first
+#   APP=senaite-1.3 just ci build senaite-lims
+#
+# Upstream reference:
+#   https://github.com/senaite/senaite.lims/blob/1.3.5/buildout.cfg
+#
+# The buildout configuration is committed at
+# apps/senaite-1.3/images/senaite-lims/buildout/{buildout.cfg,versions.cfg}
+# for version control and human reference. The pipeline materialises an
+# equivalent buildout.cfg via inline heredoc — same caveat as the 2.0.0
+# build, see that file's header for the file-injection backstory.
+
+name: SENAITE LIMS 1.3 (wellmaintained)
+image: ghcr.io/wellmaintained/packages-dhi/senaite-lims-1.3
+variant: runtime
+tags:
+  - latest
+platforms:
+  - linux/amd64
+
+contents:
+  packages:
+    - base-files
+    - ca-certificates
+    # libc-bin provides /sbin/ldconfig — Python's ctypes.util.find_library
+    # uses it to locate shared libs; without it scandir / pathlib2 fall
+    # back to invoking gcc which isn't present in the runtime image.
+    - libc-bin
+    # Runtime shared libraries inherited from the python-2.7 base image's
+    # contents.packages list. artifacts: pulls /opt/python-2.7 binaries
+    # but not the system .deb dependencies, so they must be re-declared here.
+    - libssl3t64
+    - libsqlite3-0
+    - libffi8
+    - libreadline8t64
+    - libncursesw6
+    - libtinfo6
+    - zlib1g
+    - libbz2-1.0
+    - liblzma5
+    - libgdbm6t64
+    - libgdbm-compat4t64
+    - libuuid1
+    # libxml2 / libxslt are pulled in by lxml — a Plone runtime requirement.
+    - libxml2
+    - libxslt1.1
+    # libjpeg + zlib backed PIL image handling.
+    - libjpeg62-turbo
+    # WeasyPrint 0.42.3 (PDF rendering for SENAITE reports/labels) — pulls
+    # cairo + pango + gdk-pixbuf via cairocffi/pangocffi. senaite.core 1.3.5
+    # hard-pins WeasyPrint to 0.42.3 (the last release supporting Python 2),
+    # which is older than the 2.0.0 build's WeasyPrint but uses the same
+    # underlying Cairo / Pango runtime libs.
+    - libcairo2
+    - libpango-1.0-0
+    - libpangocairo-1.0-0
+    - libgdk-pixbuf-2.0-0
+
+  builds:
+    - name: senaite-buildout
+      # Builder uses our locally-built python-2.7 image. Same brittle
+      # tag-only reference as the 2.0.0 sibling — the digest changes every
+      # rebuild; CI will need a different mechanism (probably pulling the
+      # previously-pushed component tag from GHCR). See the 2.0.0
+      # prod.yaml's identical comment block for the full backstory.
+      uses: ghcr.io/wellmaintained/packages-dhi/python-2.7:dev
+      contents:
+        packages:
+          # The python-2.7 base is distroless — no shell, no coreutils.
+          # The DHI pipeline runner invokes pipeline runs via /bin/sh, so
+          # dash (provides /bin/sh) + bash (for `set -o pipefail` etc.) are
+          # mandatory layered additions.
+          - dash
+          - bash
+          - coreutils
+          - findutils
+          - tar
+          - gzip
+          - unzip
+          - sed
+          - grep
+          # libc-bin provides /sbin/ldconfig — used in strip step to
+          # generate /etc/ld.so.cache for the runtime image. The cache is
+          # built from the libs available in THIS builder, so any runtime
+          # lib that needs to be resolvable via ctypes.util.find_library
+          # (cairocffi, pangocffi, etc.) must also be installed here.
+          - libc-bin
+          - libcairo2
+          - libpango-1.0-0
+          - libpangocairo-1.0-0
+          - libgdk-pixbuf-2.0-0
+          # Build toolchain for buildout-installed C extensions
+          # (zope.interface, ZODB BTrees, lxml, Pillow, zopyx.txng3.ext, ...).
+          - build-essential
+          - libssl-dev
+          - libffi-dev
+          - libxml2-dev
+          - libxslt1-dev
+          - libjpeg-dev
+          - zlib1g-dev
+          - libbz2-dev
+          - libsqlite3-dev
+          # git is required by zc.buildout's `mr.developer` extension and
+          # for any source pins that resolve to git URLs.
+          - git
+        files:
+          # senaite.lims source. The git+https form is required by
+          # ci/mod.just::_component-tag, which greps the YAML for the source
+          # ref to derive the version segment of the output image's
+          # component tag (senaite-lims-1.3.5-<sha7>).
+          - url: "git+https://github.com/senaite/senaite.lims.git#1.3.5"
+            path: ${source.dir}/senaite-lims
+            spdx:
+              name: senaite.lims
+              version: "1.3.5"
+              packages:
+                - name: senaite.lims
+                  purl: "pkg:pypi/senaite.lims@1.3.5"
+                  license: GPL-2.0-only
+            uid: 0
+            gid: 0
+      pipeline:
+        - name: write buildout config
+          # Materialise the buildout.cfg + versions.cfg locally. The
+          # canonical source of truth is committed at
+          # apps/senaite-1.3/images/senaite-lims/buildout/. Keep the heredoc
+          # below in sync until a file-injection mechanism replaces this
+          # pattern (see header comment).
+          runs: |
+            set -eux -o pipefail
+            mkdir -p ${target.dir}/opt/senaite-1.3
+            cat > ${target.dir}/opt/senaite-1.3/buildout.cfg <<'BUILDOUT_CFG'
+            [buildout]
+            index = https://pypi.org/simple/
+            extends = https://dist.plone.org/release/4.3.20/versions.cfg
+            find-links =
+                https://dist.plone.org/release/4.3.20/
+                https://dist.plone.org/thirdparty/
+
+            parts =
+                instance
+                test
+
+            eggs =
+                Plone
+                Pillow
+                lxml
+                senaite.core
+                senaite.core.listing
+                senaite.core.spotlight
+                senaite.core.supermodel
+                senaite.impress
+                senaite.jsonapi
+                senaite.lims
+
+            versions = versions
+            show-picked-versions = true
+
+            [instance]
+            recipe = plone.recipe.zope2instance
+            http-address = 0.0.0.0:8080
+            user = admin:admin
+            eggs = ${buildout:eggs}
+            deprecation-warnings = on
+            environment-vars =
+                zope_i18n_compile_mo_files true
+
+            [test]
+            recipe = zc.recipe.testrunner
+            eggs =
+                ${buildout:eggs}
+                senaite.lims [test]
+            defaults = ['--exit-with-status', '--auto-color']
+
+            [versions]
+            setuptools = 44.1.1
+            zc.buildout = 2.13.3
+            zipp = 1.2.0
+            zc.recipe.cmmi = 1.3.6
+            zc.recipe.testrunner = 2.2
+
+            senaite.lims = 1.3.5
+            senaite.core = 1.3.5
+            senaite.core.listing = 1.5.3
+            senaite.core.spotlight = 1.0.4
+            senaite.core.supermodel = 1.2.5
+            senaite.impress = 1.2.5
+            senaite.jsonapi = 1.2.4
+
+            # senaite.core 1.3.5 hard-pins these in install_requires.
+            five.pt = 2.2.4
+            zopyx.txng3.ext = 3.4.0
+            CairoSVG = 1.0.20
+            WeasyPrint = 0.42.3
+            cairocffi = 0.9.0
+
+            # Transitive deps that have since moved to Python 3 only.
+            magnitude = 0.9.4
+            Pyphen = 0.9.5
+            pdfrw = 0.4
+            chardet = 4.0.0
+            requests = 2.27.1
+            urllib3 = 1.26.18
+            certifi = 2021.10.8
+            idna = 2.10
+            et_xmlfile = 1.0.1
+            openpyxl = 2.6.4
+            beautifulsoup4 = 4.9.3
+            soupsieve = 1.9.6
+            cssselect = 1.1.0
+            Chameleon = 3.9.1
+            z3c.pt = 3.3.1
+            dicttoxml = 1.7.4
+            z3c.jbot = 1.1.1
+            cffi = 1.15.1
+            pycparser = 2.21
+            backports.functools_lru_cache = 1.6.6
+            unittest2 = 1.1.0
+            BUILDOUT_CFG
+
+        - name: install zc.buildout
+          # pip + buildout fetch from PyPI; needs network.
+          privileged: true
+          work-dir: ${target.dir}/opt/senaite-1.3
+          runs: |
+            set -eux -o pipefail
+            # The python-2.7 base ships pip 20.3.4 (last 2.7-compatible).
+            python -m pip install \
+                "zc.buildout==2.13.3" \
+                "setuptools==44.1.1"
+            # plone.recipe.zope2instance 4.4.1 (Plone 4.3.20's pinned
+            # version) does `import zc.buildout` at module load time —
+            # bin/instance imports plone.recipe.zope2instance.ctl, which
+            # transitively requires zc.buildout AT RUNTIME, not just
+            # during `bin/buildout`. Newer 6.x recipes (used by 2.0.0)
+            # don't have this import, but 6.x is Zope 4 / WSGI-only and
+            # incompatible with Plone 4.3. Install zc.buildout +
+            # setuptools into the runtime site-packages so the import
+            # resolves when bin/instance starts.
+            mkdir -p ${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages
+            python -m pip install --no-deps \
+                --target=${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages \
+                "zc.buildout==2.13.3" \
+                "setuptools==44.1.1"
+            # zc/__init__.py namespace fix is handled in the namespace-
+            # init loop after the main pre-pip step (covers zc, z3c,
+            # backports). See that block for the rationale.
+            # Pre-install transitive deps that have moved to Python 3 only
+            # since SENAITE 1.3.5 was released. Same pattern as the 2.0.0
+            # sibling — buildout's [versions] pins are not honoured for
+            # indirect deps in this 2026/PyPI mismatch scenario;
+            # easy_install fetches the latest and then fails to parse Py3
+            # syntax. pip's resolver respects requires_python and picks a
+            # Py2-compatible release; once installed in site-packages,
+            # buildout finds the egg and skips its own materialisation.
+            #
+            # The WeasyPrint 0.42.3 / cairocffi 0.9.0 / CairoSVG 1.0.20
+            # additions vs the 2.0.0 list cover the senaite.core 1.3.5
+            # hard pins that don't exist in 2.0.0 (2.0.0 uses a newer
+            # WeasyPrint stack).
+            #
+            # --target installs into /opt/senaite-1.3/lib/python2.7/site-
+            # packages which lands in the runtime image (the builder's own
+            # site-packages is not preserved — the runtime pulls
+            # /opt/python-2.7/** from the python-2.7 image, not the
+            # builder). The path is added to sys.path via PYTHONPATH in
+            # the runtime environment block.
+            mkdir -p ${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages
+            # The pre-pip list expanded vs 2.0.0 because Plone 4.3.20's
+            # versions.cfg pins fewer transitives — buildout's easy_install
+            # ends up grabbing latest-on-PyPI for Chameleon, z3c.pt,
+            # dicttoxml, z3c.jbot, all of which dropped Py2 support after
+            # the SENAITE 1.3.5 release window.
+            #
+            # --no-deps is critical here: z3c.pt 3.3.1 declares zope.interface
+            # / zope.component / zope.i18n as install_requires; without
+            # --no-deps pip resolves those to their LATEST PyPI versions
+            # (zope.event 5.x, zope.component 6.x) and writes them into
+            # site-packages. Those modern versions then mask the OLDER
+            # zope.* eggs that buildout installs (zope.event 3.5.2 and
+            # friends, pinned by Plone 4.3.20 → ZTK 1.0.8), and Zope 2.13
+            # imports break (e.g. ZPublisher's `from zope.event import
+            # ObjectEvent` returns the new version which doesn't export it).
+            # Every package below either has no deps or has its deps already
+            # in this list, so --no-deps is safe across the board.
+            python -m pip install --no-deps \
+                --target=${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages \
+                "magnitude==0.9.4" \
+                "Pyphen==0.9.5" \
+                "et_xmlfile==1.0.1" \
+                "openpyxl==2.6.4" \
+                "chardet==4.0.0" \
+                "requests==2.27.1" \
+                "urllib3==1.26.18" \
+                "certifi==2021.10.8" \
+                "idna==2.10" \
+                "unittest2==1.1.0" \
+                "WeasyPrint==0.42.3" \
+                "cairocffi==0.9.0" \
+                "CairoSVG==1.0.20" \
+                "pdfrw==0.4" \
+                "beautifulsoup4==4.9.3" \
+                "soupsieve==1.9.6" \
+                "cssselect==1.1.0" \
+                "Chameleon==3.9.1" \
+                "z3c.pt==3.3.1" \
+                "dicttoxml==1.7.4" \
+                "z3c.jbot==1.1.1" \
+                "backports.functools_lru_cache==1.6.6"
+            # Plant namespace __init__.py for every pre-pip-installed
+            # namespace package landed in the runtime site-packages. pip
+            # --target on Python 2 writes the matching .pth file but does
+            # NOT process .pth files at runtime when the dir is added via
+            # PYTHONPATH (only via site-packages proper), so without these
+            # init files `import z3c.jbot` and `import zc.buildout` and
+            # `import backports.functools_lru_cache` fail. Each init does
+            # the standard pkg_resources.declare_namespace incantation.
+            for ns in z3c zc backports; do
+                ns_dir=${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages/$ns
+                if [ -d "$ns_dir" ] && [ ! -f "$ns_dir/__init__.py" ]; then
+                    cat > $ns_dir/__init__.py <<'NSPKG'
+            __import__('pkg_resources').declare_namespace(__name__)
+            NSPKG
+                fi
+            done
+            # Mirror the pre-install into the builder's base site-packages
+            # too, so subsequent buildout steps can import these
+            # transitively (otherwise easy_install will refetch and fail).
+            # --no-deps applied for the same zope.* pollution reason as the
+            # --target install above.
+            python -m pip install --no-deps \
+                "magnitude==0.9.4" \
+                "Pyphen==0.9.5" \
+                "et_xmlfile==1.0.1" \
+                "openpyxl==2.6.4" \
+                "chardet==4.0.0" \
+                "requests==2.27.1" \
+                "urllib3==1.26.18" \
+                "certifi==2021.10.8" \
+                "idna==2.10" \
+                "unittest2==1.1.0" \
+                "WeasyPrint==0.42.3" \
+                "cairocffi==0.9.0" \
+                "CairoSVG==1.0.20" \
+                "pdfrw==0.4" \
+                "beautifulsoup4==4.9.3" \
+                "soupsieve==1.9.6" \
+                "cssselect==1.1.0" \
+                "Chameleon==3.9.1" \
+                "z3c.pt==3.3.1" \
+                "dicttoxml==1.7.4" \
+                "z3c.jbot==1.1.1" \
+                "backports.functools_lru_cache==1.6.6"
+
+        - name: run buildout
+          privileged: true
+          work-dir: ${target.dir}/opt/senaite-1.3
+          runs: |
+            set -eux -o pipefail
+            # Run buildout in-place; eggs/, parts/, bin/, develop-eggs/
+            # all materialise under /opt/senaite-1.3. Absolute paths in
+            # buildout-generated scripts will resolve at runtime.
+            #
+            # CFLAGS relax modern gcc (debian13 ships gcc 14) which
+            # promotes several K&R-era warnings to fatal errors.
+            # SENAITE 1.3.5's transitive deps include 2016-era C
+            # extensions (e.g. zopyx.txng3.ext==3.4.0) whose source
+            # predates the Py_ssize_t transition and uses int* where
+            # Python's headers expect Py_ssize_t*. -Wno-error keeps them
+            # as warnings so compilation succeeds.
+            export CFLAGS="-Wno-error=incompatible-pointer-types"
+            CFLAGS="${CFLAGS} -Wno-error=implicit-function-declaration"
+            CFLAGS="${CFLAGS} -Wno-error=int-conversion"
+            CFLAGS="${CFLAGS} -Wno-error=discarded-qualifiers"
+            CFLAGS="${CFLAGS} -Wno-error=return-mismatch"
+            export CFLAGS
+            buildout -c buildout.cfg
+
+        - name: smoke-test runtime dependencies
+          # Deterministic build gate. Two checks (lifted 1:1 from Bob's
+          # Step 9 work in the 2.0.0 sibling — see that file's identical
+          # block for the full motivation):
+          #   1. ldd-walk every .so under ${target.dir}/opt — fail on any
+          #      "not found" line (catches C extensions that link against
+          #      libs missing from the runtime artefact).
+          #   2. import-walk every top-level module in the pre-pip
+          #      site-packages and every buildout egg — fail on
+          #      ImportError or OSError (catches missing transitive Python
+          #      deps and ctypes-backed lookups for C libs that can't
+          #      resolve).
+          #
+          # Path differences from the 2.0.0 sibling: site-packages and
+          # eggs live under /opt/senaite-1.3 (not /opt/senaite).
+          work-dir: ${target.dir}/opt/senaite-1.3
+          runs: |
+            set -eux -o pipefail
+
+            echo "=== smoke-test 1a: ldd-walk shared objects under ${target.dir}/opt ==="
+            # Pipeline shell is /bin/sh (dash), so no bash process
+            # substitution. find -exec sh -c keeps the inner loop POSIX
+            # while still capturing per-file context in the output.
+            #
+            # Skip .libs/ directories (auditwheel/manylinux convention):
+            # bundled deps inside <pkg>/.libs/ or <pkg>.libs/ are loaded
+            # via the parent extension's RPATH=$ORIGIN/.libs and have no
+            # RPATH of their own, so ldd-in-isolation reports them as
+            # "not found" even though they resolve correctly at runtime.
+            ldd_findings=$(find ${target.dir}/opt -name '*.so*' -type f \
+                -not -path '*.libs/*' \
+                -exec sh -c '
+                so="$1"
+                missing=$(ldd "$so" 2>&1 | grep "not found" || true)
+                if [ -n "$missing" ]; then
+                    echo "--- missing libs for $so ---"
+                    echo "$missing"
+                fi
+            ' _ {} \;)
+            if [ -n "$ldd_findings" ]; then
+                echo "=== smoke-test 1a: FAILED ==="
+                echo "$ldd_findings"
+                exit 1
+            fi
+            echo "smoke-test 1a: ldd-walk clean"
+
+            echo "=== smoke-test 1b: import-walk site-packages + eggs ==="
+            # Refresh /etc/ld.so.cache: DHI's package-install step doesn't
+            # always trigger libc-bin's ldconfig hook, leaving the cache
+            # stale or empty. ctypes.util.find_library() (used by cairocffi
+            # / cffi / many transitive deps) falls back to that cache, so
+            # imports of weasyprint, cairosvg, etc. silently fail unless
+            # we rebuild it here. The strip step bakes the runtime cache
+            # later at ${target.dir}/etc/ld.so.cache; this run targets the
+            # builder's own /etc/ld.so.cache for the import test.
+            /sbin/ldconfig
+
+            # Mirror the runtime environment block: LD_LIBRARY_PATH for the
+            # shared libpython2.7.so, PYTHONPATH for pip-installed packages.
+            # Each .egg under eggs/ is added to sys.path inside the python
+            # invocation so its top-level modules become importable.
+            LD_LIBRARY_PATH=/opt/python-2.7/lib \
+            PYTHONPATH=${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages \
+            PYTHONDONTWRITEBYTECODE=1 \
+            python <<'PYEOF'
+            import os, sys, importlib, pkgutil
+
+            # Platform-impossible modules: Python 3 forward-shims and
+            # Windows-only modules that exist in the eggs as compatibility
+            # placeholders but cannot import on Python 2.7 + Linux.
+            SKIP = {
+                'tkinter',   # Py3 name; we ship Python 2.7 (capital Tkinter)
+                '_tkinter',  # C extension; not built into our cpython
+                'winreg',    # Py3 Windows registry module
+                '_winreg',   # Py2 Windows registry module, Linux has none
+            }
+
+            site_packages = '${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages'
+            eggs_dir = '${target.dir}/opt/senaite-1.3/eggs'
+
+            walk_paths = []
+            if os.path.isdir(site_packages):
+                walk_paths.append(site_packages)
+            if os.path.isdir(eggs_dir):
+                for entry in sorted(os.listdir(eggs_dir)):
+                    egg_path = os.path.join(eggs_dir, entry)
+                    if os.path.isdir(egg_path):
+                        sys.path.insert(0, egg_path)
+                        walk_paths.append(egg_path)
+
+            errors = []
+            seen = set()
+            for path in walk_paths:
+                for _, name, _ in pkgutil.iter_modules([path]):
+                    if name in seen or name in SKIP:
+                        continue
+                    seen.add(name)
+                    try:
+                        importlib.import_module(name)
+                    except (ImportError, OSError) as e:
+                        errors.append((name, type(e).__name__, str(e)))
+
+            if errors:
+                print('=== Import errors (%d) ===' % len(errors))
+                for n, t, e in errors:
+                    print('  %s [%s]: %s' % (n, t, e))
+                sys.exit(1)
+
+            print('smoke-test 1b: %d top-level modules imported clean (%d skipped as platform-impossible)' % (len(seen), len(SKIP)))
+            PYEOF
+
+        - name: strip buildout machinery
+          work-dir: ${target.dir}/opt/senaite-1.3
+          runs: |
+            set -eux -o pipefail
+            # Drop downloads cache and build artefacts; keep eggs/, parts/,
+            # bin/, develop-eggs/ — these are needed by bin/instance at
+            # runtime.
+            rm -rf downloads .installed.cfg
+            # Trim .pyc bytecode (will regenerate on first run).
+            find . -name '*.pyc' -delete
+            find . -name '__pycache__' -type d -exec rm -rf {} +
+            # Path surgery: buildout was run with buildout-directory =
+            # ${target.dir}/opt/senaite-1.3 (which expands to /out/opt/
+            # senaite-1.3 at build time). bin/instance and parts/instance/
+            # etc/* contain absolute paths to eggs/ and config — rewrite
+            # them to the runtime path /opt/senaite-1.3.
+            grep -rlI '/out/opt/senaite-1.3' . 2>/dev/null \
+                | xargs -r sed -i 's|/out/opt/senaite-1.3|/opt/senaite-1.3|g' || true
+            # Permissions: buildout runs as root in the build container, so
+            # everything under /opt/senaite-1.3 is owned root:root. The
+            # runtime image runs as senaite (uid/gid 65532). Make eggs/ +
+            # parts/ + bin/ world-readable; chown var/ (Plone writes ZODB
+            # + logs there) to senaite.
+            chmod -R a+rX bin eggs parts develop-eggs
+            # Plone (var/ for ZODB + logs) and zopyx.txng3.core (writes
+            # textindexng3.log into the buildout root) need the senaite
+            # user to own these paths. Chown the whole tree — eggs are
+            # already world-readable so this doesn't tighten access.
+            chown -R 65532:65532 .
+            # Bake /etc/ld.so.cache for the runtime: Plone's transitive
+            # dep chain calls ctypes.util.find_library('c') at import
+            # time, which requires either /sbin/ldconfig + cache or a
+            # working gcc at runtime. The runtime image has neither
+            # (distroless), so we generate the cache at build time.
+            mkdir -p ${target.dir}/etc
+            /sbin/ldconfig -C ${target.dir}/etc/ld.so.cache
+      outputs:
+        - source: ${target.dir}/opt/senaite-1.3
+          target: /opt/senaite-1.3
+          # senaite user/group — Plone needs to write var/ (ZODB),
+          # textindexng3 writes a log at /opt/senaite-1.3/textindexng3.log,
+          # and pyc bytecode regeneration writes alongside .py files.
+          uid: 65532
+          gid: 65532
+        - source: ${target.dir}/etc/ld.so.cache
+          target: /etc/ld.so.cache
+          uid: 0
+          gid: 0
+
+  artifacts:
+    # Pull the python-2.7 interpreter + stdlib from the wellmaintained base
+    # image. See note on uses: above re digest brittleness.
+    - name: ghcr.io/wellmaintained/packages-dhi/python-2.7:dev
+      includes:
+        - opt/python-2.7/**
+      uid: 0
+      gid: 0
+
+accounts:
+  run-as: senaite
+  users:
+    - name: senaite
+      uid: 65532
+      gid: 65532
+  groups:
+    - name: senaite
+      gid: 65532
+      members:
+        - senaite
+
+environment:
+  PATH: /opt/senaite-1.3/bin:/opt/python-2.7/bin:/usr/local/bin:/usr/bin:/bin
+  # CPython 2.7 was built --enable-shared; libpython2.7.so lives in
+  # /opt/python-2.7/lib, which ld.so doesn't search by default.
+  LD_LIBRARY_PATH: /opt/python-2.7/lib
+  # Pre-pip-installed packages (Pyphen, magnitude, openpyxl, requests stack,
+  # WeasyPrint 0.42.3 family) live here — these supplement the buildout-
+  # resolved eggs that bin/instance puts on sys.path.
+  PYTHONPATH: /opt/senaite-1.3/lib/python2.7/site-packages
+  PYTHONUNBUFFERED: "1"
+  PYTHONDONTWRITEBYTECODE: "1"
+
+annotations:
+  org.opencontainers.image.title: senaite-lims-1.3
+  org.opencontainers.image.version: "1.3.5"
+  org.opencontainers.image.description: SENAITE LIMS 1.3.5 on Plone 4.3.20 (wellmaintained heritage build)
+  org.opencontainers.image.licenses: GPL-2.0-only
+  org.opencontainers.image.vendor: wellmaintained
+  org.opencontainers.image.source: https://github.com/wellmaintained/packages-dhi
+
+work-dir: /opt/senaite-1.3
+
+entrypoint:
+  - /opt/senaite-1.3/bin/instance
+cmd:
+  - fg
+
+ports:
+  - 8080/tcp

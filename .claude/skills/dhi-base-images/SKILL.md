@@ -1,6 +1,6 @@
 ---
 name: dhi-base-images
-description: Use when a change touches the image manifest, image definitions, or attestation extraction in this repo — e.g. "add a new app image", "switch postgres/redis/keycloak/caddy from stock to custom", "build minio from scratch", "replace a stock image with a custom build", "pin a DHI digest", "the SBOM extractor doesn't find the attestation layer", "change the SBOM generator for a custom build", editing `apps/sbomify/app-images.yaml`, `common/images/*/dhi.yaml`, `scripts/build-image`, `scripts/generate-compliance-artifacts`, `scripts/extract-dhi-attestations`, `bin/sbom-convert`.
+description: Use when a change touches the image manifest, image definitions, or attestation extraction in this repo — e.g. "add a new app image", "switch postgres/redis/keycloak/caddy from stock to custom", "build minio from scratch", "replace a stock image with a custom build", "pin a DHI digest", "the SBOM extractor doesn't find the attestation layer", "change the SBOM generator for a custom build", editing `apps/sbomify-current/app-images.yaml`, `common/images/*/dhi.yaml`, `scripts/build-image`, `scripts/generate-compliance-artifacts`, `scripts/extract-dhi-attestations`, `bin/sbom-convert`.
 ---
 
 # DHI Base Images Mechanism
@@ -16,8 +16,8 @@ Container images in this repo come from two sources. **Stock** images (postgres,
 
 ## Files / Tools Involved
 
-- `apps/sbomify/app-images.yaml` — per-image entry with a `source` (stock) or `definition` path (custom) and the target `registry`. Stock entries pin a digest; custom entries reference a `dhi.yaml` path.
-- `apps/sbomify/app-images.lock.yaml` — generated: resolves stock entries to concrete digests.
+- `apps/sbomify-current/app-images.yaml` — per-image entry with a `source` (stock) or `definition` path (custom) and the target `registry`. Stock entries pin a digest; custom entries reference a `dhi.yaml` path.
+- `apps/sbomify-current/app-images.lock.yaml` — generated: resolves stock entries to concrete digests.
 - `common/images/<name>/dhi.yaml` — DHI YAML image definition for a custom image (e.g. `common/images/minio/dhi.yaml`).
 - `common/images/<name>/<name>.vex.json` — optional hand-authored OpenVEX JSON copied into `artifacts/<image>/` by the unified build.
 - `scripts/build-image` — invokes `docker buildx build` with the DHI SBOM generator and provenance flags; tags as `<registry>:dev`.
@@ -29,7 +29,7 @@ Container images in this repo come from two sources. **Stock** images (postgres,
 
 1. Create the image definition file at `common/images/<name>/dhi.yaml`. Use an existing custom image (e.g. `common/images/minio/dhi.yaml`) as the reference shape.
 2. If the image has known unexploitable CVEs, add `common/images/<name>/<name>.vex.json` (OpenVEX v0.2.0).
-3. Register the image in `apps/sbomify/app-images.yaml`:
+3. Register the image in `apps/sbomify-current/app-images.yaml`:
    ```yaml
    <name>:
      definition: common/images/<name>/dhi.yaml
@@ -42,7 +42,7 @@ Container images in this repo come from two sources. **Stock** images (postgres,
 ## Procedure: switching a stock image to a custom build
 
 1. Write the custom definition under `common/images/<name>/` (as above).
-2. In `apps/sbomify/app-images.yaml`, replace the stock entry's `source` key with `definition`. The same key name (e.g. `postgres`) stays; only the source shape changes.
+2. In `apps/sbomify-current/app-images.yaml`, replace the stock entry's `source` key with `definition`. The same key name (e.g. `postgres`) stays; only the source shape changes.
 3. Decide whether attestation extraction still applies. Custom builds do not use `scripts/extract-dhi-attestations` — their attestations come from their own build via `scripts/generate-compliance-artifacts`.
 4. Rebuild and verify `artifacts/<name>/` matches the stock-built shape (same set of files).
 

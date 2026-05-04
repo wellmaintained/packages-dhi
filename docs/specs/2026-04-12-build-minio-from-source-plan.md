@@ -68,8 +68,8 @@ git commit -m "refactor: rename hugo latest.yaml to dhi.yaml"
 
 **Files:**
 - Rename: `common/images/minio/latest.yaml` → `common/images/minio/dhi.yaml`
-- Modify: `apps/sbomify/app-images.yaml:13`
-- Modify: `apps/sbomify/app-images.lock.yaml:18`
+- Modify: `apps/sbomify-current/app-images.yaml:13`
+- Modify: `apps/sbomify-current/app-images.lock.yaml:18`
 
 - [ ] **Step 1: Rename the file**
 
@@ -79,7 +79,7 @@ git mv common/images/minio/latest.yaml common/images/minio/dhi.yaml
 
 - [ ] **Step 2: Update app-images.yaml**
 
-In `apps/sbomify/app-images.yaml`, change line 13:
+In `apps/sbomify-current/app-images.yaml`, change line 13:
 ```yaml
 # before
   definition: common/images/minio/latest.yaml
@@ -89,7 +89,7 @@ In `apps/sbomify/app-images.yaml`, change line 13:
 
 - [ ] **Step 3: Update app-images.lock.yaml**
 
-In `apps/sbomify/app-images.lock.yaml`, change line 18:
+In `apps/sbomify-current/app-images.lock.yaml`, change line 18:
 ```yaml
 # before
   definition: common/images/minio/latest.yaml
@@ -108,7 +108,7 @@ Expected: `common/images/minio/dhi.yaml`
 - [ ] **Step 5: Commit**
 
 ```bash
-git add common/images/minio/ apps/sbomify/app-images.yaml apps/sbomify/app-images.lock.yaml
+git add common/images/minio/ apps/sbomify-current/app-images.yaml apps/sbomify-current/app-images.lock.yaml
 git commit -m "refactor: rename minio latest.yaml to dhi.yaml"
 ```
 
@@ -339,16 +339,16 @@ git commit -m "feat: build minio and mc from Go source for complete SBOM"
 ### Task 6: Extract init script to sbomify deployments
 
 **Files:**
-- Create: `apps/sbomify/deployments/scripts/create-minio-buckets.sh`
+- Create: `apps/sbomify-current/deployments/scripts/create-minio-buckets.sh`
 - Delete: `common/images/minio-init/latest.yaml`
 
 - [ ] **Step 1: Create the scripts directory and init script**
 
 ```bash
-mkdir -p apps/sbomify/deployments/scripts
+mkdir -p apps/sbomify-current/deployments/scripts
 ```
 
-Create `apps/sbomify/deployments/scripts/create-minio-buckets.sh`:
+Create `apps/sbomify-current/deployments/scripts/create-minio-buckets.sh`:
 
 ```bash
 #!/bin/sh
@@ -367,7 +367,7 @@ echo "Done."
 ```
 
 ```bash
-chmod +x apps/sbomify/deployments/scripts/create-minio-buckets.sh
+chmod +x apps/sbomify-current/deployments/scripts/create-minio-buckets.sh
 ```
 
 - [ ] **Step 2: Delete the minio-init image definition**
@@ -379,7 +379,7 @@ rm -rf common/images/minio-init/
 - [ ] **Step 3: Commit**
 
 ```bash
-git add apps/sbomify/deployments/scripts/create-minio-buckets.sh
+git add apps/sbomify-current/deployments/scripts/create-minio-buckets.sh
 git rm -r common/images/minio-init/
 git commit -m "refactor: extract minio-init script to sbomify deployment"
 ```
@@ -387,7 +387,7 @@ git commit -m "refactor: extract minio-init script to sbomify deployment"
 ### Task 7: Update docker-compose to use consolidated image
 
 **Files:**
-- Modify: `apps/sbomify/deployments/docker-compose.yml:62-83`
+- Modify: `apps/sbomify-current/deployments/docker-compose.yml:62-83`
 
 - [ ] **Step 1: Update the minio service**
 
@@ -433,19 +433,19 @@ Replace the minio-init image with the minio image + mounted script:
 - [ ] **Step 3: Commit**
 
 ```bash
-git add apps/sbomify/deployments/docker-compose.yml
+git add apps/sbomify-current/deployments/docker-compose.yml
 git commit -m "refactor: use consolidated minio image for init container"
 ```
 
 ### Task 8: Remove minio-init from manifests
 
 **Files:**
-- Modify: `apps/sbomify/app-images.yaml:16-18` (remove minio-init entry)
-- Modify: `apps/sbomify/app-images.lock.yaml:21-23` (remove minio-init entry)
+- Modify: `apps/sbomify-current/app-images.yaml:16-18` (remove minio-init entry)
+- Modify: `apps/sbomify-current/app-images.lock.yaml:21-23` (remove minio-init entry)
 
 - [ ] **Step 1: Remove minio-init from app-images.yaml**
 
-Delete these lines from `apps/sbomify/app-images.yaml`:
+Delete these lines from `apps/sbomify-current/app-images.yaml`:
 ```yaml
 minio-init:
   definition: common/images/minio-init/latest.yaml
@@ -454,7 +454,7 @@ minio-init:
 
 - [ ] **Step 2: Remove minio-init from app-images.lock.yaml**
 
-Delete these lines from `apps/sbomify/app-images.lock.yaml`:
+Delete these lines from `apps/sbomify-current/app-images.lock.yaml`:
 ```yaml
 minio-init:
   definition: common/images/minio-init/latest.yaml
@@ -474,7 +474,7 @@ Expected: minio resolves correctly, minio-init no longer appears.
 - [ ] **Step 4: Commit**
 
 ```bash
-git add apps/sbomify/app-images.yaml apps/sbomify/app-images.lock.yaml
+git add apps/sbomify-current/app-images.yaml apps/sbomify-current/app-images.lock.yaml
 git commit -m "refactor: remove minio-init from image manifests"
 ```
 
@@ -549,8 +549,8 @@ git commit -m "ci: remove minio-init from all workflows"
 **Files:**
 - Modify: `CLAUDE.md:8`
 - Modify: `docs/adr/0001-adopt-dhi-base-images.md:20,32`
-- Modify: `apps/sbomify/release-website/content/dependencies/_index.md:30`
-- Delete: `apps/sbomify/release-website/content/dependencies/minio-init.md`
+- Modify: `apps/sbomify-current/release-website/content/dependencies/_index.md:30`
+- Delete: `apps/sbomify-current/release-website/content/dependencies/minio-init.md`
 
 - [ ] **Step 1: Update CLAUDE.md**
 
@@ -587,7 +587,7 @@ to:
 
 - [ ] **Step 3: Update release website dependencies page**
 
-In `apps/sbomify/release-website/content/dependencies/_index.md`, change line 30 from:
+In `apps/sbomify-current/release-website/content/dependencies/_index.md`, change line 30 from:
 ```
 **Custom images** (minio, minio-init, sbomify-app) are built using DHI YAML
 ```
@@ -599,20 +599,20 @@ to:
 - [ ] **Step 4: Delete minio-init release website page**
 
 ```bash
-git rm apps/sbomify/release-website/content/dependencies/minio-init.md
+git rm apps/sbomify-current/release-website/content/dependencies/minio-init.md
 ```
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add CLAUDE.md docs/adr/0001-adopt-dhi-base-images.md apps/sbomify/release-website/content/dependencies/
+git add CLAUDE.md docs/adr/0001-adopt-dhi-base-images.md apps/sbomify-current/release-website/content/dependencies/
 git commit -m "docs: remove minio-init references, update minio description"
 ```
 
 ### Task 11: Regenerate release website
 
 **Files:**
-- Regenerate: `apps/sbomify/release-website/public/` (contains stale minio-init references)
+- Regenerate: `apps/sbomify-current/release-website/public/` (contains stale minio-init references)
 
 - [ ] **Step 1: Regenerate release data and website**
 
@@ -627,7 +627,7 @@ This runs `just release-data` (extracts attestation data) then Hugo build. The `
 - [ ] **Step 2: Verify minio-init is gone from output**
 
 ```bash
-grep -r "minio-init" apps/sbomify/release-website/public/ || echo "Clean — no minio-init references"
+grep -r "minio-init" apps/sbomify-current/release-website/public/ || echo "Clean — no minio-init references"
 ```
 
 Expected: "Clean — no minio-init references"
@@ -635,7 +635,7 @@ Expected: "Clean — no minio-init references"
 - [ ] **Step 3: Commit generated files**
 
 ```bash
-git add apps/sbomify/release-website/public/
+git add apps/sbomify-current/release-website/public/
 git commit -m "chore: regenerate release website without minio-init"
 ```
 
@@ -673,7 +673,7 @@ Expected: Go module names visible in the SBOM (e.g., `github.com/minio/minio`, `
 - [ ] **Step 4: Smoke-test docker-compose**
 
 ```bash
-cd apps/sbomify/deployments
+cd apps/sbomify-current/deployments
 docker compose up sbomify-minio sbomify-minio-init -d
 docker compose logs sbomify-minio-init --follow
 ```
