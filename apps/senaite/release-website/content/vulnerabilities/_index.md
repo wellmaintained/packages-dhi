@@ -83,6 +83,32 @@ source-built CPython layer). A single "33 findings" headline
 number does not appear anywhere — that figure would obscure the
 attribution story this release is built to demonstrate.
 
+### Two application-layer columns: 1.3.x vs 2.0.x
+
+The matrix now carries one column per application-layer image —
+both `senaite-lims` (the 2.0.x line, on Plone 5.2.4 / Zope 4) and
+`senaite-lims-1.3` (the 1.3.x line, on Plone 4.3.20 / Zope 2.13.30).
+The container list is data-derived from the release manifest, so
+the column set tracks `apps/senaite/app-images.yaml` automatically;
+both images appear without further matrix edits.
+
+The two columns are not equivalent. A snapshot grype run surfaces
+substantially more findings against 1.3.x — roughly **371 vs 174**
+at the time of writing — because Plone 4.3 / Zope 2.13 / the
+SENAITE 1.3.5 transitive graph predates the 2.0.x graph by several
+years against today's CVE feed. The headline isn't "1.3.x is more
+vulnerable." It is the literal cost of supporting customers who
+haven't taken the Plone-4-to-5 jump yet, paid by us in VEX-authoring
+hours per release rather than by the operator in a forced upgrade.
+
+Each line is analysed against the same heritage VEX policy below.
+The bulk of the 1.3.x corpus authoring lands as part of the
+`senaite-lims-1.3-vex-policy` yak (≈277 statements against the
+snapshot grype findings); the 2.0.x corpus is already populated
+with the 174-statement initial pass. As both corpuses fill in, the
+matrix's "WAIT" cells convert to specific `not_affected`
+justifications or `affected` tracking issues.
+
 ## Heritage VEX policy
 
 This release follows [ADR-0014](https://github.com/wellmaintained/packages-dhi/blob/main/docs/adr/0014-vex-policy-for-heritage-application-images.md),
@@ -109,10 +135,12 @@ to heritage application images. The relevant addenda for senaite:
 
 The CVE × container matrix above renders the OpenVEX statements
 extracted from each image's `vex.json` artifact. The container list
-adapts to whichever images this release actually ships. Until the
-senaite VEX authoring corpus is established, this table renders the
-"empty" state; initial statements are due as part of the senaite
-VEX policy yak.
+adapts to whichever images this release actually ships — both the
+2.0.x and 1.3.x application images appear as columns when their
+build artefacts are present. Until the senaite VEX authoring
+corpuses are fully established, this table renders mostly the
+"WAIT" / empty state; initial statements are landing per release
+line as part of the corresponding policy yaks.
 
 ## Re-scanning live
 
