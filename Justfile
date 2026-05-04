@@ -5,7 +5,8 @@
 set dotenv-load := false
 
 repo_root := justfile_directory()
-app_manifest := repo_root / "apps/sbomify/app-images.yaml"
+app := env("APP", "sbomify")
+app_manifest := repo_root / "apps" / app / "app-images.yaml"
 artifacts_dir := repo_root / "artifacts"
 
 mod ci
@@ -62,6 +63,22 @@ build-sbomify-compose:
         sed -i "s|image: ${source}|image: ${pinned}|g" "$out"
     done
     echo "Written to ${out}"
+
+# ── SENAITE Deployment ────────────────────────────
+
+senaite_compose := repo_root / "apps" / "senaite" / "deployments" / "docker-compose.yaml"
+
+# Bring up the local SENAITE LIMS stack (senaite-lims + nginx)
+senaite-up:
+    docker compose -f {{senaite_compose}} up -d
+
+# Stop the SENAITE stack and remove containers + the ZODB volume
+senaite-down:
+    docker compose -f {{senaite_compose}} down -v
+
+# Tail logs from all SENAITE services
+senaite-logs:
+    docker compose -f {{senaite_compose}} logs -f
 
 # ── Update ────────────────────────────────────────
 
@@ -126,7 +143,7 @@ update-app-images:
     #!/usr/bin/env bash
     set -euo pipefail
     manifest="{{app_manifest}}"
-    lock="{{repo_root}}/apps/sbomify/app-images.lock.yaml"
+    lock="${manifest%.yaml}.lock.yaml"
 
     echo "=== Pinning app image digests ==="
     cp "$manifest" "$lock"

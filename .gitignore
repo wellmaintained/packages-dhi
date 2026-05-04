@@ -4,3 +4,4 @@ compliance-pack-*.zip
 .direnv/
 .worktrees/
 .tmp/
+.yaks/
