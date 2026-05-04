@@ -1,0 +1,29 @@
+{{- $data := hugo.Data.licenses -}}
+{{- if $data -}}
+{{- $licenses := $data.licenses -}}
+{{- $exceptions := slice -}}
+{{- range $licenses -}}
+  {{- if or (not .license) (eq .license "unknown") -}}
+    {{- $exceptions = $exceptions | append . -}}
+  {{- end -}}
+{{- end -}}
+{{- if gt (len $exceptions) 0 -}}
+<table>
+<thead><tr><th>Component</th><th>Version</th><th>Image</th><th>Notes</th></tr></thead>
+<tbody>
+{{- range $exceptions }}
+<tr>
+  <td>{{ .component }}</td>
+  <td>{{ .version }}</td>
+  <td>{{ .image }}</td>
+  <td>SBOM metadata missing SPDX identifier</td>
+</tr>
+{{- end }}
+</tbody>
+</table>
+{{- else }}
+<p>No licensing exceptions found — all components have identified licenses.</p>
+{{- end -}}
+{{- else -}}
+<em>License data not available. Run <code>just release-data</code> to generate.</em>
+{{- end -}}
