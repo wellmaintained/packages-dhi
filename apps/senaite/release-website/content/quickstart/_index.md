@@ -8,36 +8,22 @@ sidebar:
 
 ## Deploy
 
-<!--
-  TODO (Step 6 — senaite-local-deployment yak):
-  Replace this block with a docker-compose.yml snippet and `docker compose up`
-  walkthrough once the deployment files land at apps/senaite/deployments/.
-  See apps/sbomify/release-website/layouts/shortcodes/quickstart-deploy.html
-  for the precedent rendering pattern (uses the {{< quickstart-deploy >}}
-  shortcode against generated data/).
--->
-
-The local deployment is **not yet available** — it ships as part of
-the senaite local-deployment yak (`senaite-local-deployment`). When
-that lands, this page renders a `docker compose up` walkthrough plus
-links to the compose file at `apps/senaite/deployments/`.
+{{< quickstart-deploy >}}
 
 In the meantime, individual images are buildable with:
 
 ```
-just ci build python-2.7
-just ci build senaite-lims
+APP=senaite just ci build python-2.7
+APP=senaite just ci build senaite-lims
 ```
+
+The full local-deployment composition (compose file at
+`apps/senaite/deployments/`) ships as part of the
+`senaite-local-deployment` yak.
 
 ## Audit Pack
 
-<!--
-  TODO (Step 5/8 — final pass):
-  Once the senaite-lims image lands and the release-data extractor has
-  been generalised to support per-app artifact bundles (see ADR-0005
-  follow-up), this block renders a download link to the compliance pack
-  ZIP and a manifest of its contents.
--->
+{{< quickstart-audit-pack >}}
 
 The compliance pack for this release will include, per image:
 

@@ -5,11 +5,15 @@ set -euo pipefail
 VERSION="${1:?Usage: build-compliance-pack <version>}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP="${APP:-sbomify}"
 ARTIFACTS="${REPO_ROOT}/artifacts"
 TOOL_LOCK="${REPO_ROOT}/common/tool-versions.lock.yaml"
-APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
+APP_LOCK="${REPO_ROOT}/apps/${APP}/app-images.lock.yaml"
+APP_COMPOSE="${REPO_ROOT}/apps/${APP}/deployments/docker-compose.yml"
 PACK_DIR="${REPO_ROOT}/.compliance-pack"
 OUTPUT="${REPO_ROOT}/compliance-pack-${VERSION}.zip"
+
+[[ -f "$APP_LOCK" ]] || { echo "ERROR: app lock not found: ${APP_LOCK}" >&2; exit 1; }
 
 rm -rf "$PACK_DIR"
 mkdir -p "$PACK_DIR"/{sboms,vex,provenance,secrets}
@@ -48,8 +52,7 @@ for dir in "${ARTIFACTS}"/*/; do
 done
 
 # Copy docker-compose for deployment reference
-[ -f "${REPO_ROOT}/apps/sbomify/deployments/docker-compose.yml" ] && \
-    cp "${REPO_ROOT}/apps/sbomify/deployments/docker-compose.yml" "$PACK_DIR/"
+[ -f "$APP_COMPOSE" ] && cp "$APP_COMPOSE" "$PACK_DIR/"
 
 # Create ZIP
 cd "$PACK_DIR"

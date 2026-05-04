@@ -24,7 +24,8 @@ Per [ADR-0012](https://github.com/wellmaintained/packages-dhi/blob/main/docs/adr
 | debian13 rootfs + system libraries      | DHI            | DHI's standard cadence   | `vex.dhi.json`, DHI SLSA provenance (extracted via `extract-dhi-attestations`)                                                                                            | grype against the SBOM's deb purls (dpkg-visible)               |
 | CPython 2.7.18 (interpreter, source-built) | wellmaintained | wellmaintained engineers | [`patches/`](https://github.com/wellmaintained/packages-dhi/tree/main/common/images/python-2.7/patches) + [`CVE-LOG.md`](https://github.com/wellmaintained/packages-dhi/blob/main/common/images/python-2.7/patches/CVE-LOG.md), `python-2.7.vex.json` | **`CVE-LOG.md` (NVD-seeded inventory)** — grype-blind, see below |
 | pip / setuptools / wheel (bootstrap)    | wellmaintained | wellmaintained engineers | bootstrap installs at image build via `get-pip.py` (see `dhi.yaml`), tracked in the Python-2.7 image's CycloneDX SBOM                                                     | grype against the SBOM's pkg:pypi purls                          |
-| Plone 5.2 + SENAITE 2.0.0               | upstream pinned| upstream (no patches today)| `senaite-lims.vex.json`, `app-images.lock.yaml`                                                                                                                          | grype against the SBOM (TODO — Step 5/7)                         |
+| Plone 5.2.4 + SENAITE 2.0.0 (modernization line) | upstream pinned| upstream (no patches today)| `senaite-lims.vex.json`, `app-images.lock.yaml`                                                                                                                  | grype against the SBOM (TODO — Step 5/7)                         |
+| Plone 4.3.20 + Zope 2.13.30 + SENAITE 1.3.5 (heritage line) | upstream pinned| upstream (no patches today)| `senaite-lims-1.3.vex.json`, `app-images.lock.yaml`                                                                                                  | grype against the SBOM (broader application-layer surface; see [senaite-lims-1.3](senaite-lims-1.3/)) |
 | Deployment composition                  | wellmaintained | wellmaintained engineers | `apps/senaite/deployments/` (TODO — Step 6)                                                                                                                              | n/a — composition has no CVE surface of its own                  |
 
 The `org.opencontainers.image.vendor` annotation on each image
@@ -61,28 +62,15 @@ built around. The trade-off is documented inline in
 
 ## Images
 
-<!--
-  TODO (Step 5 + Step 8 final pass):
-  Replace this with the {{< release-images >}} shortcode rendering once
-  release-data tooling is generalised per-app. See ADR-0005 follow-up.
--->
-
-| Image                                 | Source        | Variant     |
-|---------------------------------------|---------------|-------------|
-| `ghcr.io/wellmaintained/packages-dhi/python-2.7`   | custom (built from source, see [ADR-0011](https://github.com/wellmaintained/packages-dhi/blob/main/docs/adr/0011-build-python-2.7-from-canonical-sources.md)) | runtime |
-| `ghcr.io/wellmaintained/packages-dhi/senaite-lims` | custom (TODO — Step 5) | runtime |
-| `dhi.io/nginx:1.29`                                | stock (DHI)   | runtime     |
+{{< release-images >}}
 
 ## SBOMs
 
-<!--
-  TODO (Step 5/8): replace with {{< sbom-summary-table >}} once data/ is
-  populated by a senaite-aware extract-release-data run.
--->
+{{< sbom-summary-table >}}
 
-CycloneDX SBOMs for all container images in this release will be
+CycloneDX SBOMs for all container images in this release are
 extracted from OCI attestations attached to each image and rendered
-here as browsable component trees with downloadable JSON files.
+above as browsable component trees with downloadable JSON files.
 
 ### How SBOMs are generated for heritage images
 

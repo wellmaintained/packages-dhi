@@ -3,12 +3,7 @@ title: "python-2.7"
 description: "Software Bill of Materials for the python-2.7 heritage runtime image."
 ---
 
-<!--
-  TODO (Step 5/8): replace these placeholder paragraphs with the
-  {{< sbom-image-meta image="python-2.7" >}} and
-  {{< sbom-tree-viewer image="python-2.7" >}} shortcodes once
-  release-data tooling is generalised per-app and data/ is populated.
--->
+{{< sbom-image-meta image="python-2.7" >}}
 
 ## About this image
 
@@ -51,8 +46,9 @@ See:
 
 ## Component Tree
 
-<!-- TODO (Step 5/8): {{< sbom-tree-viewer image="python-2.7" >}} -->
+{{< sbom-tree-viewer image="python-2.7" >}}
 
-The component tree will render here once release-data tooling is
-generalised to extract per-app SBOM data into the senaite
-release-website's `data/` directory.
+The component tree above renders the python-2.7 image's CycloneDX
+SBOM as a browsable hierarchy. The SBOM JSON is downloaded from
+`static/artifacts/sboms/python-2.7.cdx.json` and traversed
+client-side.

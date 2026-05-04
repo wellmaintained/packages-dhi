@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Transform build artifacts into Hugo data files for the release website.
 # Reads from artifacts/ (populated by build.yml or local just commands).
-# Writes to apps/sbomify/release-website/data/
+# Writes to apps/${APP}/release-website/data/
 #
 # The vulnerabilities data is VEX-only: we publish our analysis ("CVEs we
 # looked at and deemed not applicable, with justification"), not a
@@ -12,11 +12,14 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
-APP_LOCK="${REPO_ROOT}/apps/sbomify/app-images.lock.yaml"
+APP="${APP:-sbomify}"
+APP_MANIFEST="${REPO_ROOT}/apps/${APP}/app-images.yaml"
+APP_LOCK="${REPO_ROOT}/apps/${APP}/app-images.lock.yaml"
 ARTIFACTS="${REPO_ROOT}/artifacts"
-DATA_DIR="${REPO_ROOT}/apps/sbomify/release-website/data"
-STATIC_DIR="${REPO_ROOT}/apps/sbomify/release-website/static/artifacts"
+DATA_DIR="${REPO_ROOT}/apps/${APP}/release-website/data"
+STATIC_DIR="${REPO_ROOT}/apps/${APP}/release-website/static/artifacts"
+
+[[ -f "$APP_MANIFEST" ]] || { echo "ERROR: app manifest not found: ${APP_MANIFEST}" >&2; exit 1; }
 
 mkdir -p "$DATA_DIR" "$STATIC_DIR/sboms" "$STATIC_DIR/vex" "$STATIC_DIR/provenance"
 
@@ -45,8 +48,8 @@ _vex_source() {
 
 # Stock images (from app manifest lock)
 for name in $(yq -r 'to_entries[] | select(.value | has("source")) | .key' "$APP_LOCK"); do
-    source=$(yq -r ".$name.source" "$APP_LOCK")
-    digest=$(yq -r ".$name.digest // \"\"" "$APP_LOCK")
+    source=$(yq -r ".\"${name}\".source" "$APP_LOCK")
+    digest=$(yq -r ".\"${name}\".digest // \"\"" "$APP_LOCK")
 
     entry=$(jq -n \
         --arg name "$name" \
@@ -66,7 +69,7 @@ done
 
 # Custom images (from the app manifest)
 for name in $(yq -r 'to_entries[] | select(.value | has("definition")) | .key' "$APP_MANIFEST"); do
-    registry=$(yq -r ".$name.registry" "$APP_MANIFEST")
+    registry=$(yq -r ".\"${name}\".registry" "$APP_MANIFEST")
 
     entry=$(jq -n \
         --arg name "$name" \

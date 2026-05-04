@@ -3,11 +3,7 @@ title: "nginx"
 description: "Software Bill of Materials for the nginx container image."
 ---
 
-<!--
-  TODO (Step 5/8): {{< sbom-image-meta image="nginx" >}}
-  Stock DHI image — SBOM is extracted from DHI registry attestations
-  by extract-dhi-attestations once release-data tooling is generalised.
--->
+{{< sbom-image-meta image="nginx" >}}
 
 ## About this image
 
@@ -21,7 +17,7 @@ for the stock-image consumption pattern.
 
 ## Component Tree
 
-<!-- TODO (Step 5/8): {{< sbom-tree-viewer image="nginx" >}} -->
+{{< sbom-tree-viewer image="nginx" >}}
 
-The component tree will render here once release-data tooling is
-generalised per-app.
+The component tree above renders the nginx image's CycloneDX SBOM
+extracted from DHI's per-image attestation suite.

@@ -14,6 +14,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP="${APP:-sbomify}"
 
 usage() {
   echo "Usage: $0 --app-collection-version VERSION --pr-number NUM --app-version VERSION --sha7 SHA7 --output FILE"
@@ -39,7 +40,9 @@ done
 
 [[ -z "$APP_COLLECTION_VERSION" || -z "$PR_NUMBER" || -z "$APP_VERSION" || -z "$SHA7" || -z "$OUTPUT" ]] && usage
 
-APP_MANIFEST="${REPO_ROOT}/apps/sbomify/app-images.yaml"
+APP_MANIFEST="${REPO_ROOT}/apps/${APP}/app-images.yaml"
+
+[[ -f "$APP_MANIFEST" ]] || { echo "ERROR: app manifest not found: ${APP_MANIFEST}" >&2; exit 1; }
 
 {
   echo "## App-Collection: ${APP_COLLECTION_VERSION}"
@@ -73,6 +76,6 @@ done
 echo "" >> "$OUTPUT"
 echo "### Stock DHI Images" >> "$OUTPUT"
 echo "" >> "$OUTPUT"
-echo "Referenced by pinned digest in \`apps/sbomify/app-images.lock.yaml\`." >> "$OUTPUT"
+echo "Referenced by pinned digest in \`apps/${APP}/app-images.lock.yaml\`." >> "$OUTPUT"
 
 cat "$OUTPUT"
