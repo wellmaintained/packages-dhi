@@ -102,7 +102,7 @@ git commit -m "refactor: split minio build into hermetic download + compile step
 ### Task 2: Split sbomify frontend pipeline step
 
 **Files:**
-- Modify: `apps/sbomify/images/sbomify-app/prod.yaml:41-54`
+- Modify: `apps/sbomify-current/images/sbomify-app/prod.yaml:41-54`
 
 - [ ] **Step 1: Split the frontend pipeline into install + build**
 
@@ -159,6 +159,6 @@ If the build fails because `bun x vite build` needs network, move it into step 1
 - [ ] **Step 3: Commit**
 
 ```bash
-git add apps/sbomify/images/sbomify-app/prod.yaml
+git add apps/sbomify-current/images/sbomify-app/prod.yaml
 git commit -m "refactor: split sbomify frontend build into hermetic install + build steps"
 ```

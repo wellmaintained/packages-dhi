@@ -39,9 +39,8 @@ Each parallel-supported version-line is a separate app with its
 version baked into the directory and image names:
 `apps/senaite-1.3/`, `apps/senaite-2.3/`, `apps/sbomify-26/`. One
 app, one image-stream, one compliance pack, one VEX file, one
-declaration of conformity. No unversioned apps; `apps/sbomify/`
-will be renamed under this convention as part of the
-implementation yak.
+declaration of conformity. No unversioned apps; the prior
+`sbomify` app lives at `apps/sbomify-current/` under this convention.
 
 ### 2. The `-current` sliding pointer
 

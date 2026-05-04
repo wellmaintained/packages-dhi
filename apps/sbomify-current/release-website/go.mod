@@ -1,4 +1,4 @@
-module github.com/wellmaintained/packages-dhi/apps/sbomify/release-website
+module github.com/wellmaintained/packages-dhi/apps/sbomify-current/release-website
 
 go 1.25.0
 

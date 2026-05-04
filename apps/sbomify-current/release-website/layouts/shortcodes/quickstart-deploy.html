@@ -1,7 +1,7 @@
 {{- $release := hugo.Data.release -}}
 {{- if $release -}}
-<p>Deploy using the docker-compose file from the <a href="https://github.com/wellmaintained/packages-dhi/tree/main/apps/sbomify/deployments">deployments directory</a>:</p>
-<pre><code>curl -LO https://raw.githubusercontent.com/wellmaintained/packages-dhi/main/apps/sbomify/deployments/docker-compose.yml
+<p>Deploy using the docker-compose file from the <a href="https://github.com/wellmaintained/packages-dhi/tree/main/apps/sbomify-current/deployments">deployments directory</a>:</p>
+<pre><code>curl -LO https://raw.githubusercontent.com/wellmaintained/packages-dhi/main/apps/sbomify-current/deployments/docker-compose.yml
 docker compose up -d</code></pre>
 {{- else -}}
 <em>Release data not available.</em>

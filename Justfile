@@ -5,7 +5,7 @@
 set dotenv-load := false
 
 repo_root := justfile_directory()
-app := env("APP", "sbomify")
+app := env("APP", "sbomify-current")
 app_manifest := repo_root / "apps" / app / "app-images.yaml"
 app_lock := repo_root / "apps" / app / "app-images.lock.yaml"
 app_compose := repo_root / "apps" / app / "deployments" / "docker-compose.yml"
@@ -67,7 +67,7 @@ build-app-compose:
 
 # Per-app wrapper: build sbomify digest-pinned compose
 build-sbomify-compose:
-    APP=sbomify just build-app-compose
+    APP=sbomify-current just build-app-compose
 
 # Per-app wrapper: build senaite digest-pinned compose
 build-senaite-compose:
@@ -89,15 +89,15 @@ app-logs:
 
 # Bring up the sbomify stack
 sbomify-up:
-    APP=sbomify just app-up
+    APP=sbomify-current just app-up
 
 # Stop the sbomify stack
 sbomify-down:
-    APP=sbomify just app-down
+    APP=sbomify-current just app-down
 
 # Tail logs from the sbomify stack
 sbomify-logs:
-    APP=sbomify just app-logs
+    APP=sbomify-current just app-logs
 
 # Bring up the senaite stack
 senaite-up:

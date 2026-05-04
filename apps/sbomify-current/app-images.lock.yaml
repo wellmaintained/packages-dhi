@@ -19,6 +19,6 @@ minio:
   registry: ghcr.io/wellmaintained/packages-dhi/minio
   sbomify_component_id: PLACEHOLDER_MINIO
 sbomify-app:
-  definition: apps/sbomify/images/sbomify-app/prod.yaml
+  definition: apps/sbomify-current/images/sbomify-app/prod.yaml
   registry: ghcr.io/wellmaintained/packages-dhi/sbomify-app
   sbomify_component_id: VP42I4XQgpDE

@@ -445,7 +445,7 @@ contents:
             # at build time). bin/instance and parts/instance/etc/* contain
             # absolute paths to eggs/ and config — rewrite them to the
             # runtime path /opt/senaite. Mirrors the sbomify-app shebang-
-            # surgery pattern (apps/sbomify/images/sbomify-app/prod.yaml).
+            # surgery pattern (apps/sbomify-current/images/sbomify-app/prod.yaml).
             grep -rlI '/out/opt/senaite' . 2>/dev/null \
                 | xargs -r sed -i 's|/out/opt/senaite|/opt/senaite|g' || true
             # Permissions: buildout runs as root in the build container, so

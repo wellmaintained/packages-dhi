@@ -199,7 +199,7 @@ relevant compose file with a second volume covering the parent dir.
 
 ## Helm chart
 
-Not provided. The reference deployment at `apps/sbomify/deployments/`
+Not provided. The reference deployment at `apps/sbomify-current/deployments/`
 ships compose files only — there is no `helm/` subdirectory to mirror.
 Adding Helm charts for SENAITE is left as future work and should land
 alongside (or after) a sbomify Helm chart so the structures stay

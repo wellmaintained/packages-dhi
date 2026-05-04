@@ -14,7 +14,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${APP:-sbomify}"
+APP="${APP:-sbomify-current}"
 
 usage() {
   echo "Usage: $0 --app-collection-version VERSION --pr-number NUM --app-version VERSION --sha7 SHA7 --output FILE"
