@@ -1,6 +1,6 @@
 ---
 title: "senaite"
-description: "SENAITE LIMS — two heritage release lines (1.3.x and 2.0.x) on Python 2.7, distributed with full SBOM, VEX, and patch provenance."
+description: "SENAITE 2.0.0 (Plone 5.2 / Python 2.7) — heritage LIMS distributed with full SBOM, VEX, and patch provenance."
 layout: hextra-home
 ---
 
@@ -41,40 +41,13 @@ This distribution exists to demonstrate that "stopped patching" and
 "can't be distributed compliantly" are different statements. The
 runtime is heritage; the supply-chain artifacts are current.
 
-## Two heritage release lines
-
-Operators who haven't migrated to SENAITE 2.0.x are not all on the
-same cliff. Two release lines ship from this distribution, both on
-the same wellmaintained Python 2.7 base:
-
-| Release line | SENAITE  | Plone     | Zope            | For operators who…                                                                  |
-|--------------|----------|-----------|-----------------|-------------------------------------------------------------------------------------|
-| 2.0.x        | 2.0.0    | 5.2.4     | 4 (WSGI)        | took the Plone 5 / Zope 4 jump but stopped before Plone 6 / Python 3                |
-| 1.3.x        | 1.3.5    | 4.3.20    | 2.13.30 (ZServer) | are still running the pre-Plone-5 stack — the migration to 2.0.x was already non-trivial |
-
-Both lines are first-class citizens here. The 2.0.x line is the
-modernization path; the 1.3.x line covers the migration-blocked
-estate. The wellmaintained pitch is that we support **both**
-indefinitely — a customer running SENAITE 1.3.5 in production today
-can stay on a maintained supply chain without first being forced
-through a Plone-major-version migration.
-
-The 1.3.x line sits *deeper* on the cliff (older Plone, older
-Zope, older transitive dependency graph, broader CVE surface) and
-the per-image pages in [Dependencies](dependencies/) make the delta
-explicit. The cost of customer-survival inertia is visible —
-roughly **371 grype findings against 1.3.x vs 174 against 2.0.x** at
-the time of writing — and is paid by us in VEX-authoring time, not
-by the operator in a forced upgrade.
-
 ## What wellmaintained adds
 
 | Layer                                              | Owner          | What changed                                                                       |
 |----------------------------------------------------|----------------|------------------------------------------------------------------------------------|
 | debian13 rootfs + system libraries                 | DHI            | Hardened, attested, SBOM + VEX from DHI                                            |
 | CPython 2.7.18 + patch series                      | wellmaintained | Built from canonical sources, CVE patches                                          |
-| Plone 5.2.4 + SENAITE 2.0.0 (2.0.x line)           | upstream       | Pinned versions, packaged into the `senaite-lims` image                            |
-| Plone 4.3.20 + Zope 2.13.30 + SENAITE 1.3.5 (1.3.x line) | upstream | Pinned versions + Py2-compatible transitive overlay, packaged into the `senaite-lims-1.3` image |
+| Plone 5.2.4 + SENAITE 2.0.0                        | upstream       | Pinned versions, packaged into the `senaite-lims` image                            |
 | Deployment composition                             | wellmaintained | docker-compose, configuration, secrets                                             |
 
 The **wellmaintained** rows are the value-add. Every byte of CPython
@@ -89,14 +62,9 @@ The **DHI** row is the rest of the operating environment — patched
 on DHI's cadence, attested to DHI's standards. We do not maintain
 debian13. See [ADR-0001](https://github.com/wellmaintained/packages-dhi/blob/main/docs/adr/0001-adopt-dhi-base-images.md).
 
-The **upstream** rows are the application code itself, in two
-release lines. We pin specific SENAITE / Plone / Zope versions per
-line and do not patch them today; if a CVE forces patching the
-application layer, the same patch policy applies. The 1.3.x line
-also carries a Py2-compatible transitive overlay (Chameleon, z3c.pt,
-WeasyPrint, …) installed at build time — see
-[dependencies/senaite-lims-1.3](dependencies/senaite-lims-1.3/) for
-the rationale.
+The **upstream** row is the application code itself. We pin specific
+SENAITE / Plone / Zope versions and do not patch them today; if a CVE
+forces patching the application layer, the same patch policy applies.
 
 ## Quick links
 
