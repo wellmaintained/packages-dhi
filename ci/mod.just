@@ -50,7 +50,7 @@ _component-tag image:
     set -euo pipefail
     SHA7=$(git rev-parse --short=7 HEAD)
     DEF=$(yq -r '."{{image}}".definition | select(. != null)' "{{app_manifest}}")
-    VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$DEF" 2>/dev/null | head -1 || true)
+    VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "{{repo_root}}/$DEF" 2>/dev/null | head -1 || true)
     [ -z "$VERSION" ] && VERSION="unknown"
     echo "{{image}}-${VERSION}-${SHA7}"
 
