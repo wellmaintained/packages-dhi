@@ -87,3 +87,7 @@ runs:
       env:
         GHCR_USERNAME: ${{ inputs.ghcr-username }}
         GHCR_TOKEN: ${{ inputs.ghcr-token }}
+
+    - name: Hydrate grype vulnerability DB
+      shell: bash
+      run: ./bin/grype db update
