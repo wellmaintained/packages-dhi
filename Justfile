@@ -65,14 +65,6 @@ build-app-compose:
     done
     echo "Written to ${out}"
 
-# Per-app wrapper: build sbomify digest-pinned compose
-build-sbomify-compose:
-    APP=sbomify-current just build-app-compose
-
-# Per-app wrapper: build senaite digest-pinned compose
-build-senaite-compose:
-    APP=senaite just build-app-compose
-
 # ── App Deployment ────────────────────────────────
 
 # Bring up the local app stack via docker compose
@@ -86,30 +78,6 @@ app-down:
 # Tail logs from all app services
 app-logs:
     docker compose -f {{app_compose}} logs -f
-
-# Bring up the sbomify stack
-sbomify-up:
-    APP=sbomify-current just app-up
-
-# Stop the sbomify stack
-sbomify-down:
-    APP=sbomify-current just app-down
-
-# Tail logs from the sbomify stack
-sbomify-logs:
-    APP=sbomify-current just app-logs
-
-# Bring up the senaite stack
-senaite-up:
-    APP=senaite just app-up
-
-# Stop the senaite stack
-senaite-down:
-    APP=senaite just app-down
-
-# Tail logs from the senaite stack
-senaite-logs:
-    APP=senaite just app-logs
 
 # ── Update ────────────────────────────────────────
 
