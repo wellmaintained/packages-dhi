@@ -7,6 +7,9 @@ set dotenv-load := false
 repo_root := justfile_directory()
 app := env("APP", "sbomify")
 app_manifest := repo_root / "apps" / app / "app-images.yaml"
+app_lock := repo_root / "apps" / app / "app-images.lock.yaml"
+app_compose := repo_root / "apps" / app / "deployments" / "docker-compose.yml"
+app_release_website := repo_root / "apps" / app / "release-website"
 artifacts_dir := repo_root / "artifacts"
 
 mod ci
@@ -21,64 +24,92 @@ _image-registry image:
 
 # Extract attestations for all stock DHI images
 extract-dhi-attestations:
-    {{repo_root}}/scripts/extract-dhi-attestations
+    APP={{app}} {{repo_root}}/scripts/extract-dhi-attestations
 
 # ── Release ────────────────────────────────────────
 
 # Generate Hugo data files from build artifacts
 release-data:
-    {{repo_root}}/scripts/extract-release-data
+    APP={{app}} {{repo_root}}/scripts/extract-release-data
 
 # Build the release website locally
 release-website:
-    just release-data
-    {{repo_root}}/bin/hugo --source apps/sbomify/release-website --minify
+    APP={{app}} just release-data
+    {{repo_root}}/bin/hugo --source {{app_release_website}} --minify
 
 # Serve the release website locally for preview
 release-website-serve:
-    just release-data
-    {{repo_root}}/bin/hugo server --source apps/sbomify/release-website --bind 0.0.0.0 --port 1313
+    APP={{app}} just release-data
+    {{repo_root}}/bin/hugo server --source {{app_release_website}} --bind 0.0.0.0 --port 1313
 
 # Assemble compliance pack ZIP
 compliance-pack version:
-    {{repo_root}}/scripts/build-compliance-pack {{version}}
+    APP={{app}} {{repo_root}}/scripts/build-compliance-pack {{version}}
 
 # ── Compose ───────────────────────────────────────
 
 # Build digest-pinned docker-compose.yml from source + app-images.lock.yaml
-build-sbomify-compose:
+build-app-compose:
     #!/usr/bin/env bash
     set -euo pipefail
-    lock="{{app_manifest}}"
-    lock="${lock%.yaml}.lock.yaml"
-    src="{{repo_root}}/apps/sbomify/deployments/docker-compose.yml"
+    src="{{app_compose}}"
     out="{{artifacts_dir}}/docker-compose.yml"
     mkdir -p "{{artifacts_dir}}"
     cp "$src" "$out"
-    for name in $(yq -r 'to_entries[] | select(.value.source != null and .value.digest != null) | .key' "$lock"); do
-        source=$(yq -r ".$name.source" "$lock")
-        digest=$(yq -r ".$name.digest" "$lock")
+    for name in $(yq -r 'to_entries[] | select(.value.source != null and .value.digest != null) | .key' "{{app_lock}}"); do
+        source=$(yq -r ".$name.source" "{{app_lock}}")
+        digest=$(yq -r ".$name.digest" "{{app_lock}}")
         pinned="${source}@${digest}"
         echo "  ${name}: ${source} → ${pinned}"
         sed -i "s|image: ${source}|image: ${pinned}|g" "$out"
     done
     echo "Written to ${out}"
 
-# ── SENAITE Deployment ────────────────────────────
+# Per-app wrapper: build sbomify digest-pinned compose
+build-sbomify-compose:
+    APP=sbomify just build-app-compose
 
-senaite_compose := repo_root / "apps" / "senaite" / "deployments" / "docker-compose.yaml"
+# Per-app wrapper: build senaite digest-pinned compose
+build-senaite-compose:
+    APP=senaite just build-app-compose
 
-# Bring up the local SENAITE LIMS stack (senaite-lims + nginx)
+# ── App Deployment ────────────────────────────────
+
+# Bring up the local app stack via docker compose
+app-up:
+    docker compose -f {{app_compose}} up -d
+
+# Stop the app stack and remove containers + volumes
+app-down:
+    docker compose -f {{app_compose}} down -v
+
+# Tail logs from all app services
+app-logs:
+    docker compose -f {{app_compose}} logs -f
+
+# Bring up the sbomify stack
+sbomify-up:
+    APP=sbomify just app-up
+
+# Stop the sbomify stack
+sbomify-down:
+    APP=sbomify just app-down
+
+# Tail logs from the sbomify stack
+sbomify-logs:
+    APP=sbomify just app-logs
+
+# Bring up the senaite stack
 senaite-up:
-    docker compose -f {{senaite_compose}} up -d
+    APP=senaite just app-up
 
-# Stop the SENAITE stack and remove containers + the ZODB volume
+# Stop the senaite stack
 senaite-down:
-    docker compose -f {{senaite_compose}} down -v
+    APP=senaite just app-down
 
-# Tail logs from all SENAITE services
+# Tail logs from the senaite stack
 senaite-logs:
-    docker compose -f {{senaite_compose}} logs -f
+    APP=senaite just app-logs
 
 # ── Update ────────────────────────────────────────
 
@@ -143,7 +174,7 @@ update-app-images:
     #!/usr/bin/env bash
     set -euo pipefail
     manifest="{{app_manifest}}"
-    lock="${manifest%.yaml}.lock.yaml"
+    lock="{{app_lock}}"
 
     echo "=== Pinning app image digests ==="
     cp "$manifest" "$lock"
@@ -180,7 +211,7 @@ lint-yaml:
 # Show all images and their sources
 images:
     @echo "=== Tools ==="
-    @yq -r 'to_entries[] | "  \(.key): \(.value.version)"' {{repo_root}}/tool-versions.yaml
+    @yq -r 'to_entries[] | "  \(.key): \(.value.version)"' {{repo_root}}/common/tool-versions.yaml
     @echo ""
     @echo "=== Stock Images ==="
     @yq -r 'to_entries[] | select(.value | has("source")) | "  \(.key): \(.value.source)"' {{app_manifest}}

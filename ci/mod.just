@@ -16,29 +16,29 @@ build image: (build-image image) (generate-compliance-artifacts image) (compute-
 build-all:
     #!/usr/bin/env bash
     set -euo pipefail
-    for name in $({{repo_root}}/scripts/list-custom-images | jq -r '.[]'); do
+    for name in $(APP={{app}} {{repo_root}}/scripts/list-custom-images | jq -r '.[]'); do
         echo ""
         echo "=========================================="
         echo "=== Building ${name}"
         echo "=========================================="
-        just ci build "$name"
+        APP={{app}} just ci build "$name"
     done
 
 # ── Build phases ──────────────────────────────────────────────
 
 # Build image (docker buildx)
 build-image image:
-    {{repo_root}}/scripts/build-image --image {{image}}
+    APP={{app}} {{repo_root}}/scripts/build-image --image {{image}}
 
 # Generate compliance artifacts (extract, convert, enrich, scan)
 generate-compliance-artifacts image:
-    {{repo_root}}/scripts/generate-compliance-artifacts --image {{image}}
+    APP={{app}} {{repo_root}}/scripts/generate-compliance-artifacts --image {{image}}
 
 # ── Stock DHI images ──────────────────────────────────────────
 
 # Extract attestations for all stock DHI images
 extract-dhi-attestations:
-    {{repo_root}}/scripts/extract-dhi-attestations
+    APP={{app}} {{repo_root}}/scripts/extract-dhi-attestations
 
 # ── Helpers ───────────────────────────────────────────────────
 

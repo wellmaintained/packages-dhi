@@ -18,7 +18,7 @@ SENAITE application image is the wellmaintained DHI build defined at
 ## Recipes
 
 All recipes are defined at the repository root `Justfile` and operate
-against `apps/senaite/deployments/docker-compose.yaml`.
+against `apps/senaite/deployments/docker-compose.yml`.
 
 | Command | What it does |
 |---------|--------------|
@@ -29,7 +29,7 @@ against `apps/senaite/deployments/docker-compose.yaml`.
 Note that `senaite-down` passes `-v` to `docker compose down`, which
 **wipes the ZODB filestorage volume**. This is the right default for a
 demo environment that you bring up and tear down repeatedly. If you want
-to preserve ZODB state, run `docker compose -f apps/senaite/deployments/docker-compose.yaml down`
+to preserve ZODB state, run `docker compose -f apps/senaite/deployments/docker-compose.yml down`
 without the `-v`.
 
 ## First-time setup: create a SENAITE site
@@ -110,12 +110,11 @@ extend the compose file with a second volume covering the parent dir.
 
 - This compose file references images by plain tag. A digest-pinned
   variant produced from `apps/senaite/app-images.lock.yaml` is the
-  intended production artefact (mirroring the sbomify pattern at
-  `Justfile:49 build-sbomify-compose`). Adding a sibling
-  `build-senaite-compose` recipe is tracked as future work.
+  intended production artefact. Build it with `APP=senaite just
+  build-app-compose` (or the `build-senaite-compose` per-app wrapper).
 - The senaite-lims image is currently tagged `:dev` — the locally-built
   artefact. Once the CI pre-release pipeline pushes senaite-lims to
-  GHCR, switch the `image:` line in `docker-compose.yaml` to the
+  GHCR, switch the `image:` line in `docker-compose.yml` to the
   GHCR-published digest from `apps/senaite/app-images.lock.yaml`.
 - `BIND_IP` defaults to `127.0.0.1`. Override (e.g. `BIND_IP=0.0.0.0
   just senaite-up`) only on a trusted network — the admin/admin
