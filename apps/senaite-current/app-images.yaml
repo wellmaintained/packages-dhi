@@ -1,0 +1,8 @@
+nginx:
+  source: dhi.io/nginx:1.29
+python-2.7:
+  definition: common/images/python-2.7/dhi.yaml
+  registry: ghcr.io/wellmaintained/packages-dhi/python-2.7
+senaite-lims:
+  definition: apps/senaite-current/images/senaite-lims/prod.yaml
+  registry: ghcr.io/wellmaintained/packages-dhi/senaite-lims-current
