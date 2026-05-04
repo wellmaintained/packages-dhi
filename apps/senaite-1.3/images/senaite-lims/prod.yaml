@@ -6,24 +6,24 @@
 # installed via zc.buildout against the wellmaintained python-2.7 heritage
 # base image.
 #
-# This is the deeper-cliff sibling of apps/senaite/images/senaite-lims/
-# (the 2.0.0 demo on Plone 5.2.4 + Zope 4). Both share the python-2.7 base.
-# The 1.3.x build keeps Zope 2.13's classic ZServer (no WSGI) and the older
-# senaite.core.* sibling-package naming (vs senaite.app.* in 2.0.0).
+# This is the heritage release line — Zope 2.13's classic ZServer (no WSGI)
+# and the older senaite.core.* sibling-package naming (vs senaite.app.* in
+# the 2.x line). Lives in its own app per the 4-criteria version-line rule
+# (see docs/research/version-line-criteria.md).
 #
 # NOTE: DHI pipelines run without network access (hermetic builds).
 # The buildout install step needs network for PyPI fetches, so it sets
 # privileged: true.
 #
 # To build:
-#   APP=senaite just ci build python-2.7         # base must exist locally first
-#   APP=senaite just ci build senaite-lims-1.3
+#   APP=senaite-1.3 just ci build python-2.7     # base must exist locally first
+#   APP=senaite-1.3 just ci build senaite-lims
 #
 # Upstream reference:
 #   https://github.com/senaite/senaite.lims/blob/1.3.5/buildout.cfg
 #
 # The buildout configuration is committed at
-# apps/senaite/images/senaite-lims-1.3/buildout/{buildout.cfg,versions.cfg}
+# apps/senaite-1.3/images/senaite-lims/buildout/{buildout.cfg,versions.cfg}
 # for version control and human reference. The pipeline materialises an
 # equivalent buildout.cfg via inline heredoc — same caveat as the 2.0.0
 # build, see that file's header for the file-injection backstory.
@@ -125,9 +125,9 @@ contents:
           # senaite.lims source. The git+https form is required by
           # ci/mod.just::_component-tag, which greps the YAML for the source
           # ref to derive the version segment of the output image's
-          # component tag (senaite-lims-1.3-1.3.5-<sha7>).
+          # component tag (senaite-lims-1.3.5-<sha7>).
           - url: "git+https://github.com/senaite/senaite.lims.git#1.3.5"
-            path: ${source.dir}/senaite-lims-1.3
+            path: ${source.dir}/senaite-lims
             spdx:
               name: senaite.lims
               version: "1.3.5"
@@ -141,7 +141,7 @@ contents:
         - name: write buildout config
           # Materialise the buildout.cfg + versions.cfg locally. The
           # canonical source of truth is committed at
-          # apps/senaite/images/senaite-lims-1.3/buildout/. Keep the heredoc
+          # apps/senaite-1.3/images/senaite-lims/buildout/. Keep the heredoc
           # below in sync until a file-injection mechanism replaces this
           # pattern (see header comment).
           runs: |
