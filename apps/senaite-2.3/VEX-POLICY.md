@@ -3,8 +3,9 @@
 This document is the operational handbook for authoring OpenVEX statements
 against the SENAITE LIMS 2.3.x heritage image set
 (`senaite-lims-2.3` and its `python-2.7` base layer). It is the per-version-line
-counterpart of `apps/senaite/VEX-POLICY.md` (which covers the 2.0.x line) and
-ADR-0015 governs the per-version-line app naming.
+counterpart of `apps/senaite-current/VEX-POLICY.md` (the live current line) and
+`apps/senaite-1.3/VEX-POLICY.md` (the 1.3 heritage line); ADR-0015 governs the
+per-version-line app naming.
 
 It is the **how**. The **why** lives in two ADRs:
 

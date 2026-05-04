@@ -25,6 +25,6 @@ type `distribution`. Download the SBOM from the
   Anyone receiving the binary can reproduce the source by checking out
   the upstream tag and applying the series in order.
 - **Plone 5.2 / SENAITE 2.6.0** — pinned versions are in
-  [`apps/senaite/images/senaite-lims/prod.yaml`](https://github.com/wellmaintained/packages-dhi/blob/main/apps/senaite/images/senaite-lims/prod.yaml)
+  [`apps/senaite-current/images/senaite-lims/prod.yaml`](https://github.com/wellmaintained/packages-dhi/blob/main/apps/senaite-current/images/senaite-lims/prod.yaml)
   (forward-declared until the senaite-lims-image yak lands). Source
   URLs for each component are recorded in the SBOM.

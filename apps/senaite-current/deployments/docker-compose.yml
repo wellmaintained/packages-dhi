@@ -1,9 +1,9 @@
 # Source compose file for the SENAITE LIMS (current) local deployment.
 #
 # This file references images by plain tag so it stays human-readable
-# and editable. A digest-pinned variant (mirroring the sbomify pattern at
-# Justfile:49 build-sbomify-compose) can be produced from
-# apps/senaite-current/app-images.lock.yaml when one is needed for production.
+# and editable. A digest-pinned variant can be produced from
+# apps/senaite-current/app-images.lock.yaml via `APP=senaite-current just
+# build-app-compose` when one is needed for production.
 #
 # Bring up with:
 #   APP=senaite-current just app-up

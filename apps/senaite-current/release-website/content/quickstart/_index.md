@@ -13,12 +13,12 @@ sidebar:
 In the meantime, individual images are buildable with:
 
 ```
-APP=senaite just ci build python-2.7
-APP=senaite just ci build senaite-lims
+APP=senaite-current just ci build python-2.7
+APP=senaite-current just ci build senaite-lims
 ```
 
 The full local-deployment composition (compose file at
-`apps/senaite/deployments/`) ships as part of the
+`apps/senaite-current/deployments/`) ships as part of the
 `senaite-local-deployment` yak.
 
 ## Audit Pack

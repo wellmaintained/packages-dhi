@@ -92,15 +92,17 @@ wellmaintained's analysis of CPython.
 
 ### Layer attribution table
 
-The release-website renders this attribution explicitly (see
-`apps/senaite/release-website/`). The split for the heritage stack is:
+The release-website renders this attribution explicitly (see each
+senaite app's `release-website/` — e.g.
+`apps/senaite-current/release-website/`). The split for the heritage
+stack is:
 
 | Layer                              | Owner          | Patch cadence              | Evidence                            |
 |------------------------------------|----------------|----------------------------|-------------------------------------|
 | debian13 rootfs + system libraries | DHI            | DHI's standard cadence     | `vex.dhi.json`, DHI SLSA provenance |
 | CPython 2.7.18 + patch series      | wellmaintained | wellmaintained engineers   | `python-2.7.vex.json`, this repo's patches/ + CVE-LOG |
 | Plone 5.2 + SENAITE 2.0.0          | upstream pinned| upstream (no patches today)| `senaite-lims.vex.json`, app-images.lock.yaml |
-| Deployment composition             | wellmaintained | wellmaintained engineers   | `apps/senaite/deployments/`         |
+| Deployment composition             | wellmaintained | wellmaintained engineers   | per-app `deployments/` (e.g. `apps/senaite-current/deployments/`) |
 
 ### Relation to other ADRs
 

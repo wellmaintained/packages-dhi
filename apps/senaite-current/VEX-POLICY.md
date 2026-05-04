@@ -288,8 +288,8 @@ products.
 
 | File | Purpose | Updated by |
 |---|---|---|
-| `apps/senaite/VEX-POLICY.md` | This document. | Principal review when the policy changes (rare). |
-| `apps/senaite/images/senaite-lims/senaite-lims.vex.json` | OpenVEX statements for the senaite-lims image. | Same commit as the image-level finding it triages. |
+| `apps/senaite-current/VEX-POLICY.md` | This document. | Principal review when the policy changes (rare). |
+| `apps/senaite-current/images/senaite-lims/senaite-lims.vex.json` | OpenVEX statements for the senaite-lims image. | Same commit as the image-level finding it triages. |
 | `common/images/python-2.7/python-2.7.vex.json` | OpenVEX statements for the python-2.7 base image. | Same commit as the image-level finding it triages. |
 | `common/images/python-2.7/patches/CVE-LOG.md` | Per-CVE patch decision log; OpenVEX-vocabulary status column. | Same commit as the patch / VEX statement that resolves the row. |
 | `common/images/python-2.7/patches/series` | Patch series; one entry per `fixed` Python 2.7 CVE. | Same commit as the matching VEX `fixed` statement. |

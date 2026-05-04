@@ -5,11 +5,12 @@
 # Plone 5.2.9 + senaite.lims 2.3.0 (and sibling addons) installed via
 # zc.buildout against the wellmaintained python-2.7 heritage base image.
 #
-# This is the per-version 2.3.x sibling of the 2.0.0 image at
-# apps/senaite/images/senaite-lims/. Both target the Plone 5.2 / Zope 4 /
-# WSGI line on Python 2.7; 2.3.x is the most recent point on the 2.x track
-# that remains 2.7-friendly (Plone 5.2.9 still supports Python 2.7).
-# See ADR-0015 for the per-version-line app-naming convention.
+# This is the per-version 2.3.x point on the 2.x track. The current-line
+# sibling lives at apps/senaite-current/images/senaite-lims/. Both target
+# the Plone 5.2 / Zope 4 / WSGI line on Python 2.7; 2.3.x is the most recent
+# point on the 2.x track that remains 2.7-friendly (Plone 5.2.9 still
+# supports Python 2.7). See ADR-0015 for the per-version-line app-naming
+# convention.
 #
 # NOTE: DHI pipelines run without network access (hermetic builds).
 # The buildout install step needs network for PyPI fetches, so it sets

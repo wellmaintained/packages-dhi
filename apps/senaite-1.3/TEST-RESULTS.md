@@ -108,7 +108,7 @@ Zero categorisable failures across any axis.
 ## Receipts
 
 - **Phase 1 build gate** (`smoke-test runtime dependencies` step in
-  `apps/senaite/images/senaite-lims-1.3/prod.yaml`): `ldd`-walk + import-walk
+  `apps/senaite-1.3/images/senaite-lims/prod.yaml`): `ldd`-walk + import-walk
   fire on every build. The import-walk imports every top-level module in
   `${target.dir}/opt/senaite-1.3/lib/python2.7/site-packages` plus every
   buildout egg, with 4 platform-impossible skips

@@ -11,8 +11,9 @@ proposed
 The 2026-05-04 session surfaced two related observations.
 Building a second heritage demo (SENAITE 1.3 alongside the
 existing SENAITE 2.x work) made it clear that a single
-`apps/senaite/` carrying two image variants conflated audiences
-and made the per-image compliance pack ambiguous. And the
+unversioned senaite app directory carrying two image variants
+conflated audiences and made the per-image compliance pack
+ambiguous. And the
 manifest had no convention for *which* version-lines deserve
 their own deployable, nor for how an app's recommended line
 evolves as upstream moves on.
@@ -150,7 +151,8 @@ A hypothetical SENAITE 2.7 release that fires criterion 1 (Plone
 **Starting state.** `apps/senaite-current/` tracks SENAITE 2.6.x
 on Plone 5.2. `apps/senaite-1.3/` and `apps/senaite-2.3/` exist as
 explicit snapshots for revalidated lab customers. The Justfile
-default for `senaite-up` resolves to `-current`.
+default `APP=senaite-current just app-up` resolves to the live
+current line.
 
 **Trigger.** Upstream ships SENAITE 2.7.0 on Plone 6.0. Criterion
 1 fires; 2.7 warrants its own app.
