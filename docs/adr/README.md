@@ -20,6 +20,7 @@ ADRs document significant architectural and design decisions.
 | [0012](0012-layer-python-2.7-on-debian13-base.md) | Layer Python 2.7 on debian13 Base | proposed |
 | [0013](0013-patch-backport-policy-for-eol-runtimes.md) | Patch Backport Policy for EOL Runtimes | proposed |
 | [0014](0014-vex-policy-for-heritage-application-images.md) | VEX Policy for Heritage Application Images | proposed |
+| [0015](0015-version-line-app-naming-with-current-sliding-pointer.md) | Version-Line App Naming with -current Sliding Pointer | proposed |
 
 ## When to Write an ADR
 
