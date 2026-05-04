@@ -25,11 +25,7 @@ each layer answers to a different patch source. Per
 
 ## Attestation sources
 
-<!--
-  TODO (Step 5/8): {{< release-images >}}
-  The release-images shortcode will render here once release-data tooling
-  is generalised per-app.
--->
+{{< release-images >}}
 
 **Stock DHI images** (nginx) — attestations provided by
 [Docker Hardened Images](https://www.docker.com/products/hardened-images/),

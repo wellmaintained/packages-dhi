@@ -61,28 +61,15 @@ built around. The trade-off is documented inline in
 
 ## Images
 
-<!--
-  TODO (Step 5 + Step 8 final pass):
-  Replace this with the {{< release-images >}} shortcode rendering once
-  release-data tooling is generalised per-app. See ADR-0005 follow-up.
--->
-
-| Image                                 | Source        | Variant     |
-|---------------------------------------|---------------|-------------|
-| `ghcr.io/wellmaintained/packages-dhi/python-2.7`   | custom (built from source, see [ADR-0011](https://github.com/wellmaintained/packages-dhi/blob/main/docs/adr/0011-build-python-2.7-from-canonical-sources.md)) | runtime |
-| `ghcr.io/wellmaintained/packages-dhi/senaite-lims` | custom (TODO — Step 5) | runtime |
-| `dhi.io/nginx:1.29`                                | stock (DHI)   | runtime     |
+{{< release-images >}}
 
 ## SBOMs
 
-<!--
-  TODO (Step 5/8): replace with {{< sbom-summary-table >}} once data/ is
-  populated by a senaite-aware extract-release-data run.
--->
+{{< sbom-summary-table >}}
 
-CycloneDX SBOMs for all container images in this release will be
+CycloneDX SBOMs for all container images in this release are
 extracted from OCI attestations attached to each image and rendered
-here as browsable component trees with downloadable JSON files.
+above as browsable component trees with downloadable JSON files.
 
 ### How SBOMs are generated for heritage images
 

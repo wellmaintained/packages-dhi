@@ -10,13 +10,6 @@ The table below maps the status of known CVEs at the time of release.
 Details are available in the [OpenVEX](https://openvex.dev/) format as
 part of the [compliance pack]({{< relref "quickstart#audit-pack" >}}).
 
-<!--
-  TODO (Step 7 + Step 8 final pass):
-  Replace this stub with the {{< vex-matrix >}} shortcode once
-  release-data tooling is generalised per-app and the senaite VEX
-  policy doc + initial VEX statements land (senaite-vex-policy yak).
--->
-
 ## How the vulnerability matrix is composed
 
 A heritage stack composed of four provenance domains (see
@@ -112,11 +105,14 @@ to heritage application images. The relevant addenda for senaite:
 
 ## VEX matrix
 
-<!-- TODO (Step 7/8): {{< vex-matrix >}} -->
+{{< vex-matrix >}}
 
-The CVE × container matrix will render here once the senaite VEX
-authoring corpus is established. Initial statements are due as part
-of the senaite VEX policy yak.
+The CVE × container matrix above renders the OpenVEX statements
+extracted from each image's `vex.json` artifact. The container list
+adapts to whichever images this release actually ships. Until the
+senaite VEX authoring corpus is established, this table renders the
+"empty" state; initial statements are due as part of the senaite
+VEX policy yak.
 
 ## Re-scanning live
 

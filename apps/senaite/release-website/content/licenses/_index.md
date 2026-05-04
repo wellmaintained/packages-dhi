@@ -18,15 +18,7 @@ compliance artifact conventions.
 
 ## License Summary
 
-<!--
-  TODO (Step 5/8): {{< license-summary-table >}}
-  License summary will render here once release-data tooling is
-  generalised per-app.
--->
-
-The license-summary table will render here once release-data
-tooling is generalised per-app and SBOM data is populated for the
-senaite images.
+{{< license-summary-table >}}
 
 The expected license mix:
 

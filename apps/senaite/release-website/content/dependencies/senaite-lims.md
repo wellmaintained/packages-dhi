@@ -3,15 +3,7 @@ title: "senaite-lims"
 description: "Software Bill of Materials for the senaite-lims heritage application image."
 ---
 
-<!--
-  TODO (Step 5 + Step 8 final pass):
-  This file's content is a placeholder until the senaite-lims image is
-  built. Replace these sections with:
-    {{< sbom-image-meta image="senaite-lims" >}}
-    {{< sbom-tree-viewer image="senaite-lims" >}}
-  once apps/senaite/images/senaite-lims/prod.yaml lands and release-data
-  tooling is generalised per-app.
--->
+{{< sbom-image-meta image="senaite-lims" >}}
 
 ## About this image
 
@@ -28,7 +20,8 @@ forward declaration.
 
 ## Component Tree
 
-<!-- TODO (Step 5/8): {{< sbom-tree-viewer image="senaite-lims" >}} -->
+{{< sbom-tree-viewer image="senaite-lims" >}}
 
-The component tree will render here once the senaite-lims image is
-built and release-data tooling is generalised.
+The component tree renders above once the senaite-lims image build
+attestation is available; the tree-viewer reads the SBOM JSON copied
+into `static/artifacts/sboms/` by the release-data extractor.
