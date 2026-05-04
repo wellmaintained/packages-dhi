@@ -122,9 +122,11 @@ fi
 # ── VEX ───────────────────────────────────────────────────────
 #
 # Custom images carry a hand-authored OpenVEX JSON next to their DHI
-# definition (common/images/<name>/<name>.vex.json or similar). We ship it
-# as-is — consumers pass it straight to `grype --vex`.
-vex_file=$(find "${REPO_ROOT}" -name "${IMAGE}.vex.json" -path "*/images/*" 2>/dev/null | head -1)
+# definition. App-scoped images live under apps/${APP}/images/<name>/;
+# images shared across apps live under common/images/<name>/. We ship the
+# file as-is — consumers pass it straight to `grype --vex`.
+vex_file=$(find "${REPO_ROOT}/apps/${APP}/images" "${REPO_ROOT}/common/images" \
+    -name "${IMAGE}.vex.json" 2>/dev/null | head -1)
 if [ -n "$vex_file" ]; then
     cp "$vex_file" "${OUT}/vex.json"
     echo "  copied VEX: ${vex_file}"
