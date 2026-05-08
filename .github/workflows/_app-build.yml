@@ -88,13 +88,9 @@ jobs:
         id: tag
         run: |
           SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
-          SHA7="${SHA7::7}"
-          IMAGE="${{ matrix.image }}"
-          MANIFEST="apps/${APP}/app-images.yaml"
-          DEF=$(yq -r ".\"${IMAGE}\".definition" "$MANIFEST")
-          VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$DEF" 2>/dev/null | head -1 || echo "unknown")
-          COMPONENT_TAG="${IMAGE}-${VERSION}-${SHA7}"
-          REG=$(just _image-registry "$IMAGE")
+          SHA7="${SHA7:0:7}"
+          COMPONENT_TAG=$(just ci _component-tag "${{ matrix.image }}" "$SHA7")
+          REG=$(just ci _image-registry "${{ matrix.image }}")
           echo "component_tag=${COMPONENT_TAG}" >> "$GITHUB_OUTPUT"
           echo "registry=${REG}" >> "$GITHUB_OUTPUT"
           echo "==> Component tag: ${COMPONENT_TAG}"
@@ -161,13 +157,9 @@ jobs:
         id: tag
         run: |
           SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
-          SHA7="${SHA7::7}"
-          IMAGE="${{ matrix.image }}"
-          MANIFEST="apps/${APP}/app-images.yaml"
-          DEF=$(yq -r ".\"${IMAGE}\".definition" "$MANIFEST")
-          VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$DEF" 2>/dev/null | head -1 || echo "unknown")
-          COMPONENT_TAG="${IMAGE}-${VERSION}-${SHA7}"
-          REG=$(just _image-registry "$IMAGE")
+          SHA7="${SHA7:0:7}"
+          COMPONENT_TAG=$(just ci _component-tag "${{ matrix.image }}" "$SHA7")
+          REG=$(just ci _image-registry "${{ matrix.image }}")
           echo "component_tag=${COMPONENT_TAG}" >> "$GITHUB_OUTPUT"
           echo "registry=${REG}" >> "$GITHUB_OUTPUT"
           echo "==> Component tag: ${COMPONENT_TAG}"
