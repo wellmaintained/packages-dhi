@@ -5,8 +5,6 @@
 # Used by .github/workflows/_app-build.yml to pre-build these images (and push
 # their :dev tag to GHCR) before the per-app matrix runs, so that downstream
 # images that reference them via `uses: ghcr.io/.../<name>:dev` can resolve.
-#
-# Today: python-2.7 (senaite apps), minio (sbomify-current).
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"

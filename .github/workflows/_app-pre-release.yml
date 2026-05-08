@@ -8,7 +8,7 @@ on:
         required: true
         type: string
       release_tag_prefix:
-        description: 'Tag prefix for the release (e.g. sbomify produces sbomify-vX-Y.Z)'
+        description: 'Tag prefix for the release (e.g. "sbomify" produces sbomify-vX.Y.Z-YYYYMMDD.N)'
         required: true
         type: string
       primary_image:
@@ -151,7 +151,7 @@ jobs:
           TAG_PREFIX="${PREFIX}-v${APP_VERSION}-${TODAY}."
           EXISTING=$(git tag -l "${TAG_PREFIX}*" | wc -l)
           BUILD_NUMBER=$((EXISTING + 1))
-          APP_COLLECTION_VERSION="${PREFIX}-v${APP_VERSION}-${TODAY}.${BUILD_NUMBER}"
+          APP_COLLECTION_VERSION="${TAG_PREFIX}${BUILD_NUMBER}"
 
           echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_collection_version=${APP_COLLECTION_VERSION}" >> "$GITHUB_OUTPUT"

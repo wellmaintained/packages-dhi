@@ -19,10 +19,14 @@ jobs:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
+      - name: List apps
+        id: apps
+        run: echo "list=$(./scripts/list-apps | jq -r '.[]' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+
       - name: Snapshot current lock files
         run: |
           mkdir -p /tmp/before
-          for app in $(./scripts/list-apps | jq -r '.[]'); do
+          for app in ${{ steps.apps.outputs.list }}; do
             lock="apps/${app}/app-images.lock.yaml"
             if [ -f "$lock" ]; then
               cp "$lock" "/tmp/before/${app}.lock.yaml"
@@ -34,7 +38,7 @@ jobs:
 
       - name: Pin latest digests for every app
         run: |
-          for app in $(./scripts/list-apps | jq -r '.[]'); do
+          for app in ${{ steps.apps.outputs.list }}; do
             echo "=== Updating ${app} ==="
             APP=$app just update-app-images
           done
@@ -47,7 +51,7 @@ jobs:
         run: |
           changed=false
           changed_apps=()
-          for app in $(./scripts/list-apps | jq -r '.[]'); do
+          for app in ${{ steps.apps.outputs.list }}; do
             lock="apps/${app}/app-images.lock.yaml"
             before="/tmp/before/${app}.lock.yaml"
             if [ ! -f "$before" ] && [ -f "$lock" ]; then
@@ -71,14 +75,12 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="update-dhi-digests-$(date +%Y%m%d)"
           git checkout -b "$branch"
-          # Stage every app's manifest + lock pair (only those that have a lock).
-          for app in $(./scripts/list-apps | jq -r '.[]'); do
+          for app in ${{ steps.apps.outputs.list }}; do
             lock="apps/${app}/app-images.lock.yaml"
             manifest="apps/${app}/app-images.yaml"
             [ -f "$lock" ] || continue
             git add "$manifest" "$lock"
           done
-          # Tool lock can also drift — pick it up if present.
           [ -f common/tool-versions.lock.yaml ] && git add common/tool-versions.lock.yaml
           git commit -m "chore: update digest pins (${{ steps.diff.outputs.apps }})"
           git push -u origin HEAD
