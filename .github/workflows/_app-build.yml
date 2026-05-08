@@ -90,15 +90,25 @@ jobs:
           SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
           SHA7="${SHA7:0:7}"
           COMPONENT_TAG=$(just ci _component-tag "${{ matrix.image }}" "$SHA7")
+          HANDOFF_TAG="pr-${SHA7}"
           REG=$(just ci _image-registry "${{ matrix.image }}")
-          echo "component_tag=${COMPONENT_TAG}" >> "$GITHUB_OUTPUT"
-          echo "registry=${REG}" >> "$GITHUB_OUTPUT"
+          {
+            echo "component_tag=${COMPONENT_TAG}"
+            echo "handoff_tag=${HANDOFF_TAG}"
+            echo "registry=${REG}"
+          } >> "$GITHUB_OUTPUT"
           echo "==> Component tag: ${COMPONENT_TAG}"
+          echo "==> Handoff tag:   ${HANDOFF_TAG}"
 
-      # Push :dev so downstream per-app builds (custom-dhi-builds) can resolve
-      # `uses: <registry>:dev` directives in their DHI definitions.
-      - name: Push :dev tag for downstream builds
-        run: docker push "${{ steps.tag.outputs.registry }}:dev"
+      # Push the per-PR handoff tag so downstream custom-dhi-builds in this
+      # same workflow run can resolve `uses: <registry>:__HANDOFF_TAG__` in
+      # their DHI definitions to a PR-scoped image. Replaces the previous
+      # `:dev` push, which was a moving pointer that two concurrent PRs
+      # would clobber for each other.
+      - name: Push handoff tag for downstream builds
+        run: |
+          docker tag "${{ steps.tag.outputs.registry }}:dev" "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.handoff_tag }}"
+          docker push "${{ steps.tag.outputs.registry }}:${{ steps.tag.outputs.handoff_tag }}"
 
       - name: Push to GHCR with component tag
         run: |
@@ -150,7 +160,19 @@ jobs:
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
           cache-key: ${{ inputs.app }}-${{ matrix.image }}
 
+      # Compute the handoff tag BEFORE the build so scripts/build-image can
+      # substitute `__HANDOFF_TAG__` placeholders in the DHI definition with
+      # the per-PR shared-image tag the upstream shared-images job pushed.
+      - name: Compute handoff tag
+        id: handoff
+        run: |
+          SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
+          SHA7="${SHA7::7}"
+          echo "tag=pr-${SHA7}" >> "$GITHUB_OUTPUT"
+
       - name: Build image and generate compliance artifacts
+        env:
+          HANDOFF_TAG: ${{ steps.handoff.outputs.tag }}
         run: just ci build ${{ matrix.image }}
 
       - name: Compute component tag
