@@ -9,7 +9,7 @@
     "scan_finding_count": 223,
     "statement_count": 214,
     "ported_from_senaite_1_3": 148,
-    "inherited_from_python_2_7": 0,
+    "inherited_from_python_2_7": 8,
     "fresh_authored": 66
   },
   "statements": [
@@ -1585,7 +1585,7 @@
         }
       ],
       "status": "under_investigation",
-      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 4.3 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 4.3 finding. AccessControl 4.3 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 4.3 (senaite.core 2.3.0 / Plone 5.2.9 baseline); the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
     },
     {
       "@id": "wm-senaite-lims-23-zope-GHSA-8xv7-89vj-q48c",
@@ -1602,7 +1602,7 @@
         }
       ],
       "status": "under_investigation",
-      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 3.0.11 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity zope 4.8.2 finding (advisory dual-reported against zope and accesscontrol). The senaite-2.3 image pins zope 4.8.2 (senaite.core 2.3.0 / Plone 5.2.9 baseline) which composes AccessControl 4.3 as Zope's role/permission engine; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
     },
     {
       "@id": "wm-senaite-lims-23-pillow-GHSA-hf64-x4gq-p99h",
@@ -1739,7 +1739,7 @@
         }
       ],
       "status": "under_investigation",
-      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 4.3 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 4.3 finding. AccessControl 4.3 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 4.3 (senaite.core 2.3.0 / Plone 5.2.9 baseline); the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
     },
     {
       "@id": "wm-senaite-lims-23-zope-GHSA-g5vw-3h65-2q3v",
@@ -1756,7 +1756,7 @@
         }
       ],
       "status": "under_investigation",
-      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 3.0.11 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity zope 4.8.2 finding (advisory dual-reported against zope and accesscontrol). The senaite-2.3 image pins zope 4.8.2 (senaite.core 2.3.0 / Plone 5.2.9 baseline) which composes AccessControl 4.3 as Zope's role/permission engine; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
     },
     {
       "@id": "wm-senaite-lims-23-pillow-GHSA-9hx2-hgq2-2g4f",
