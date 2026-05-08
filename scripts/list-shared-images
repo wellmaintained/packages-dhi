@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# List the current app's *shared* custom images — those whose DHI definition
+# lives under common/images/ and may be consumed by other apps' builds.
+#
+# Used by .github/workflows/_app-build.yml to pre-build these images (and push
+# their :dev tag to GHCR) before the per-app matrix runs, so that downstream
+# images that reference them via `uses: ghcr.io/.../<name>:dev` can resolve.
+#
+# Today: python-2.7 (senaite apps), minio (sbomify-current).
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+APP="${APP:-sbomify-current}"
+APP_MANIFEST="${REPO_ROOT}/apps/${APP}/app-images.yaml"
+
+yq -o=json -I0 '
+  [to_entries[]
+   | select(.value.definition // "" | test("^common/images/"))
+   | .key]
+' "$APP_MANIFEST"

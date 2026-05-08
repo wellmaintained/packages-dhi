@@ -1,6 +1,12 @@
 #!/usr/bin/env bash
 # Emit a JSON array of {app, image} pairs across every apps/<app>/app-images.yaml.
 # Useful for matrix strategies that walk all apps' custom images.
+#
+# Shared images (those whose definition lives under common/images/) are
+# excluded — they are built once per workflow run by _app-build.yml's
+# shared-images job, not per-app, so multi-app maintenance workflows
+# (cleanup-stale-images, rescan-vulnerabilities) shouldn't process them
+# multiple times.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
@@ -10,7 +16,12 @@ for d in "${REPO_ROOT}/apps"/*/; do
     manifest="${d}app-images.yaml"
     [[ -f "$manifest" ]] || continue
     app=$(basename "$d")
-    images=$(yq -o=json -I0 '[to_entries[] | select(.value | has("definition")) | .key]' "$manifest")
+    images=$(yq -o=json -I0 '
+      [to_entries[]
+       | select(.value | has("definition"))
+       | select(.value.definition | test("^common/images/") | not)
+       | .key]
+    ' "$manifest")
     pairs=$(jq -c --arg app "$app" --argjson imgs "$images" \
         '. + [($imgs[] | {app: $app, image: .})]' <<<"$pairs")
 done
