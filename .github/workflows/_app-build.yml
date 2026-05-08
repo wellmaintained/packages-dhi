@@ -1,14 +1,12 @@
-name: Build
+name: _app-build
 
 on:
-  pull_request:
-    paths:
-      - 'common/**'
-      - 'apps/**'
-      - '.github/workflows/build.yml'
-      - 'scripts/**'
-      - 'Justfile'
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      app:
+        description: 'App name under apps/ (e.g. sbomify-current, senaite-current)'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -17,25 +15,29 @@ permissions:
 
 jobs:
   resolve-images:
-    name: Resolve image lists
+    name: Resolve image lists (${{ inputs.app }})
     runs-on: blacksmith-2vcpu-ubuntu-2204
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - id: images
+        env:
+          APP: ${{ inputs.app }}
         run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
 
   stock-dhi-images:
-    name: Extract DHI attestations
+    name: Extract DHI attestations (${{ inputs.app }})
     runs-on: blacksmith-2vcpu-ubuntu-2204
+    env:
+      APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
-          cache-key: stock
+          cache-key: ${{ inputs.app }}-stock
 
       - name: Extract attestations
         run: just extract-dhi-attestations
@@ -43,13 +45,15 @@ jobs:
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: stock-dhi-attestations
+          name: stock-dhi-attestations-${{ inputs.app }}
           path: artifacts/
 
   custom-dhi-builds:
-    name: Build ${{ matrix.image }}
+    name: Build ${{ inputs.app }}/${{ matrix.image }}
     needs: resolve-images
     runs-on: blacksmith-2vcpu-ubuntu-2204
+    env:
+      APP: ${{ inputs.app }}
     strategy:
       matrix:
         image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
@@ -62,7 +66,7 @@ jobs:
           ghcr-login: true
           ghcr-username: ${{ github.actor }}
           ghcr-token: ${{ secrets.GITHUB_TOKEN }}
-          cache-key: ${{ matrix.image }}
+          cache-key: ${{ inputs.app }}-${{ matrix.image }}
 
       - name: Build image and generate compliance artifacts
         run: just ci build ${{ matrix.image }}
@@ -73,7 +77,8 @@ jobs:
           SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
           SHA7="${SHA7::7}"
           IMAGE="${{ matrix.image }}"
-          DEF=$(yq -r ".\"${IMAGE}\".definition | select(. != null)" apps/sbomify-current/app-images.yaml)
+          MANIFEST="apps/${APP}/app-images.yaml"
+          DEF=$(yq -r ".\"${IMAGE}\".definition | select(. != null)" "$MANIFEST")
           VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "$DEF" 2>/dev/null | head -1 || echo "unknown")
           COMPONENT_TAG="${IMAGE}-${VERSION}-${SHA7}"
           REG=$(just _image-registry "$IMAGE")
@@ -104,5 +109,5 @@ jobs:
       - name: Upload attestation artifacts
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: custom-${{ matrix.image }}-attestations
+          name: custom-${{ inputs.app }}-${{ matrix.image }}-attestations
           path: artifacts/${{ matrix.image }}/

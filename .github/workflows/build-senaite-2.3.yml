@@ -1,0 +1,27 @@
+name: Build senaite-2.3
+
+on:
+  pull_request:
+    paths:
+      - 'apps/senaite-2.3/**'
+      - 'common/**'
+      - 'scripts/**'
+      - 'Justfile'
+      - 'ci/**'
+      - 'bin/**'
+      - '.github/workflows/_app-build.yml'
+      - '.github/workflows/build-senaite-2.3.yml'
+      - '.github/actions/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/_app-build.yml
+    with:
+      app: senaite-2.3
+    secrets: inherit

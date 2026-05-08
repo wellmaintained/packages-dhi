@@ -11,6 +11,12 @@ ARTIFACTS="${REPO_ROOT}/artifacts"
 
 mkdir -p "$ARTIFACTS"
 
+if [ ! -f "$APP_LOCK" ]; then
+    echo "No lock file at ${APP_LOCK} — skipping stock attestation extraction."
+    echo "Run 'APP=${APP} just update-app-images' to generate it."
+    exit 0
+fi
+
 # Map of predicate types to output filenames (the ones we care about)
 declare -A ATTESTATION_MAP=(
     ["https://cyclonedx.org/bom/v1.6"]="sbom.cdx.json"

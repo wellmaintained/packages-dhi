@@ -1,0 +1,27 @@
+name: Build sbomify-current
+
+on:
+  pull_request:
+    paths:
+      - 'apps/sbomify-current/**'
+      - 'common/**'
+      - 'scripts/**'
+      - 'Justfile'
+      - 'ci/**'
+      - 'bin/**'
+      - '.github/workflows/_app-build.yml'
+      - '.github/workflows/build-sbomify-current.yml'
+      - '.github/actions/**'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  build:
+    uses: ./.github/workflows/_app-build.yml
+    with:
+      app: sbomify-current
+    secrets: inherit

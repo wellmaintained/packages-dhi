@@ -1,14 +1,25 @@
-name: Pre-Release
+name: _app-pre-release
 
 on:
-  pull_request:
-    types: [closed]
-    branches: [main]
-  workflow_dispatch:
+  workflow_call:
     inputs:
+      app:
+        description: 'App name under apps/'
+        required: true
+        type: string
+      release_tag_prefix:
+        description: 'Tag prefix for the release (e.g. sbomify produces sbomify-vX-Y.Z)'
+        required: true
+        type: string
+      primary_image:
+        description: 'Image whose component-tag carries the user-facing app version'
+        required: true
+        type: string
       sha:
-        description: 'Commit SHA to create pre-release from (defaults to HEAD)'
+        description: 'Override SHA for workflow_dispatch'
         required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
@@ -19,10 +30,11 @@ permissions:
 jobs:
   resolve-images:
     name: Resolve image lists
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
+    env:
+      APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -32,7 +44,6 @@ jobs:
 
   resolve-pr:
     name: Resolve source PR
-    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
     runs-on: ubuntu-latest
     outputs:
       is-pr: ${{ steps.pr.outputs.is_pr }}
@@ -85,9 +96,8 @@ jobs:
         id: build-run
         run: |
           SHA7="${{ steps.pr.outputs.sha7 }}"
-          # Find the most recent successful Build workflow run matching the PR head SHA
           RUN_ID=$(gh run list \
-            --workflow build.yml \
+            --workflow "build-${{ inputs.app }}.yml" \
             --status success \
             --json databaseId,headSha \
             --jq ".[] | select(.headSha | startswith(\"${SHA7}\")) | .databaseId" \
@@ -105,6 +115,8 @@ jobs:
     outputs:
       app-collection-version: ${{ steps.version.outputs.app_collection_version }}
       app-version: ${{ steps.version.outputs.app_version }}
+    env:
+      APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -124,22 +136,22 @@ jobs:
         id: version
         run: |
           SHA7="${{ needs.resolve-pr.outputs.sha7 }}"
-          REG=$(just _image-registry sbomify-app)
+          PRIMARY="${{ inputs.primary_image }}"
+          PREFIX="${{ inputs.release_tag_prefix }}"
+          REG=$(just _image-registry "$PRIMARY")
 
-          # Resolve sbomify-app component tag to extract app version
           COMPONENT_TAG=$(./scripts/resolve-component-tag \
-            --image sbomify-app --sha7 "$SHA7" --registry "$REG")
-          # Parse: sbomify-app-{version}-{sha7} → extract {version}
+            --image "$PRIMARY" --sha7 "$SHA7" --registry "$REG")
+          # Parse: <primary>-{version}-{sha7} → extract {version}
           WITHOUT_SHA="${COMPONENT_TAG%-"${SHA7}"}"
-          APP_VERSION="${WITHOUT_SHA#sbomify-app-}"
+          APP_VERSION="${WITHOUT_SHA#"${PRIMARY}"-}"
           APP_VERSION="${APP_VERSION#v}"
 
-          # Compute build number
           TODAY=$(date -u '+%Y%m%d')
-          PREFIX="sbomify-v${APP_VERSION}-${TODAY}."
-          EXISTING=$(git tag -l "${PREFIX}*" | wc -l)
+          TAG_PREFIX="${PREFIX}-v${APP_VERSION}-${TODAY}."
+          EXISTING=$(git tag -l "${TAG_PREFIX}*" | wc -l)
           BUILD_NUMBER=$((EXISTING + 1))
-          APP_COLLECTION_VERSION="sbomify-v${APP_VERSION}-${TODAY}.${BUILD_NUMBER}"
+          APP_COLLECTION_VERSION="${PREFIX}-v${APP_VERSION}-${TODAY}.${BUILD_NUMBER}"
 
           echo "app_version=${APP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "app_collection_version=${APP_COLLECTION_VERSION}" >> "$GITHUB_OUTPUT"
@@ -149,6 +161,8 @@ jobs:
     name: Tag ${{ matrix.image }}
     needs: [resolve-pr, resolve-version, resolve-images]
     runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app }}
     strategy:
       matrix:
         image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
@@ -181,6 +195,8 @@ jobs:
     name: Build compliance pack
     needs: [resolve-pr, resolve-version, tag-app-collection]
     runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -197,7 +213,7 @@ jobs:
         if: needs.resolve-pr.outputs.build-run-id != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: stock-dhi-attestations
+          name: stock-dhi-attestations-${{ inputs.app }}
           path: artifacts/
           github-token: ${{ secrets.GITHUB_TOKEN }}
           run-id: ${{ needs.resolve-pr.outputs.build-run-id }}
@@ -206,7 +222,7 @@ jobs:
         if: needs.resolve-pr.outputs.build-run-id != ''
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          pattern: custom-*-attestations
+          pattern: custom-${{ inputs.app }}-*-attestations
           path: artifacts/
           merge-multiple: true
           github-token: ${{ secrets.GITHUB_TOKEN }}
@@ -219,24 +235,26 @@ jobs:
         run: just release-website
 
       - name: Package release website
-        run: tar -czf release-website.tar.gz -C apps/sbomify-current/release-website/public .
+        run: tar -czf release-website.tar.gz -C apps/${{ inputs.app }}/release-website/public .
 
       - name: Upload compliance pack
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: compliance-pack
+          name: compliance-pack-${{ inputs.app }}
           path: compliance-pack-${{ needs.resolve-version.outputs.app-collection-version }}.zip
 
       - name: Upload release website
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: release-website
+          name: release-website-${{ inputs.app }}
           path: release-website.tar.gz
 
   create-release:
     name: Create pre-release
     needs: [resolve-pr, resolve-version, build-compliance-pack]
     runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
         with:
@@ -264,12 +282,12 @@ jobs:
       - name: Download compliance pack
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: compliance-pack
+          name: compliance-pack-${{ inputs.app }}
 
       - name: Download release website
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: release-website
+          name: release-website-${{ inputs.app }}
 
       - name: Create git tag
         run: |

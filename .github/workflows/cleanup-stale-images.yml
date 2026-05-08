@@ -9,27 +9,28 @@ permissions:
   packages: write
 
 jobs:
-  resolve-images:
-    name: Resolve image lists
+  resolve:
+    name: Resolve (app, image) pairs
     runs-on: ubuntu-latest
     outputs:
-      custom-images: ${{ steps.images.outputs.custom }}
+      pairs: ${{ steps.pairs.outputs.pairs }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - id: images
-        run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
+      - id: pairs
+        run: echo "pairs=$(./scripts/list-app-image-pairs)" >> "$GITHUB_OUTPUT"
 
   cleanup:
-    name: Clean ${{ matrix.image }}
-    needs: resolve-images
+    name: Clean ${{ matrix.app }}/${{ matrix.image }}
+    needs: resolve
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        image: ${{ fromJSON(needs.resolve-images.outputs.custom-images) }}
+        include: ${{ fromJSON(needs.resolve.outputs.pairs) }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
 
       - name: Sweep stale images
         run: ./scripts/cleanup-stale-images sweep --image "${{ matrix.image }}" --prefix packages-dhi --days 7
         env:
+          APP: ${{ matrix.app }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

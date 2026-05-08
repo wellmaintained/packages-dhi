@@ -1,0 +1,20 @@
+name: Deploy Release Website sbomify-current
+
+on:
+  release:
+    types: [released]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+  pages: write
+  id-token: write
+
+jobs:
+  deploy:
+    if: github.event_name == 'workflow_dispatch' || startsWith(github.event.release.tag_name, 'sbomify-v')
+    uses: ./.github/workflows/_app-deploy-release-website.yml
+    with:
+      app: sbomify-current
+    secrets: inherit

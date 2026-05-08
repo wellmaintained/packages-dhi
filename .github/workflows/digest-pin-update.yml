@@ -19,22 +19,50 @@ jobs:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
-      - name: Save current lock file
-        run: cp apps/sbomify-current/app-images.lock.yaml /tmp/app-images-before.lock.yaml
+      - name: Snapshot current lock files
+        run: |
+          mkdir -p /tmp/before
+          for app in $(./scripts/list-apps | jq -r '.[]'); do
+            lock="apps/${app}/app-images.lock.yaml"
+            if [ -f "$lock" ]; then
+              cp "$lock" "/tmp/before/${app}.lock.yaml"
+            fi
+          done
 
-      - name: Pin latest digests
-        run: just update
+      - name: Update tool versions
+        run: just update-tools
+
+      - name: Pin latest digests for every app
+        run: |
+          for app in $(./scripts/list-apps | jq -r '.[]'); do
+            echo "=== Updating ${app} ==="
+            APP=$app just update-app-images
+          done
+
+      - name: Lint YAML
+        run: just lint-yaml
 
       - name: Check for changes
         id: diff
         run: |
           changed=false
-          if ! diff -q apps/sbomify-current/app-images.lock.yaml /tmp/app-images-before.lock.yaml > /dev/null 2>&1; then
-            changed=true
-            echo "App image changes:"
-            diff /tmp/app-images-before.lock.yaml apps/sbomify-current/app-images.lock.yaml || true
-          fi
+          changed_apps=()
+          for app in $(./scripts/list-apps | jq -r '.[]'); do
+            lock="apps/${app}/app-images.lock.yaml"
+            before="/tmp/before/${app}.lock.yaml"
+            if [ ! -f "$before" ] && [ -f "$lock" ]; then
+              echo "==> ${app}: new lock file"
+              changed=true
+              changed_apps+=("$app")
+            elif [ -f "$before" ] && ! diff -q "$lock" "$before" > /dev/null 2>&1; then
+              echo "==> ${app}: lock changed"
+              diff "$before" "$lock" || true
+              changed=true
+              changed_apps+=("$app")
+            fi
+          done
           echo "changed=${changed}" >> "$GITHUB_OUTPUT"
+          echo "apps=${changed_apps[*]}" >> "$GITHUB_OUTPUT"
 
       - name: Create PR
         if: steps.diff.outputs.changed == 'true'
@@ -43,19 +71,25 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="update-dhi-digests-$(date +%Y%m%d)"
           git checkout -b "$branch"
-          git add apps/sbomify-current/app-images.yaml apps/sbomify-current/app-images.lock.yaml
-          git commit -m "chore: update stock image digest pins"
+          # Stage every app's manifest + lock pair (only those that have a lock).
+          for app in $(./scripts/list-apps | jq -r '.[]'); do
+            lock="apps/${app}/app-images.lock.yaml"
+            manifest="apps/${app}/app-images.yaml"
+            [ -f "$lock" ] || continue
+            git add "$manifest" "$lock"
+          done
+          # Tool lock can also drift — pick it up if present.
+          [ -f common/tool-versions.lock.yaml ] && git add common/tool-versions.lock.yaml
+          git commit -m "chore: update digest pins (${{ steps.diff.outputs.apps }})"
           git push -u origin HEAD
           gh pr create \
             --title "Update stock image digest pins" \
-            --body "$(cat <<'PREOF'
+            --body "$(cat <<EOF
           ## Summary
           - Weekly digest pin update detected new stock image versions
+          - Apps affected: ${{ steps.diff.outputs.apps }}
           - Quality gate will validate the updated images
-
-          ## Changes
-          $(diff /tmp/app-images-before.lock.yaml apps/sbomify-current/app-images.lock.yaml || true)
-          PREOF
+          EOF
           )"
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
