@@ -32,7 +32,5 @@ jobs:
     uses: ./.github/workflows/_app-pre-release.yml
     with:
       app: sbomify-current
-      release_tag_prefix: sbomify
-      primary_image: sbomify-app
       sha: ${{ inputs.sha }}
     secrets: inherit

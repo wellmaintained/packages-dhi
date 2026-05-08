@@ -1,0 +1,9 @@
+# Per-app release configuration consumed by .github/workflows/_app-pre-release.yml.
+#
+# Keys:
+#   tag_prefix    Tag prefix for the release (e.g. "sbomify" produces
+#                 sbomify-vX.Y.Z-YYYYMMDD.N).
+#   primary_image Image whose component-tag carries the user-facing app version.
+
+tag_prefix: sbomify
+primary_image: sbomify-app

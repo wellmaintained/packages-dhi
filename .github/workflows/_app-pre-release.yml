@@ -4,15 +4,7 @@ on:
   workflow_call:
     inputs:
       app:
-        description: 'App name under apps/'
-        required: true
-        type: string
-      release_tag_prefix:
-        description: 'Tag prefix for the release (e.g. "sbomify" produces sbomify-vX.Y.Z-YYYYMMDD.N)'
-        required: true
-        type: string
-      primary_image:
-        description: 'Image whose component-tag carries the user-facing app version'
+        description: 'App name under apps/ (release config read from apps/<app>/release.yaml)'
         required: true
         type: string
       sha:
@@ -136,8 +128,9 @@ jobs:
         id: version
         run: |
           SHA7="${{ needs.resolve-pr.outputs.sha7 }}"
-          PRIMARY="${{ inputs.primary_image }}"
-          PREFIX="${{ inputs.release_tag_prefix }}"
+          RELEASE_CONFIG="apps/${APP}/release.yaml"
+          PRIMARY=$(yq -r '.primary_image' "$RELEASE_CONFIG")
+          PREFIX=$(yq -r '.tag_prefix' "$RELEASE_CONFIG")
           REG=$(just _image-registry "$PRIMARY")
 
           COMPONENT_TAG=$(./scripts/resolve-component-tag \
