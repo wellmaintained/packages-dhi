@@ -2,6 +2,3682 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://github.com/wellmaintained/packages-dhi/vex/senaite-lims-2.3",
   "author": "wellmaintained/packages-dhi maintainers",
-  "timestamp": "2026-05-04T00:00:00Z",
-  "statements": []
+  "timestamp": "2026-05-08T00:00:00Z",
+  "metadata": {
+    "note": "Statements derived from senaite-1.3 VEX where the actual senaite-2.3 grype scan confirms the CVE; senaite-2.3-specific statements added on top. python-2.7-rooted findings cross-reference common/images/python-2.7/python-2.7.vex.json via the 'Inherited from python-2.7' prose pattern.",
+    "scan_source": "artifacts/senaite-lims/cves.json (grype on senaite-lims-2.3:dev)",
+    "scan_finding_count": 223,
+    "statement_count": 214,
+    "ported_from_senaite_1_3": 148,
+    "inherited_from_python_2_7": 0,
+    "fresh_authored": 66
+  },
+  "statements": [
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-j7hp-h8jx-5ppr",
+      "vulnerability": {
+        "name": "GHSA-j7hp-h8jx-5ppr"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-jquery-GHSA-jpcq-cgw6-v4j6",
+      "vulnerability": {
+        "name": "GHSA-jpcq-cgw6-v4j6"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/jquery@1.12.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity jquery 1.12.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-2g68-c3qc-8985",
+      "vulnerability": {
+        "name": "GHSA-2g68-c3qc-8985"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-jquery-GHSA-rmxg-73gg-4p98",
+      "vulnerability": {
+        "name": "GHSA-rmxg-73gg-4p98"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/jquery@1.12.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity jquery 1.12.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-certifi-GHSA-248v-346w-9cwc",
+      "vulnerability": {
+        "name": "GHSA-248v-346w-9cwc"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/certifi@2021.10.8"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "certifi 2021.10.8 ships as the requests/urllib3 trust store. The advisory covers a CA root included in the bundle. SENAITE LIMS deployments only make outbound TLS connections to operator-configured endpoints (admin sets the URL when configuring senaite.jsonapi/REST integrations), and the runtime never receives connections from arbitrary remote TLS servers \u2014 there is no path through which an attacker controls the server presenting a compromised-CA-issued certificate to senaite-lims-2.3. Heritage Python 2.7 cannot upgrade certifi past 2021.10.8 (requests 2.27.1's last 2.7-compatible pin)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-setuptools-GHSA-cx63-2mw6-8hw5",
+      "vulnerability": {
+        "name": "GHSA-cx63-2mw6-8hw5"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/setuptools@44.1.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "setuptools 44.1.1 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's setuptools. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tough-cookie-GHSA-72xf-g2v4-qvf3",
+      "vulnerability": {
+        "name": "GHSA-72xf-g2v4-qvf3"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tough-cookie@2.3.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tough-cookie 2.3.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-requests-GHSA-j8r2-6x86-q33q",
+      "vulnerability": {
+        "name": "GHSA-j8r2-6x86-q33q"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/requests@2.27.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity Python requests 2.27.1 finding. requests 2.27.1 is the last 2.7-compatible release (pinned by buildout). Pending principal review of which SENAITE outbound calls go through requests and whether attacker-controlled URLs/headers reach them. Same review context as the senaite-2.3 image (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-8vj2-vxx3-667w",
+      "vulnerability": {
+        "name": "GHSA-8vj2-vxx3-667w"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Critical-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-moment-GHSA-wc69-rhjr-hc9g",
+      "vulnerability": {
+        "name": "GHSA-wc69-rhjr-hc9g"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/moment@2.24.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity moment 2.24.0 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-5359-pvf2-pw78",
+      "vulnerability": {
+        "name": "GHSA-5359-pvf2-pw78"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-r8hm-w5f7-wj39",
+      "vulnerability": {
+        "name": "GHSA-r8hm-w5f7-wj39"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-moment-GHSA-8hfj-j24r-96c4",
+      "vulnerability": {
+        "name": "GHSA-8hfj-j24r-96c4"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/moment@2.24.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity moment 2.24.0 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-jquery-GHSA-gxr4-xjj5-5px2",
+      "vulnerability": {
+        "name": "GHSA-gxr4-xjj5-5px2"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/jquery@1.12.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity jquery 1.12.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-hoek-GHSA-jp4x-w63m-7wgm",
+      "vulnerability": {
+        "name": "GHSA-jp4x-w63m-7wgm"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/hoek@2.16.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity hoek 2.16.3 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-hgqx-r2hp-jr38",
+      "vulnerability": {
+        "name": "GHSA-hgqx-r2hp-jr38"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-json-schema-GHSA-896r-f27r-55mw",
+      "vulnerability": {
+        "name": "GHSA-896r-f27r-55mw"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/json-schema@0.2.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Critical-severity json-schema 0.2.3 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-9j59-75qj-795w",
+      "vulnerability": {
+        "name": "GHSA-9j59-75qj-795w"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-qs-GHSA-hrpp-h998-j3pp",
+      "vulnerability": {
+        "name": "GHSA-hrpp-h998-j3pp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/qs@6.4.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity qs 6.4.0 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-v626-r774-j7f8",
+      "vulnerability": {
+        "name": "GHSA-v626-r774-j7f8"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-underscore-GHSA-cf4h-3jhx-xvhq",
+      "vulnerability": {
+        "name": "GHSA-cf4h-3jhx-xvhq"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/underscore@1.9.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Critical-severity underscore 1.9.1 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-gg8r-xjwq-4w92",
+      "vulnerability": {
+        "name": "GHSA-gg8r-xjwq-4w92"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-waitress-GHSA-3f84-rpwh-47g6",
+      "vulnerability": {
+        "name": "GHSA-3f84-rpwh-47g6"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/waitress@1.4.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity waitress 1.4.4 finding on the senaite-lims-2.3 stack. waitress reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-datatables-net-GHSA-m7j4-fhg6-xf5v",
+      "vulnerability": {
+        "name": "GHSA-m7j4-fhg6-xf5v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/datatables.net@1.10.16"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity datatables.net 1.10.16 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-restrictedpython-GHSA-5rfv-66g4-jr8h",
+      "vulnerability": {
+        "name": "GHSA-5rfv-66g4-jr8h"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/restrictedpython@5.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity RestrictedPython 5.2 finding. RestrictedPython is Zope's sandboxing primitive \u2014 it compiles operator-authored Through-The-Web Python (TTW scripts) into a constrained AST. The senaite-2.3 image pins RestrictedPython 5.2 (the senaite.core 2.3.0 / Plone 5.2.9 baseline). Exploit primitives require write access to portal_skins/custom or Script (Python) objects, which is restricted to Manager-role accounts; SENAITE deployments lock this down per VEX-POLICY.md. PRINCIPAL-REVIEW-BLOCKING for confirmation that no additional TTW endpoints are exposed in the deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-jquery-GHSA-6c3j-c64m-qhgq",
+      "vulnerability": {
+        "name": "GHSA-6c3j-c64m-qhgq"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/jquery@1.12.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity jquery 1.12.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-minimist-GHSA-xvch-5gv4-984h",
+      "vulnerability": {
+        "name": "GHSA-xvch-5gv4-984h"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/minimist@1.2.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Critical-severity minimist 1.2.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-hoek-GHSA-c429-5p7v-vgjp",
+      "vulnerability": {
+        "name": "GHSA-c429-5p7v-vgjp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/hoek@2.16.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity hoek 2.16.3 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-f9vj-2wh5-fj8j",
+      "vulnerability": {
+        "name": "GHSA-f9vj-2wh5-fj8j"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-438c-3975-5x3f",
+      "vulnerability": {
+        "name": "GHSA-438c-3975-5x3f"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-w7jx-j77m-wp65",
+      "vulnerability": {
+        "name": "GHSA-w7jx-j77m-wp65"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-v65r-p3vv-jjfv",
+      "vulnerability": {
+        "name": "GHSA-v65r-p3vv-jjfv"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-57h3-9rgr-c24m",
+      "vulnerability": {
+        "name": "GHSA-57h3-9rgr-c24m"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Critical-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-q34m-jh98-gwm2",
+      "vulnerability": {
+        "name": "GHSA-q34m-jh98-gwm2"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-c78w-2gw7-gjv3",
+      "vulnerability": {
+        "name": "GHSA-c78w-2gw7-gjv3"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-multipart-GHSA-p2m9-wcp5-6qw3",
+      "vulnerability": {
+        "name": "GHSA-p2m9-wcp5-6qw3"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/multipart@0.1.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity multipart 0.1.1 finding on the senaite-lims-2.3 stack. multipart reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-3f63-hfp8-52jq",
+      "vulnerability": {
+        "name": "GHSA-3f63-hfp8-52jq"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Critical-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-w9jx-4g6g-rp7x",
+      "vulnerability": {
+        "name": "GHSA-w9jx-4g6g-rp7x"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-marked-GHSA-rrrm-qjm4-v8hf",
+      "vulnerability": {
+        "name": "GHSA-rrrm-qjm4-v8hf"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/marked@0.3.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity marked 0.3.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-idna-GHSA-jjg7-2v4v-x38h",
+      "vulnerability": {
+        "name": "GHSA-jjg7-2v4v-x38h"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/idna@2.10"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity idna 2.10 finding. idna is consumed transitively by requests/urllib3 for hostname encoding. Heritage Python 2.7 cannot move past idna 2.10 (last 2.7-compatible release). Pending principal review of whether SENAITE accepts hostnames from untrusted callers."
+    },
+    {
+      "@id": "wm-senaite-lims-23-select2-GHSA-rf66-hmqf-q3fc",
+      "vulnerability": {
+        "name": "GHSA-rf66-hmqf-q3fc"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/select2@3.5.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity select2 3.5.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-lxml-GHSA-wrxv-2j5q-m38w",
+      "vulnerability": {
+        "name": "GHSA-wrxv-2j5q-m38w"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/lxml@4.8.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity lxml 4.8.0 finding. lxml is the libxml2/libxslt binding used by Plone's transform pipeline (XML import/export, RSS, PDF rendering). senaite.core 2.3.0 pins lxml at 4.8.0 \u2014 the last release that builds cleanly against Python 2.7. The vulnerable code paths require attacker-controlled XML; SENAITE's XML inputs are operator-supplied via authenticated import flows, not anonymous endpoints. Pending principal review of which lxml entry points are reachable without operator credentials."
+    },
+    {
+      "@id": "wm-senaite-lims-23-marked-GHSA-p9wx-2529-fp83",
+      "vulnerability": {
+        "name": "GHSA-p9wx-2529-fp83"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/marked@0.3.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity marked 0.3.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-mvg9-xffr-p774",
+      "vulnerability": {
+        "name": "GHSA-mvg9-xffr-p774"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-27gm-ghr9-4v95",
+      "vulnerability": {
+        "name": "GHSA-27gm-ghr9-4v95"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-form-data-GHSA-fjxv-7rqg-78g4",
+      "vulnerability": {
+        "name": "GHSA-fjxv-7rqg-78g4"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/form-data@2.1.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Critical-severity form-data 2.1.4 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-9hcv-j9pv-qmph",
+      "vulnerability": {
+        "name": "GHSA-9hcv-j9pv-qmph"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-setuptools-GHSA-r9hx-vwmv-q579",
+      "vulnerability": {
+        "name": "GHSA-r9hx-vwmv-q579"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/setuptools@44.1.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "setuptools 44.1.1 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's setuptools. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-setuptools-GHSA-5rjg-fvgr-3xxf",
+      "vulnerability": {
+        "name": "GHSA-5rjg-fvgr-3xxf"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/setuptools@44.1.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "setuptools 44.1.1 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's setuptools. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-marked-GHSA-5v2h-r2cx-5xgj",
+      "vulnerability": {
+        "name": "GHSA-5v2h-r2cx-5xgj"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/marked@0.3.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity marked 0.3.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-95q3-8gr9-gm8w",
+      "vulnerability": {
+        "name": "GHSA-95q3-8gr9-gm8w"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-f4w8-cv6p-x6r5",
+      "vulnerability": {
+        "name": "GHSA-f4w8-cv6p-x6r5"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-future-GHSA-v3c5-jqr6-7qm8",
+      "vulnerability": {
+        "name": "GHSA-v3c5-jqr6-7qm8"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/future@0.18.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity future 0.18.2 finding. `future` 0.18.2 is a Python 2/3 compatibility shim, transitively pulled in. The senaite-2.3 image pins future 0.18.2 \u2014 the modern pre-EOL release; senaite.core 2.3.0's Py2-only call paths consume `future.utils` re-exports rather than the vulnerable surface. Pending principal review to enumerate which future-supplied modules SENAITE actually imports and whether any execute against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-7534-mm45-c74v",
+      "vulnerability": {
+        "name": "GHSA-7534-mm45-c74v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Critical-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-request-GHSA-p8p7-x288-28g6",
+      "vulnerability": {
+        "name": "GHSA-p8p7-x288-28g6"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/request@2.81.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity request 2.81.0 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-hrfv-mqp8-q5rw",
+      "vulnerability": {
+        "name": "GHSA-hrfv-mqp8-q5rw"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-marked-GHSA-x5pg-88wf-qq4p",
+      "vulnerability": {
+        "name": "GHSA-x5pg-88wf-qq4p"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/marked@0.3.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity marked 0.3.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-vj42-xq3r-hr3r",
+      "vulnerability": {
+        "name": "GHSA-vj42-xq3r-hr3r"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-plone-GHSA-xg5p-8wg5-rhxm",
+      "vulnerability": {
+        "name": "GHSA-xg5p-8wg5-rhxm"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/plone@5.2.9"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Medium-severity Plone 5.2.9 finding. Plone 5.2.x has its own hotfix series (Products.PloneHotfix4_3_18 and earlier 4.3.x hotfixes) \u2014 distinct from the Plone 5.2.x hotfix series referenced in the senaite-2.3 image's VEX. The senaite-lims-2.3 buildout currently pins NO Plone 5.2 hotfix package. PRINCIPAL-REVIEW-BLOCKING until the latest applicable Plone 5.2 hotfix is pinned in buildout/versions.cfg and this CVE's coverage by that hotfix is confirmed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-5h9g-x5rv-25wg",
+      "vulnerability": {
+        "name": "GHSA-5h9g-x5rv-25wg"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-7r7m-5h27-29hp",
+      "vulnerability": {
+        "name": "GHSA-7r7m-5h27-29hp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-8843-m7mw-mxqm",
+      "vulnerability": {
+        "name": "GHSA-8843-m7mw-mxqm"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-77gc-v2xv-rvvh",
+      "vulnerability": {
+        "name": "GHSA-77gc-v2xv-rvvh"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-restrictedpython-GHSA-wqc8-x2pr-7jqh",
+      "vulnerability": {
+        "name": "GHSA-wqc8-x2pr-7jqh"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/restrictedpython@5.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity RestrictedPython 5.2 finding. RestrictedPython is Zope's sandboxing primitive \u2014 it compiles operator-authored Through-The-Web Python (TTW scripts) into a constrained AST. The senaite-2.3 image pins RestrictedPython 5.2 (the senaite.core 2.3.0 / Plone 5.2.9 baseline). Exploit primitives require write access to portal_skins/custom or Script (Python) objects, which is restricted to Manager-role accounts; SENAITE deployments lock this down per VEX-POLICY.md. PRINCIPAL-REVIEW-BLOCKING for confirmation that no additional TTW endpoints are exposed in the deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-xg9f-g7g7-2323",
+      "vulnerability": {
+        "name": "GHSA-xg9f-g7g7-2323"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-waitress-GHSA-4f7p-27jc-3c36",
+      "vulnerability": {
+        "name": "GHSA-4f7p-27jc-3c36"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/waitress@1.4.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity waitress 1.4.4 finding on the senaite-lims-2.3 stack. waitress reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-44wm-f244-xhp3",
+      "vulnerability": {
+        "name": "GHSA-44wm-f244-xhp3"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-m2vv-5vj5-2hm7",
+      "vulnerability": {
+        "name": "GHSA-m2vv-5vj5-2hm7"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-3wvg-mj6g-m9cv",
+      "vulnerability": {
+        "name": "GHSA-3wvg-mj6g-m9cv"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-requirejs-GHSA-x3m3-4wpv-5vgc",
+      "vulnerability": {
+        "name": "GHSA-x3m3-4wpv-5vgc"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/requirejs@2.3.6"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity requirejs 2.3.6 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-43fq-w8qq-v88h",
+      "vulnerability": {
+        "name": "GHSA-43fq-w8qq-v88h"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Critical-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pyjwt-GHSA-ffqj-6fqr-9h24",
+      "vulnerability": {
+        "name": "GHSA-ffqj-6fqr-9h24"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pyjwt@1.7.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity pyjwt 1.7.1 finding on the senaite-lims-2.3 stack. pyjwt reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-3xv8-3j54-hgrp",
+      "vulnerability": {
+        "name": "GHSA-3xv8-3j54-hgrp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-products-cmfcore-GHSA-4hpj-8rhv-9x87",
+      "vulnerability": {
+        "name": "GHSA-4hpj-8rhv-9x87"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/products-cmfcore@2.6.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity products-cmfcore 2.6.0 finding. Products.CMFCore \u2014 foundational Plone content-management framework used everywhere in SENAITE. Pending principal review of the specific permission-check path the advisory covers."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-f5g8-5qq7-938w",
+      "vulnerability": {
+        "name": "GHSA-f5g8-5qq7-938w"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-cqhg-xjhh-p8hf",
+      "vulnerability": {
+        "name": "GHSA-cqhg-xjhh-p8hf"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-rwv7-3v45-hg29",
+      "vulnerability": {
+        "name": "GHSA-rwv7-3v45-hg29"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-marked-GHSA-7px7-7xjx-hxm8",
+      "vulnerability": {
+        "name": "GHSA-7px7-7xjx-hxm8"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/marked@0.3.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity marked 0.3.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-markdown-GHSA-5wmx-573v-2qwq",
+      "vulnerability": {
+        "name": "GHSA-5wmx-573v-2qwq"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/markdown@3.1.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity Markdown 3.1.1 finding. Markdown is consumed by senaite.impress and Plone's portal_transforms for rendering operator-authored content (report templates, dashboards). The senaite-2.3 image pins Markdown 3.1.1 \u2014 the last release that ships as a Py2/Py3 universal wheel. Vulnerable extension paths are not wired into Plone's portal_transforms. Pending principal review of which markdown extensions are loaded and whether operator-authored input is the only reachable source."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-q5hq-fp76-qmrc",
+      "vulnerability": {
+        "name": "GHSA-q5hq-fp76-qmrc"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-datatables-net-GHSA-h73q-5wmj-q8pj",
+      "vulnerability": {
+        "name": "GHSA-h73q-5wmj-q8pj"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/datatables.net@1.10.16"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity datatables.net 1.10.16 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-8xjq-8fcg-g5hw",
+      "vulnerability": {
+        "name": "GHSA-8xjq-8fcg-g5hw"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-8ghj-p4vj-mr35",
+      "vulnerability": {
+        "name": "GHSA-8ghj-p4vj-mr35"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-98vv-pw6r-q6q4",
+      "vulnerability": {
+        "name": "GHSA-98vv-pw6r-q6q4"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-ajv-GHSA-v88g-cgmw-v5xw",
+      "vulnerability": {
+        "name": "GHSA-v88g-cgmw-v5xw"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/ajv@4.11.8"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity ajv 4.11.8 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-plone-namedfile-GHSA-jj7c-jrv4-c65x",
+      "vulnerability": {
+        "name": "GHSA-jj7c-jrv4-c65x"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/plone-namedfile@5.6.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity plone-namedfile 5.6.0 finding. Plone named-file storage (file/image fields on content). Pending principal review of file-upload pipeline (related to the broader Pillow upload review)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pip-GHSA-5xp3-jfq3-5q8x",
+      "vulnerability": {
+        "name": "GHSA-5xp3-jfq3-5q8x"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pip@20.3.4"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's pip. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-vqcj-wrf2-7v73",
+      "vulnerability": {
+        "name": "GHSA-vqcj-wrf2-7v73"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-marked-GHSA-vfvf-mqq8-rwqc",
+      "vulnerability": {
+        "name": "GHSA-vfvf-mqq8-rwqc"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/marked@0.3.5"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity marked 0.3.5 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-vrv8-v4w8-f95h",
+      "vulnerability": {
+        "name": "GHSA-vrv8-v4w8-f95h"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-bootstrap-GHSA-q58r-hwc8-rm9j",
+      "vulnerability": {
+        "name": "GHSA-q58r-hwc8-rm9j"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/bootstrap@3.4.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity bootstrap 3.4.1 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-accesscontrol-GHSA-8xv7-89vj-q48c",
+      "vulnerability": {
+        "name": "GHSA-8xv7-89vj-q48c"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/accesscontrol@4.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 4.3 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+    },
+    {
+      "@id": "wm-senaite-lims-23-zope-GHSA-8xv7-89vj-q48c",
+      "vulnerability": {
+        "name": "GHSA-8xv7-89vj-q48c"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/zope@4.8.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 3.0.11 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-hf64-x4gq-p99h",
+      "vulnerability": {
+        "name": "GHSA-hf64-x4gq-p99h"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-webob-GHSA-mg3v-6m49-jhp3",
+      "vulnerability": {
+        "name": "GHSA-mg3v-6m49-jhp3"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/webob@1.8.7"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity webob 1.8.7 finding on the senaite-lims-2.3 stack. webob reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-p43w-g3c5-g5mq",
+      "vulnerability": {
+        "name": "GHSA-p43w-g3c5-g5mq"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-restrictedpython-GHSA-xjw2-6jm9-rf67",
+      "vulnerability": {
+        "name": "GHSA-xjw2-6jm9-rf67"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/restrictedpython@5.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity RestrictedPython 5.2 finding. RestrictedPython is Zope's sandboxing primitive \u2014 it compiles operator-authored Through-The-Web Python (TTW scripts) into a constrained AST. The senaite-2.3 image pins RestrictedPython 5.2 (the senaite.core 2.3.0 / Plone 5.2.9 baseline). Exploit primitives require write access to portal_skins/custom or Script (Python) objects, which is restricted to Manager-role accounts; SENAITE deployments lock this down per VEX-POLICY.md. PRINCIPAL-REVIEW-BLOCKING for confirmation that no additional TTW endpoints are exposed in the deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-wheel-GHSA-qwmp-2cf2-g9g6",
+      "vulnerability": {
+        "name": "GHSA-qwmp-2cf2-g9g6"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/wheel@0.33.6"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "wheel 0.33.6 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's wheel. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-urllib3-GHSA-34jh-p97f-mpxf",
+      "vulnerability": {
+        "name": "GHSA-34jh-p97f-mpxf"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/urllib3@1.26.18"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity urllib3 1.26.18 finding. urllib3 1.26.18 is the last 2.7-compatible release (pinned by buildout). urllib3 underlies requests for outbound HTTP. Pending principal review of which SENAITE outbound calls reach urllib3 with attacker-derived URLs/headers. Same review context as the senaite-2.3 image's urllib3 statements (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-zope-GHSA-m755-gxxg-r5qh",
+      "vulnerability": {
+        "name": "GHSA-m755-gxxg-r5qh"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/zope@4.8.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity zope 4.8.2 finding on the senaite-lims-2.3 stack. zope reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-accesscontrol-GHSA-g5vw-3h65-2q3v",
+      "vulnerability": {
+        "name": "GHSA-g5vw-3h65-2q3v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/accesscontrol@4.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 4.3 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+    },
+    {
+      "@id": "wm-senaite-lims-23-zope-GHSA-g5vw-3h65-2q3v",
+      "vulnerability": {
+        "name": "GHSA-g5vw-3h65-2q3v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/zope@4.8.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity accesscontrol 3.0.11 finding. AccessControl 3.0.11 \u2014 Zope's role/permission engine. The senaite-2.3 image pins AccessControl 3.0.11 ; the advisory's exploit path needs principal review of role-evaluation under Plone 5.2.9."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-9hx2-hgq2-2g4f",
+      "vulnerability": {
+        "name": "GHSA-9hx2-hgq2-2g4f"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-zope-GHSA-wm8q-9975-xh5v",
+      "vulnerability": {
+        "name": "GHSA-wm8q-9975-xh5v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/zope@4.8.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity zope 4.8.2 finding on the senaite-lims-2.3 stack. zope reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-requests-GHSA-9hjg-9r4m-mvj7",
+      "vulnerability": {
+        "name": "GHSA-9hjg-9r4m-mvj7"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/requests@2.27.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity Python requests 2.27.1 finding. requests 2.27.1 is the last 2.7-compatible release (pinned by buildout). Pending principal review of which SENAITE outbound calls go through requests and whether attacker-controlled URLs/headers reach them. Same review context as the senaite-2.3 image (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-g6rj-rv7j-xwp4",
+      "vulnerability": {
+        "name": "GHSA-g6rj-rv7j-xwp4"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-hawk-GHSA-44pw-h2cw-w3vq",
+      "vulnerability": {
+        "name": "GHSA-44pw-h2cw-w3vq"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/hawk@3.1.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity hawk 3.1.3 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-cairosvg-GHSA-hq37-853p-g5cf",
+      "vulnerability": {
+        "name": "GHSA-hq37-853p-g5cf"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/cairosvg@1.0.20"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity cairosvg 1.0.20 SSRF/XXE-class finding. CairoSVG is pulled in by senaite.core 2.3.0's WeasyPrint 0.42.3 hard pin, used for PDF rendering of LIMS reports/labels. Server-side SVG rendering against authenticated-only LIMS report data is the relevant deployment path; pending principal review of whether report templates can embed externally-fetched URI references and the CairoSVG version's url_fetcher configuration. Same review context as the senaite-2.3 image's cairosvg statements \u2014 both versions are the last 2.7-compatible release."
+    },
+    {
+      "@id": "wm-senaite-lims-23-cairo-CVE-2017-7475",
+      "vulnerability": {
+        "name": "CVE-2017-7475"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/cairo@1.18.4-1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libcairo2 1.18.4-1+b1 finding. libcairo is consumed by cairocffi/CairoSVG for PDF rendering. Same review context as the cairosvg/weasyprint findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-certifi-GHSA-xqr8-7jwr-rhp7",
+      "vulnerability": {
+        "name": "GHSA-xqr8-7jwr-rhp7"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/certifi@2021.10.8"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "certifi 2021.10.8 ships as the requests/urllib3 trust store. The advisory covers a CA root included in the bundle. SENAITE LIMS deployments only make outbound TLS connections to operator-configured endpoints (admin sets the URL when configuring senaite.jsonapi/REST integrations), and the runtime never receives connections from arbitrary remote TLS servers \u2014 there is no path through which an attacker controls the server presenting a compromised-CA-issued certificate to senaite-lims-2.3. Heritage Python 2.7 cannot upgrade certifi past 2021.10.8 (requests 2.27.1's last 2.7-compatible pin)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-xrcv-f9gm-v42c",
+      "vulnerability": {
+        "name": "GHSA-xrcv-f9gm-v42c"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Medium-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-px8h-6qxv-m22q",
+      "vulnerability": {
+        "name": "GHSA-px8h-6qxv-m22q"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2018-20796",
+      "vulnerability": {
+        "name": "CVE-2018-20796"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. glibc regex stack-consumption against attacker-controlled patterns; upstream disputes. Python 2.7's `re` module uses its own engine, not glibc regex; SENAITE/Plone never call libc regex via ctypes. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-bootstrap-GHSA-vxmc-5x29-h64v",
+      "vulnerability": {
+        "name": "GHSA-vxmc-5x29-h64v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/bootstrap@3.4.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity bootstrap 3.4.1 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-cairosvg-GHSA-rwmf-w63j-p7gv",
+      "vulnerability": {
+        "name": "GHSA-rwmf-w63j-p7gv"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/cairosvg@1.0.20"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity cairosvg 1.0.20 SSRF/XXE-class finding. CairoSVG is pulled in by senaite.core 2.3.0's WeasyPrint 0.42.3 hard pin, used for PDF rendering of LIMS reports/labels. Server-side SVG rendering against authenticated-only LIMS report data is the relevant deployment path; pending principal review of whether report templates can embed externally-fetched URI references and the CairoSVG version's url_fetcher configuration. Same review context as the senaite-2.3 image's cairosvg statements \u2014 both versions are the last 2.7-compatible release."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-hjfx-8p6c-g7gx",
+      "vulnerability": {
+        "name": "GHSA-hjfx-8p6c-g7gx"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-pw3c-h7wp-cvhx",
+      "vulnerability": {
+        "name": "GHSA-pw3c-h7wp-cvhx"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Medium-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2017-16232",
+      "vulnerability": {
+        "name": "CVE-2017-16232"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-4437",
+      "vulnerability": {
+        "name": "CVE-2026-4437"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-5450",
+      "vulnerability": {
+        "name": "CVE-2026-5450"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Critical-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-util-linux-CVE-2026-3184",
+      "vulnerability": {
+        "name": "CVE-2026-3184"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libblkid1 2.41-5 finding. libblkid is part of util-linux's block-device probing. The senaite-lims-2.3 runtime never probes block devices \u2014 no exec path invokes blkid."
+    },
+    {
+      "@id": "wm-senaite-lims-23-jbigkit-CVE-2017-9937",
+      "vulnerability": {
+        "name": "CVE-2017-9937"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/jbigkit@2.1-6.1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libjbig0 2.1-6.1+b2 finding. libjbig is consumed by libtiff for JBIG-encoded TIFF subimages \u2014 same surface as libtiff6 / Pillow upload pipeline."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2019-1010025",
+      "vulnerability": {
+        "name": "CVE-2019-1010025"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. ASLR bypass for pthread_create thread heap; upstream disputes. No exploit primitive exists on the senaite-lims-2.3 image \u2014 the runtime user is unprivileged uid 65532 and there is no setuid surface. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pip-GHSA-mq26-g339-26xf",
+      "vulnerability": {
+        "name": "GHSA-mq26-g339-26xf"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pip@20.3.4"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's pip. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-urllib3-GHSA-pq67-6m6q-mj2v",
+      "vulnerability": {
+        "name": "GHSA-pq67-6m6q-mj2v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/urllib3@1.26.18"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity urllib3 1.26.18 finding. urllib3 1.26.18 is the last 2.7-compatible release (pinned by buildout). urllib3 underlies requests for outbound HTTP. Pending principal review of which SENAITE outbound calls reach urllib3 with attacker-derived URLs/headers. Same review context as the senaite-2.3 image's urllib3 statements (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2019-9192",
+      "vulnerability": {
+        "name": "CVE-2019-9192"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. Uncontrolled-recursion in glibc regex compilation; upstream disputes. Python 2.7 ships its own `re` engine; SENAITE/Plone do not call glibc regcomp/regexec via ctypes. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxml2-CVE-2026-6732",
+      "vulnerability": {
+        "name": "CVE-2026-6732"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libxml2 2.12.7+dfsg+really2.9.14-2.1+deb13u2 finding. libxml2 is consumed by lxml. Inherits the same review context as the lxml findings \u2014 pending principal review of whether SENAITE invokes XML parsing against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2025-59375",
+      "vulnerability": {
+        "name": "CVE-2025-59375"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-plone-GHSA-5xfx-55x4-j223",
+      "vulnerability": {
+        "name": "GHSA-5xfx-55x4-j223"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/plone@5.2.9"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "High-severity Plone 5.2.9 finding. Plone 5.2.x has its own hotfix series (Products.PloneHotfix4_3_18 and earlier 4.3.x hotfixes) \u2014 distinct from the Plone 5.2.x hotfix series referenced in the senaite-2.3 image's VEX. The senaite-lims-2.3 buildout currently pins NO Plone 5.2 hotfix package. PRINCIPAL-REVIEW-BLOCKING until the latest applicable Plone 5.2 hotfix is pinned in buildout/versions.cfg and this CVE's coverage by that hotfix is confirmed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-4046",
+      "vulnerability": {
+        "name": "CVE-2026-4046"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-qs-GHSA-6rw7-vpxm-498p",
+      "vulnerability": {
+        "name": "GHSA-6rw7-vpxm-498p"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/qs@6.4.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity qs 6.4.0 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-harfbuzz-CVE-2026-22693",
+      "vulnerability": {
+        "name": "CVE-2026-22693"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/harfbuzz@10.2.0-1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libharfbuzz0b 10.2.0-1+b1 finding. harfbuzz is consumed by pango for text shaping in PDF rendering. Same review context as the weasyprint findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-ncurses-CVE-2025-6141",
+      "vulnerability": {
+        "name": "CVE-2025-6141"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/ncurses@6.5%2B20250216-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libncursesw6 6.5+20250216-2 finding. ncurses is consumed by Python's `readline`/`curses` modules. SENAITE/Plone runtime never invokes interactive terminal code; the senaite-lims-2.3 image is a non-interactive HTTP server."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-5928",
+      "vulnerability": {
+        "name": "CVE-2026-5928"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libgcrypt20-CVE-2024-2236",
+      "vulnerability": {
+        "name": "CVE-2024-2236"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libgcrypt20@1.11.0-7?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libgcrypt20 1.11.0-7 finding. libgcrypt is a transitive dep (typically via GnuTLS chains). SENAITE/Plone use Python's hashlib/ssl, not libgcrypt directly; pending principal review of whether any transitive ctypes chain reaches it."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxml2-CVE-2026-0990",
+      "vulnerability": {
+        "name": "CVE-2026-0990"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libxml2 2.12.7+dfsg+really2.9.14-2.1+deb13u2 finding. libxml2 is consumed by lxml. Inherits the same review context as the lxml findings \u2014 pending principal review of whether SENAITE invokes XML parsing against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-5435",
+      "vulnerability": {
+        "name": "CVE-2026-5435"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2018-10126",
+      "vulnerability": {
+        "name": "CVE-2018-10126"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2019-1010024",
+      "vulnerability": {
+        "name": "CVE-2019-1010024"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. ASLR-bypass disclosure; upstream states ASLR weakening is not itself a vulnerability. Exploitation requires a separate primitive (setuid binary or exposed listener) that this image does not provide. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-xz-utils-CVE-2026-34743",
+      "vulnerability": {
+        "name": "CVE-2026-34743"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/xz-utils@5.8.1-1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity liblzma5 5.8.1-1 finding. lzma is consumed by Python's lzma module. SENAITE/Plone never invoke lzma at runtime \u2014 no archive-decoding endpoint exists."
+    },
+    {
+      "@id": "wm-senaite-lims-23-lxml-GHSA-vfmq-68hx-4jfw",
+      "vulnerability": {
+        "name": "GHSA-vfmq-68hx-4jfw"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/lxml@4.8.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity lxml 4.8.0 finding. lxml is the libxml2/libxslt binding used by Plone's transform pipeline (XML import/export, RSS, PDF rendering). senaite.core 2.3.0 pins lxml at 4.8.0 \u2014 the last release that builds cleanly against Python 2.7. The vulnerable code paths require attacker-controlled XML; SENAITE's XML inputs are operator-supplied via authenticated import flows, not anonymous endpoints. Pending principal review of which lxml entry points are reachable without operator credentials."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxslt-CVE-2015-9019",
+      "vulnerability": {
+        "name": "CVE-2015-9019"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxslt@1.1.35-1.2%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libxslt1.1 1.1.35-1.2+deb13u2 finding. libxslt is consumed by lxml's XSLT processor. Same review context as the lxml findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-certifi-GHSA-43fp-rhv2-5gv8",
+      "vulnerability": {
+        "name": "GHSA-43fp-rhv2-5gv8"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/certifi@2021.10.8"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "certifi 2021.10.8 ships as the requests/urllib3 trust store. The advisory covers a CA root included in the bundle. SENAITE LIMS deployments only make outbound TLS connections to operator-configured endpoints (admin sets the URL when configuring senaite.jsonapi/REST integrations), and the runtime never receives connections from arbitrary remote TLS servers \u2014 there is no path through which an attacker controls the server presenting a compromised-CA-issued certificate to senaite-lims-2.3. Heritage Python 2.7 cannot upgrade certifi past 2021.10.8 (requests 2.27.1's last 2.7-compatible pin)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-cairosvg-GHSA-f38f-5xpm-9r7c",
+      "vulnerability": {
+        "name": "GHSA-f38f-5xpm-9r7c"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/cairosvg@1.0.20"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity cairosvg 1.0.20 SSRF/XXE-class finding. CairoSVG is pulled in by senaite.core 2.3.0's WeasyPrint 0.42.3 hard pin, used for PDF rendering of LIMS reports/labels. Server-side SVG rendering against authenticated-only LIMS report data is the relevant deployment path; pending principal review of whether report templates can embed externally-fetched URI references and the CairoSVG version's url_fetcher configuration. Same review context as the senaite-2.3 image's cairosvg statements \u2014 both versions are the last 2.7-compatible release."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxslt-CVE-2025-11731",
+      "vulnerability": {
+        "name": "CVE-2025-11731"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxslt@1.1.35-1.2%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libxslt1.1 1.1.35-1.2+deb13u2 finding. libxslt is consumed by lxml's XSLT processor. Same review context as the lxml findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-6238",
+      "vulnerability": {
+        "name": "CVE-2026-6238"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libgcrypt20-CVE-2018-6829",
+      "vulnerability": {
+        "name": "CVE-2018-6829"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libgcrypt20@1.11.0-7?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libgcrypt20 1.11.0-7 finding. libgcrypt is a transitive dep (typically via GnuTLS chains). SENAITE/Plone use Python's hashlib/ssl, not libgcrypt directly; pending principal review of whether any transitive ctypes chain reaches it."
+    },
+    {
+      "@id": "wm-senaite-lims-23-cairo-CVE-2018-18064",
+      "vulnerability": {
+        "name": "CVE-2018-18064"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/cairo@1.18.4-1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libcairo2 1.18.4-1+b1 finding. libcairo is consumed by cairocffi/CairoSVG for PDF rendering. Same review context as the cairosvg/weasyprint findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2026-41080",
+      "vulnerability": {
+        "name": "CVE-2026-41080"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glib2-0-CVE-2026-0988",
+      "vulnerability": {
+        "name": "CVE-2026-0988"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glib2.0@2.84.4-3~deb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libglib2.0-0t64 2.84.4-3~deb13u2 finding. GLib is a transitive dep of Cairo / Pango / GdkPixbuf. Same review context as the cairo/pango findings \u2014 invoked only in PDF rendering pipeline."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glib2-0-CVE-2012-0039",
+      "vulnerability": {
+        "name": "CVE-2012-0039"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glib2.0@2.84.4-3~deb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libglib2.0-0t64 2.84.4-3~deb13u2 finding. GLib is a transitive dep of Cairo / Pango / GdkPixbuf. Same review context as the cairo/pango findings \u2014 invoked only in PDF rendering pipeline."
+    },
+    {
+      "@id": "wm-senaite-lims-23-requests-GHSA-9wx4-h78v-vm56",
+      "vulnerability": {
+        "name": "GHSA-9wx4-h78v-vm56"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/requests@2.27.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity Python requests 2.27.1 finding. requests 2.27.1 is the last 2.7-compatible release (pinned by buildout). Pending principal review of which SENAITE outbound calls go through requests and whether attacker-controlled URLs/headers reach them. Same review context as the senaite-2.3 image (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-urllib3-GHSA-38jv-5279-wg99",
+      "vulnerability": {
+        "name": "GHSA-38jv-5279-wg99"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/urllib3@1.26.18"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity urllib3 1.26.18 finding. urllib3 1.26.18 is the last 2.7-compatible release (pinned by buildout). urllib3 underlies requests for outbound HTTP. Pending principal review of which SENAITE outbound calls reach urllib3 with attacker-derived URLs/headers. Same review context as the senaite-2.3 image's urllib3 statements (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2026-4438",
+      "vulnerability": {
+        "name": "CVE-2026-4438"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity glibc 2.41-12+deb13u2 finding inherited from the python-2.7 / debian13 base. Status will reduce when DHI publishes a rebuilt base image with the fixed glibc package; the senaite-lims-2.3 layer adds no code path that changes the calculation. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2010-4756",
+      "vulnerability": {
+        "name": "CVE-2010-4756"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. glob() recursion limit; documented POSIX behaviour and Debian flags this as unimportant. SENAITE never invokes glob() against attacker-supplied patterns \u2014 Plone catalog queries use Zope's own ZCatalog query language, not C-library globbing. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-hgf8-39gv-g3f2",
+      "vulnerability": {
+        "name": "GHSA-hgf8-39gv-g3f2"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2019-1010023",
+      "vulnerability": {
+        "name": "CVE-2019-1010023"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. Requires the local user to run `ldd` on a malicious ELF; glibc upstream classifies this as non-security. The senaite-lims-2.3 runtime is distroless (no shell, no `ldd`); an interactive caller cannot execute the vulnerable program. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-underscore-GHSA-qpx9-hpmf-5gmw",
+      "vulnerability": {
+        "name": "GHSA-qpx9-hpmf-5gmw"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/underscore@1.9.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity underscore 1.9.1 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-weasyprint-GHSA-983w-rhvv-gwmv",
+      "vulnerability": {
+        "name": "GHSA-983w-rhvv-gwmv"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/weasyprint@0.42.3"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity WeasyPrint 0.42.3 finding. WeasyPrint generates PDF reports/labels for SENAITE; the rendering path includes URL fetching for CSS/images. WeasyPrint 0.42.3 is older than the senaite-2.3 image's WeasyPrint pin (senaite.core 2.3.0 hard-pins 0.42.3, the last release supporting Python 2). Pending principal review of url_fetcher configuration and which SENAITE report templates can embed externally-fetched URI references. Tightly coupled to the cairosvg findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-sqlite3-CVE-2021-45346",
+      "vulnerability": {
+        "name": "CVE-2021-45346"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/sqlite3@3.46.1-7%2Bdeb13u1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libsqlite3-0 3.46.1-7+deb13u1 finding. libsqlite3 is consumed by Python's sqlite3 module. SENAITE/Plone use ZODB for persistence, not sqlite3; the only sqlite3 imports in the runtime tree are dormant test-suite remnants. Pending principal review to confirm no live sqlite3 connection is opened in the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-urllib3-GHSA-gm62-xv2j-4w53",
+      "vulnerability": {
+        "name": "GHSA-gm62-xv2j-4w53"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/urllib3@1.26.18"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity urllib3 1.26.18 finding. urllib3 1.26.18 is the last 2.7-compatible release (pinned by buildout). urllib3 underlies requests for outbound HTTP. Pending principal review of which SENAITE outbound calls reach urllib3 with attacker-derived URLs/headers. Same review context as the senaite-2.3 image's urllib3 statements (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-87hc-h4r5-73f7",
+      "vulnerability": {
+        "name": "GHSA-87hc-h4r5-73f7"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-werkzeug-GHSA-29vq-49wr-vm6x",
+      "vulnerability": {
+        "name": "GHSA-29vq-49wr-vm6x"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/werkzeug@1.0.1"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "werkzeug 1.0.1 is a Flask-stack WSGI utility; SENAITE 2.3.0 runs on Zope 4.x's classic ZServer (bin/instance, WSGI off), not Flask or any WSGI bridge. werkzeug is in the SBOM as a transitive dep of Plone-test or zope.interface support code, but its HTTP request/response objects are never instantiated at runtime \u2014 Plone 5.2.9 uses Zope's own ZPublisher exclusively. The senaite-2.3 image follows the same constraint: there is no waitress or WSGI optionality in the buildout."
+    },
+    {
+      "@id": "wm-senaite-lims-23-urllib3-GHSA-2xpw-w6gg-jr37",
+      "vulnerability": {
+        "name": "GHSA-2xpw-w6gg-jr37"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/urllib3@1.26.18"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity urllib3 1.26.18 finding. urllib3 1.26.18 is the last 2.7-compatible release (pinned by buildout). urllib3 underlies requests for outbound HTTP. Pending principal review of which SENAITE outbound calls reach urllib3 with attacker-derived URLs/headers. Same review context as the senaite-2.3 image's urllib3 statements (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pip-GHSA-4xh5-x5gv-qwph",
+      "vulnerability": {
+        "name": "GHSA-4xh5-x5gv-qwph"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pip@20.3.4"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's pip. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxslt-CVE-2025-10911",
+      "vulnerability": {
+        "name": "CVE-2025-10911"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxslt@1.1.35-1.2%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libxslt1.1 1.1.35-1.2+deb13u2 finding. libxslt is consumed by lxml's XSLT processor. Same review context as the lxml findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pyjwt-GHSA-752w-5fwx-jx9f",
+      "vulnerability": {
+        "name": "GHSA-752w-5fwx-jx9f"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pyjwt@1.7.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity pyjwt 1.7.1 finding on the senaite-lims-2.3 stack. pyjwt reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glib2-0-CVE-2026-1489",
+      "vulnerability": {
+        "name": "CVE-2026-1489"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glib2.0@2.84.4-3~deb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libglib2.0-0t64 2.84.4-3~deb13u2 finding. GLib is a transitive dep of Cairo / Pango / GdkPixbuf. Same review context as the cairo/pango findings \u2014 invoked only in PDF rendering pipeline."
+    },
+    {
+      "@id": "wm-senaite-lims-23-zipp-GHSA-jfmj-5v4g-7637",
+      "vulnerability": {
+        "name": "GHSA-jfmj-5v4g-7637"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/zipp@1.2.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity zipp 1.2.0 finding on the senaite-lims-2.3 stack. zipp reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libgcrypt20-CVE-2026-41989",
+      "vulnerability": {
+        "name": "CVE-2026-41989"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libgcrypt20@1.11.0-7?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libgcrypt20 1.11.0-7 finding. libgcrypt is a transitive dep (typically via GnuTLS chains). SENAITE/Plone use Python's hashlib/ssl, not libgcrypt directly; pending principal review of whether any transitive ctypes chain reaches it."
+    },
+    {
+      "@id": "wm-senaite-lims-23-ncurses-CVE-2025-69720",
+      "vulnerability": {
+        "name": "CVE-2025-69720"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/ncurses@6.5%2B20250216-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity libncursesw6 6.5+20250216-2 finding. ncurses is consumed by Python's `readline`/`curses` modules. SENAITE/Plone runtime never invokes interactive terminal code; the senaite-lims-2.3 image is a non-interactive HTTP server."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glib2-0-CVE-2026-1484",
+      "vulnerability": {
+        "name": "CVE-2026-1484"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glib2.0@2.84.4-3~deb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libglib2.0-0t64 2.84.4-3~deb13u2 finding. GLib is a transitive dep of Cairo / Pango / GdkPixbuf. Same review context as the cairo/pango findings \u2014 invoked only in PDF rendering pipeline."
+    },
+    {
+      "@id": "wm-senaite-lims-23-cairo-CVE-2025-50422",
+      "vulnerability": {
+        "name": "CVE-2025-50422"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/cairo@1.18.4-1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libcairo2 1.18.4-1+b1 finding. libcairo is consumed by cairocffi/CairoSVG for PDF rendering. Same review context as the cairosvg/weasyprint findings."
+    },
+    {
+      "@id": "wm-senaite-lims-23-util-linux-CVE-2026-27456",
+      "vulnerability": {
+        "name": "CVE-2026-27456"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libblkid1 2.41-5 finding. libblkid is part of util-linux's block-device probing. The senaite-lims-2.3 runtime never probes block devices \u2014 no exec path invokes blkid."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pip-GHSA-jp4c-xjxw-mgf9",
+      "vulnerability": {
+        "name": "GHSA-jp4c-xjxw-mgf9"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pip@20.3.4"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity pip 20.3.4 finding on the senaite-lims-2.3 stack. pip reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pip-GHSA-58qw-9mgm-455v",
+      "vulnerability": {
+        "name": "GHSA-58qw-9mgm-455v"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pip@20.3.4"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's pip. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libpng1-6-CVE-2026-34757",
+      "vulnerability": {
+        "name": "CVE-2026-34757"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libpng1.6@1.6.48-1%2Bdeb13u4?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libpng16-16t64 1.6.48-1+deb13u4 finding. libpng is consumed by Pillow and Cairo. Inherits the Pillow upload-pipeline review context (see pillow findings)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-ajv-GHSA-2g4f-4pwh-qvx6",
+      "vulnerability": {
+        "name": "GHSA-2g4f-4pwh-qvx6"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/ajv@4.11.8"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity ajv 4.11.8 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxml2-CVE-2026-0989",
+      "vulnerability": {
+        "name": "CVE-2026-0989"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libxml2 2.12.7+dfsg+really2.9.14-2.1+deb13u2 finding. libxml2 is consumed by lxml. Inherits the same review context as the lxml findings \u2014 pending principal review of whether SENAITE invokes XML parsing against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pip-GHSA-6vgw-5pg2-w6jp",
+      "vulnerability": {
+        "name": "GHSA-6vgw-5pg2-w6jp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pip@20.3.4"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "status_notes": "pip 20.3.4 is inherited from the python-2.7 base image (last 2.7-compatible release) and used at senaite-lims-2.3 build time only (zc.buildout pre-installs transitive deps). The runtime entrypoint is /opt/senaite/bin/instance (Plone Zope2 server); the image filesystem is read-only and there is no scheduler or shell that exec's pip. The vulnerable code path never fires on the deployed container. See common/images/python-2.7/python-2.7.vex.json for the same finding at the lower layer."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libpng1-6-CVE-2021-4214",
+      "vulnerability": {
+        "name": "CVE-2021-4214"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libpng1.6@1.6.48-1%2Bdeb13u4?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libpng16-16t64 1.6.48-1+deb13u4 finding. libpng is consumed by Pillow and Cairo. Inherits the Pillow upload-pipeline review context (see pillow findings)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxml2-CVE-2026-0992",
+      "vulnerability": {
+        "name": "CVE-2026-0992"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libxml2 2.12.7+dfsg+really2.9.14-2.1+deb13u2 finding. libxml2 is consumed by lxml. Inherits the same review context as the lxml findings \u2014 pending principal review of whether SENAITE invokes XML parsing against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glibc-CVE-2019-1010022",
+      "vulnerability": {
+        "name": "CVE-2019-1010022"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glibc@2.41-12%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_cannot_be_controlled_by_adversary",
+      "status_notes": "Inherited from python-2.7.vex.json. stack-guard-bypass disclosure that upstream classifies as a non-security bug. The senaite-lims-2.3 runtime has no setuid binaries and no exposed listener at the libc layer; the prerequisite primitive does not exist on this image. The senaite-lims-2.3 image runs the Plone bin/instance HTTP server on top of the same python-2.7 base, with no additional code path that reaches the vulnerable glibc primitive. See common/images/python-2.7/python-2.7.vex.json for the lower-layer statement."
+    },
+    {
+      "@id": "wm-senaite-lims-23-products-isurlinportal-GHSA-43gx-6gv6-3jcp",
+      "vulnerability": {
+        "name": "GHSA-43gx-6gv6-3jcp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/products-isurlinportal@1.2.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity products-isurlinportal 1.2.1 finding. Products.isURLInPortal \u2014 Plone's open-redirect validator. Pending principal review of which redirect entry points are reachable by anonymous users vs. authenticated lab staff in the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-python-dotenv-GHSA-mf9w-mj56-hr94",
+      "vulnerability": {
+        "name": "GHSA-mf9w-mj56-hr94"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/python-dotenv@0.15.0"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity python-dotenv 0.15.0 finding on the senaite-lims-2.3 stack. python-dotenv reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2026-25210",
+      "vulnerability": {
+        "name": "CVE-2026-25210"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: High-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-zlib-CVE-2026-27171",
+      "vulnerability": {
+        "name": "CVE-2026-27171"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/zlib@1:1.3.dfsg%2Breally1.3.1-1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity zlib1g 1:1.3.dfsg+really1.3.1-1+b1 finding. zlib is consumed by Python's zlib module and by Pillow for PNG decoding. Pending principal review of zlib-via-Pillow path (subsumed by the Pillow upload pipeline review)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2025-66382",
+      "vulnerability": {
+        "name": "CVE-2025-66382"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pixman-CVE-2023-37769",
+      "vulnerability": {
+        "name": "CVE-2023-37769"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/pixman@0.44.0-3?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libpixman-1-0 0.44.0-3 finding. libpixman is a transitive dep of cairo \u2014 same review context as libcairo2."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2026-32776",
+      "vulnerability": {
+        "name": "CVE-2026-32776"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2026-32778",
+      "vulnerability": {
+        "name": "CVE-2026-32778"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2026-32777",
+      "vulnerability": {
+        "name": "CVE-2026-32777"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2022-1210",
+      "vulnerability": {
+        "name": "CVE-2022-1210"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-sqlite3-CVE-2025-70873",
+      "vulnerability": {
+        "name": "CVE-2025-70873"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/sqlite3@3.46.1-7%2Bdeb13u1?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libsqlite3-0 3.46.1-7+deb13u1 finding. libsqlite3 is consumed by Python's sqlite3 module. SENAITE/Plone use ZODB for persistence, not sqlite3; the only sqlite3 imports in the runtime tree are dormant test-suite remnants. Pending principal review to confirm no live sqlite3 connection is opened in the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2025-8534",
+      "vulnerability": {
+        "name": "CVE-2025-8534"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-requests-GHSA-gc5v-m9x4-r6x2",
+      "vulnerability": {
+        "name": "GHSA-gc5v-m9x4-r6x2"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/requests@2.27.1"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity Python requests 2.27.1 finding. requests 2.27.1 is the last 2.7-compatible release (pinned by buildout). Pending principal review of which SENAITE outbound calls go through requests and whether attacker-controlled URLs/headers reach them. Same review context as the senaite-2.3 image (identical pinned version)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2025-61144",
+      "vulnerability": {
+        "name": "CVE-2025-61144"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-glib2-0-CVE-2026-1485",
+      "vulnerability": {
+        "name": "CVE-2026-1485"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/glib2.0@2.84.4-3~deb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libglib2.0-0t64 2.84.4-3~deb13u2 finding. GLib is a transitive dep of Cairo / Pango / GdkPixbuf. Same review context as the cairo/pango findings \u2014 invoked only in PDF rendering pipeline."
+    },
+    {
+      "@id": "wm-senaite-lims-23-expat-CVE-2026-24515",
+      "vulnerability": {
+        "name": "CVE-2026-24515"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/expat@2.7.1-2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity libexpat1 2.7.1-2 finding. libexpat is consumed by Python's pyexpat for XML parsing. SENAITE/Plone use lxml (libxml2) for primary XML parsing; pyexpat sees occasional internal use through stdlib (e.g. plistlib, XML-RPC). Pending principal review of whether any reachable XML-parsing path is fed adversary-controlled input \u2014 defaulting to under_investigation for the senaite-2.3 image since the audit has not yet been completed."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2025-8177",
+      "vulnerability": {
+        "name": "CVE-2025-8177"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-util-linux-CVE-2022-0563",
+      "vulnerability": {
+        "name": "CVE-2022-0563"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libblkid1 2.41-5 finding. libblkid is part of util-linux's block-device probing. The senaite-lims-2.3 runtime never probes block devices \u2014 no exec path invokes blkid."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2025-8176",
+      "vulnerability": {
+        "name": "CVE-2025-8176"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxml2-CVE-2025-8732",
+      "vulnerability": {
+        "name": "CVE-2025-8732"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libxml2 2.12.7+dfsg+really2.9.14-2.1+deb13u2 finding. libxml2 is consumed by lxml. Inherits the same review context as the lxml findings \u2014 pending principal review of whether SENAITE invokes XML parsing against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libpng1-6-CVE-2026-3713",
+      "vulnerability": {
+        "name": "CVE-2026-3713"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libpng1.6@1.6.48-1%2Bdeb13u4?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libpng16-16t64 1.6.48-1+deb13u4 finding. libpng is consumed by Pillow and Cairo. Inherits the Pillow upload-pipeline review context (see pillow findings)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2025-61143",
+      "vulnerability": {
+        "name": "CVE-2025-61143"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tiff-CVE-2025-61145",
+      "vulnerability": {
+        "name": "CVE-2025-61145"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/tiff@4.7.0-3%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libtiff6 4.7.0-3+deb13u2 finding. libtiff is consumed by Pillow for TIFF decoding of microscopy images. The advisory's exploit surface is inherited from the broader Pillow upload-pipeline review (see pillow findings \u2014 PRINCIPAL-REVIEW-BLOCKING)."
+    },
+    {
+      "@id": "wm-senaite-lims-23-libxml2-CVE-2026-1757",
+      "vulnerability": {
+        "name": "CVE-2026-1757"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/libxml2@2.12.7%2Bdfsg%2Breally2.9.14-2.1%2Bdeb13u2?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libxml2 2.12.7+dfsg+really2.9.14-2.1+deb13u2 finding. libxml2 is consumed by lxml. Inherits the same review context as the lxml findings \u2014 pending principal review of whether SENAITE invokes XML parsing against untrusted input."
+    },
+    {
+      "@id": "wm-senaite-lims-23-util-linux-CVE-2025-14104",
+      "vulnerability": {
+        "name": "CVE-2025-14104"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:deb/debian/util-linux@2.41-5?os_distro=trixie&os_name=debian&os_version=13"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Negligible-severity libblkid1 2.41-5 finding. libblkid is part of util-linux's block-device probing. The senaite-lims-2.3 runtime never probes block devices \u2014 no exec path invokes blkid."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-jgpv-4h4c-xhw3",
+      "vulnerability": {
+        "name": "GHSA-jgpv-4h4c-xhw3"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Medium-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-r73j-pqj5-w3x7",
+      "vulnerability": {
+        "name": "GHSA-r73j-pqj5-w3x7"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-wjx4-4jcj-g98j",
+      "vulnerability": {
+        "name": "GHSA-wjx4-4jcj-g98j"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity pillow 6.2.2 finding on the senaite-lims-2.3 stack. pillow reaches the runtime via the senaite.lims 2.3.0 / Plone 5.2.9 dependency closure. Heritage Python 2.7 caps the upgradable surface \u2014 pending principal review of whether SENAITE invokes the vulnerable code path."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-5vm8-hhgr-jcjp",
+      "vulnerability": {
+        "name": "GHSA-5vm8-hhgr-jcjp"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "PRINCIPAL-REVIEW-BLOCKING: Medium-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    },
+    {
+      "@id": "wm-senaite-lims-23-pillow-GHSA-4fx9-vc88-q2xc",
+      "vulnerability": {
+        "name": "GHSA-4fx9-vc88-q2xc"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:pypi/pillow@6.2.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity Pillow 6.2.2 image-parsing finding. Pillow is the server-side image processor for sample uploads (microscopy, gels) by authenticated lab technicians. senaite.core 2.3.0 pins Pillow at 6.2.2 \u2014 the last Python-2.7-compatible release; newer security fixes are not back-portable without dropping Py2 support. The upload pipeline accepts files from authenticated users, so the attack surface is real. PRINCIPAL-REVIEW-BLOCKING until the upload pipeline's MIME whitelist, size cap, and processing-isolation strategy are documented for the senaite-2.3 deployment."
+    },
+    {
+      "@id": "wm-senaite-lims-23-tinymce-GHSA-h96f-fc7c-9r55",
+      "vulnerability": {
+        "name": "GHSA-h96f-fc7c-9r55"
+      },
+      "timestamp": "2026-05-08T00:00:00Z",
+      "products": [
+        {
+          "@id": "pkg:oci/senaite-lims-2.3@2.3.0"
+        },
+        {
+          "@id": "pkg:npm/tinymce@4.6.2"
+        }
+      ],
+      "status": "under_investigation",
+      "impact_statement": "Low-severity tinymce 4.6.2 finding in browser-side JavaScript shipped by Plone 5.2.9 / senaite.lims 2.3.0 static resources. The vulnerable code only executes in the operator's browser session against trusted SENAITE-rendered markup; SENAITE deployments are operator-only (no anonymous or untrusted users) per VEX-POLICY.md. Pending principal review of CSP and operator threat model."
+    }
+  ]
 }
