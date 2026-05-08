@@ -19,14 +19,17 @@ jobs:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
-      - name: List apps
+      - name: Discover apps
         id: apps
-        run: echo "list=$(./scripts/list-apps | jq -r '.[]' | tr '\n' ' ')" >> "$GITHUB_OUTPUT"
+        run: |
+          APPS=$(./scripts/list-apps | jq -r '.[]' | tr '\n' ' ')
+          echo "APPS=$APPS" >> "$GITHUB_ENV"
+          echo "list=$APPS" >> "$GITHUB_OUTPUT"
 
       - name: Snapshot current lock files
         run: |
           mkdir -p /tmp/before
-          for app in ${{ steps.apps.outputs.list }}; do
+          for app in $APPS; do
             lock="apps/${app}/app-images.lock.yaml"
             if [ -f "$lock" ]; then
               cp "$lock" "/tmp/before/${app}.lock.yaml"
@@ -38,7 +41,7 @@ jobs:
 
       - name: Pin latest digests for every app
         run: |
-          for app in ${{ steps.apps.outputs.list }}; do
+          for app in $APPS; do
             echo "=== Updating ${app} ==="
             APP=$app just update-app-images
           done
@@ -51,7 +54,7 @@ jobs:
         run: |
           changed=false
           changed_apps=()
-          for app in ${{ steps.apps.outputs.list }}; do
+          for app in $APPS; do
             lock="apps/${app}/app-images.lock.yaml"
             before="/tmp/before/${app}.lock.yaml"
             if [ ! -f "$before" ] && [ -f "$lock" ]; then
@@ -75,7 +78,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="update-dhi-digests-$(date +%Y%m%d)"
           git checkout -b "$branch"
-          for app in ${{ steps.apps.outputs.list }}; do
+          for app in $APPS; do
             lock="apps/${app}/app-images.lock.yaml"
             manifest="apps/${app}/app-images.yaml"
             [ -f "$lock" ] || continue
