@@ -219,7 +219,7 @@ jobs:
         run: just release-website
 
       - name: Package release website
-        run: tar -czf release-website.tar.gz -C apps/sbomify/release-website/public .
+        run: tar -czf release-website.tar.gz -C apps/sbomify-current/release-website/public .
 
       - name: Upload compliance pack
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4

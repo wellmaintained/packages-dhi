@@ -5,7 +5,7 @@ set -euo pipefail
 VERSION="${1:?Usage: build-compliance-pack <version>}"
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${APP:-sbomify}"
+APP="${APP:-sbomify-current}"
 ARTIFACTS="${REPO_ROOT}/artifacts"
 TOOL_LOCK="${REPO_ROOT}/common/tool-versions.lock.yaml"
 APP_LOCK="${REPO_ROOT}/apps/${APP}/app-images.lock.yaml"

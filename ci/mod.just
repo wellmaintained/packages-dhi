@@ -3,7 +3,7 @@
 # run as dry-runs locally.
 
 repo_root := justfile_directory()
-app := env("APP", "sbomify")
+app := env("APP", "sbomify-current")
 app_manifest := repo_root / "apps" / app / "app-images.yaml"
 artifacts_dir := repo_root / "artifacts"
 

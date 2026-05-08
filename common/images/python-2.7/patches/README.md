@@ -18,7 +18,7 @@ This directory does **not** hold:
   [ADR-0009](../../../../docs/adr/0009-publish-vex-not-point-in-time-cves.md).
   For a CVE marked `not_affected` in `CVE-LOG.md`, the cross-referenced
   VEX statement ID lives in the consuming image's
-  `<image>.vex.json` (e.g. `apps/senaite/images/senaite-lims/senaite-lims.vex.json`).
+  `<image>.vex.json` (e.g. `apps/senaite-current/images/senaite-lims/senaite-lims.vex.json`).
 - Image build wiring. How patches flow into the SBOM as discrete
   components is a Step 3 concern — see the python-2.7 base image
   scaffold yak. Step 2 (this scaffold) only lays down the directory,

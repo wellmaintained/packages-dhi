@@ -89,8 +89,9 @@ treats it as a schema error; we treat it as a review gate.)
 MUST give reasoning that names the deployment-context-specific
 reason the justification holds. Examples of acceptable narrative:
 
-> The senaite stack runs Plone behind Caddy (per
-> `apps/senaite/deployments/docker-compose.yml`). Caddy strips the
+> The senaite stack runs Plone behind Caddy (per the version-line
+> compose at `apps/senaite-current/deployments/docker-compose.yml`).
+> Caddy strips the
 > `X-Forwarded-Host` header before the request reaches gunicorn,
 > so the redirect-confusion path described in CVE-2024-XXXX is not
 > reachable. If Caddy is removed from the deployment, this VEX

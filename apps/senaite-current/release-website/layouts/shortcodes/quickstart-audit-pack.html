@@ -1,0 +1,16 @@
+{{- $release := hugo.Data.release -}}
+{{- if $release -}}
+<p>The compliance pack contains all SBOMs, VEX documents, provenance records,
+vulnerability scans, and the deployment manifest in a single ZIP:</p>
+<ul>
+<li><strong>SBOMs</strong> — CycloneDX SBOMs for all {{ len $release.images }} images (DHI-provided for stock, our-generated for custom)</li>
+<li><strong>VEX statements</strong> — OpenVEX from DHI + hand-written assessments for custom images</li>
+<li><strong>Provenance</strong> — SLSA provenance attestations</li>
+<li><strong>Vulnerability scans</strong> — Grype results for custom images</li>
+<li><strong>docker-compose.yml</strong> — Deployment manifest</li>
+</ul>
+<p>Download the compliance pack from the
+<a href="https://github.com/wellmaintained/packages-dhi/releases">GitHub Releases</a> page.</p>
+{{- else -}}
+<em>Release data not available. Run <code>just release-data</code> to generate.</em>
+{{- end -}}

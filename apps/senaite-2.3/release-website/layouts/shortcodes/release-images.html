@@ -1,0 +1,20 @@
+{{ $release := hugo.Data.release }}
+{{ if $release }}
+<table>
+<thead>
+<tr><th>Image</th><th>Source</th><th>Type</th><th>Attestations</th></tr>
+</thead>
+<tbody>
+{{ range $release.images }}
+<tr>
+  <td><strong>{{ .name }}</strong></td>
+  <td><code>{{ .source }}{{ with .digest }}@{{ . | truncate 19 "..." }}{{ end }}</code></td>
+  <td>{{ .type }}</td>
+  <td>{{ .attestation_source }}</td>
+</tr>
+{{ end }}
+</tbody>
+</table>
+{{ else }}
+<p><em>Release data not available.</em></p>
+{{ end }}

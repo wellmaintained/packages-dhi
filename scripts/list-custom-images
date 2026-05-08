@@ -3,7 +3,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${APP:-sbomify}"
+APP="${APP:-sbomify-current}"
 APP_MANIFEST="${REPO_ROOT}/apps/${APP}/app-images.yaml"
 
 yq -o=json -I0 '[to_entries[] | select(.value | has("definition")) | .key]' "$APP_MANIFEST"

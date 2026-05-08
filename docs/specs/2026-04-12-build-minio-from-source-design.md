@@ -16,7 +16,7 @@ The bucket-creation script (`create-minio-buckets.sh`) contains sbomify-specific
 
 After this change:
 - `common/images/minio/dhi.yaml` builds a generic image containing `minio` server and `mc` client
-- `apps/sbomify/deployments/` mounts `create-minio-buckets.sh` into the init container at runtime
+- `apps/sbomify-current/deployments/` mounts `create-minio-buckets.sh` into the init container at runtime
 - `common/images/minio-init/` is deleted
 
 ### Build minio and mc from source
@@ -60,7 +60,7 @@ The filename `latest.yaml` implies a version strategy, but every version inside 
 Affected files:
 - `common/images/minio/latest.yaml` → `dhi.yaml`
 - `common/images/hugo/latest.yaml` → `dhi.yaml`
-- References in `apps/sbomify/app-images.yaml`, `app-images.lock.yaml`, `common/tool-images.yaml`, `common/tool-images.lock.yaml`
+- References in `apps/sbomify-current/app-images.yaml`, `app-images.lock.yaml`, `common/tool-images.yaml`, `common/tool-images.lock.yaml`
 
 ### Docker-compose changes
 
@@ -90,29 +90,29 @@ sbomify-minio-init:
 
 ### Files to create
 
-- `apps/sbomify/deployments/scripts/create-minio-buckets.sh` — extracted from image definition (new directory)
+- `apps/sbomify-current/deployments/scripts/create-minio-buckets.sh` — extracted from image definition (new directory)
 
 ### Files to delete
 
 - `common/images/minio-init/` — entire directory
-- `apps/sbomify/release-website/content/dependencies/minio-init.md`
+- `apps/sbomify-current/release-website/content/dependencies/minio-init.md`
 
 ### Files to update
 
 - `common/images/minio/dhi.yaml` — rewrite with Go source builds, include `mc`
-- `apps/sbomify/deployments/docker-compose.yml` — init container uses minio image with mounted script; minio service gets credentials in environment block
-- `apps/sbomify/app-images.yaml` / `app-images.lock.yaml` — remove minio-init, update minio definition path
+- `apps/sbomify-current/deployments/docker-compose.yml` — init container uses minio image with mounted script; minio service gets credentials in environment block
+- `apps/sbomify-current/app-images.yaml` / `app-images.lock.yaml` — remove minio-init, update minio definition path
 - `common/tool-images.yaml` / `common/tool-images.lock.yaml` — update hugo definition path
 - `.github/workflows/*.yml` — remove minio-init from image lists (build.yml, pre-release.yml, rescan-vulnerabilities.yml, sbom-quality-gate.yml)
 - `CLAUDE.md` — remove minio-init from structure description
 - `docs/adr/0001-adopt-dhi-base-images.md` — update to reflect minio-init no longer exists as a separate image
-- `apps/sbomify/release-website/content/dependencies/_index.md` — update references
+- `apps/sbomify-current/release-website/content/dependencies/_index.md` — update references
 
 ### Generated files to regenerate
 
 These files are generated output committed to the repo. They must be regenerated after the above changes:
 
-- `apps/sbomify/release-website/public/` — regenerate with `just release-website` (contains minio-init references in sidebar, SBOM tables, provenance pages)
+- `apps/sbomify-current/release-website/public/` — regenerate with `just release-website` (contains minio-init references in sidebar, SBOM tables, provenance pages)
 - Release data artifacts — regenerate with `just release-data`
 
 ## Versions

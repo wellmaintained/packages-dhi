@@ -20,7 +20,7 @@ jobs:
           dhi-token: ${{ secrets.DHI_TOKEN }}
 
       - name: Save current lock file
-        run: cp apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml
+        run: cp apps/sbomify-current/app-images.lock.yaml /tmp/app-images-before.lock.yaml
 
       - name: Pin latest digests
         run: just update
@@ -29,10 +29,10 @@ jobs:
         id: diff
         run: |
           changed=false
-          if ! diff -q apps/sbomify/app-images.lock.yaml /tmp/app-images-before.lock.yaml > /dev/null 2>&1; then
+          if ! diff -q apps/sbomify-current/app-images.lock.yaml /tmp/app-images-before.lock.yaml > /dev/null 2>&1; then
             changed=true
             echo "App image changes:"
-            diff /tmp/app-images-before.lock.yaml apps/sbomify/app-images.lock.yaml || true
+            diff /tmp/app-images-before.lock.yaml apps/sbomify-current/app-images.lock.yaml || true
           fi
           echo "changed=${changed}" >> "$GITHUB_OUTPUT"
 
@@ -43,7 +43,7 @@ jobs:
           git config user.email "github-actions[bot]@users.noreply.github.com"
           branch="update-dhi-digests-$(date +%Y%m%d)"
           git checkout -b "$branch"
-          git add apps/sbomify/app-images.yaml apps/sbomify/app-images.lock.yaml
+          git add apps/sbomify-current/app-images.yaml apps/sbomify-current/app-images.lock.yaml
           git commit -m "chore: update stock image digest pins"
           git push -u origin HEAD
           gh pr create \
@@ -54,7 +54,7 @@ jobs:
           - Quality gate will validate the updated images
 
           ## Changes
-          $(diff /tmp/app-images-before.lock.yaml apps/sbomify/app-images.lock.yaml || true)
+          $(diff /tmp/app-images-before.lock.yaml apps/sbomify-current/app-images.lock.yaml || true)
           PREOF
           )"
         env:

@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-APP="${APP:-sbomify}"
+APP="${APP:-sbomify-current}"
 APP_LOCK="${REPO_ROOT}/apps/${APP}/app-images.lock.yaml"
 ARTIFACTS="${REPO_ROOT}/artifacts"
 
