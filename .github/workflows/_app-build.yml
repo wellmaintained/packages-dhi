@@ -16,7 +16,7 @@ permissions:
 jobs:
   resolve-images:
     name: Resolve image lists (${{ inputs.app }})
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
     steps:
@@ -28,7 +28,7 @@ jobs:
 
   stock-dhi-images:
     name: Extract DHI attestations (${{ inputs.app }})
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     env:
       APP: ${{ inputs.app }}
     steps:
@@ -51,7 +51,7 @@ jobs:
   custom-dhi-builds:
     name: Build ${{ inputs.app }}/${{ matrix.image }}
     needs: resolve-images
-    runs-on: blacksmith-2vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     env:
       APP: ${{ inputs.app }}
     strategy:
