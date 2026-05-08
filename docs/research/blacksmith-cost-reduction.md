@@ -187,11 +187,17 @@ I prefer B over C (move workflows but keep some caching) because there is no cac
   - Restore-keys: fall back to the unversioned key.
 - Smoke-test on a noop PR to confirm cache hit/miss behaves and the build still succeeds.
 
-### PR 2 (follow-up): Dedupe python-2.7
+### PR 2 (follow-up): Dedupe python-2.7 — already tracked
 
-- Promote `python-2.7` from per-app `app-images.yaml` into `common/images/python-2.7/` as a shared base image (like `minio`).
-- Senaite apps reference the resulting GHCR digest at promote time instead of building locally.
-- This removes the 3× rebuild and is a nice cleanup of the per-app/shared distinction either way.
+The 3× python-2.7 rebuild is already covered by an existing yak: **`dedupe-shared-image-builds-across-apps-1dvr`** (under `multi-app pipeline generalisation`). Its context already lays out two design approaches (resolve-time dedupe vs shared-image promotion) and explicitly cross-references this brief. I have not duplicated it as a follow-up here.
+
+**Cost impact of the dedupe yak, post-migration to vanilla GHA:**
+
+- Compute savings: small (~$0–1/month). Once `build.yml` is on free `ubuntu-latest`, two redundant python-2.7 builds per shared-path PR cost nothing in dollars.
+- Wall-time savings: ~10–15 min off the slow side of any shared-path PR (3 concurrent python-2.7 builds collapse to 1).
+- Cache contention: the bigger structural win — three concurrent matrix jobs writing to the same `actions/cache` (or `stickydisk`) key is a known correctness footgun that dedupe eliminates.
+
+**Priority recommendation:** *medium*. After migrating off Blacksmith (highest priority — biggest $ saving), the dedupe yak's value becomes pipeline cleanliness + wall-time, not cost. It can land any time after PR 1; doesn't block anything.
 
 ### Roll-back plan
 
@@ -210,15 +216,27 @@ If the standard-runner build wall-time is unacceptable on real workloads:
 
 ---
 
-## Follow-up work (yak stubs)
+## Follow-up work
 
-Three follow-up yaks created under `packages-dhi`:
+### New yaks created (this brief)
 
-1. **`migrate build.yml off blacksmith`** — implement PR 1 above.
-2. **`replace stickydisk with actions cache`** — implement the cache-action swap inside `setup-pipeline`.
-3. **`promote python-2.7 to shared base image`** — dedupe across senaite apps (PR 2).
+Two follow-up yaks created under `packages-dhi`:
 
-(The first two are tightly coupled and could be one yak, but I split them so we can land the Blacksmith → GHA move first and validate wall-time before doing the cache swap. Operator can collapse them into one PR if desired.)
+1. **`migrate-buildyml-off-blacksmith-wkg1`** — implement PR 1 above.  *Priority: highest.*  Estimated saving: $25–40/month for packages-dhi.
+2. **`replace-stickydisk-with-actions-cache-iwnd`** — implement the cache-action swap inside `setup-pipeline/action.yml`.  *Priority: high.*  Estimated saving: $15–30/month for packages-dhi.
+
+(The two could be one PR but I split them so we can land the Blacksmith → GHA move first and observe any wall-time impact in isolation before doing the cache swap. Operator can collapse them into one PR if desired.)
+
+The `concurrency:` group is bundled into yak 1 deliberately — it's a one-line change to the same workflow file and benefits from the same smoke-test PR. If the operator prefers it as a separate yak (it ships value independently and could land sooner), that's a defensible split.
+
+### Existing yaks this brief depends on
+
+- **`dedupe-shared-image-builds-across-apps-1dvr`** (under `multi-app pipeline generalisation`). Already tracked; its context already cross-references this brief. **Priority: medium** — its dollar impact is captured by yaks 1+2 above; its remaining value is wall-time + cache-contention cleanup, which can land any time post-PR-1.
+
+### Yaks I considered but did not create
+
+- **Stickydisk cache hit-rate audit.** Yakob suggested this as potential ground. Skipped — once we move to `actions/cache`, the analysis is moot. If we *don't* move (i.e. operator overrides Recommendation B and stays on Blacksmith), this audit becomes the right next step.
+- **Standalone `concurrency:` group yak.** Folded into yak 1 above; see rationale.
 
 ---
 
