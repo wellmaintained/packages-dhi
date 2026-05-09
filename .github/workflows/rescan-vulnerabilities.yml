@@ -9,14 +9,32 @@ permissions:
   contents: read
 
 jobs:
-  rescan:
+  resolve:
+    name: Resolve apps
     runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.apps.outputs.apps }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - id: apps
+        run: echo "apps=$(./scripts/list-apps)" >> "$GITHUB_OUTPUT"
+
+  rescan:
+    name: Rescan ${{ matrix.app }}
+    needs: resolve
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        app: ${{ fromJSON(needs.resolve.outputs.apps) }}
+    env:
+      APP: ${{ matrix.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline
         with:
           dhi-username: ${{ vars.DHI_USERNAME }}
           dhi-token: ${{ secrets.DHI_TOKEN }}
+          cache-key: ${{ matrix.app }}-rescan
 
       - name: Extract DHI attestations (includes CVE scan)
         run: just extract-dhi-attestations
@@ -24,7 +42,7 @@ jobs:
       - name: Scan custom images
         run: |
           for image in $(./scripts/list-custom-images | jq -r '.[]'); do
-            echo "=== Scanning ${image} ==="
+            echo "=== Scanning ${{ matrix.app }}/${image} ==="
             reg=$(just _image-registry "$image")
             ./bin/grype "${reg}:latest" -o table || true
           done
@@ -32,5 +50,5 @@ jobs:
       - name: Upload scan results
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
-          name: vulnerability-rescan-$(date +%Y%m%d)
+          name: vulnerability-rescan-${{ matrix.app }}
           path: artifacts/

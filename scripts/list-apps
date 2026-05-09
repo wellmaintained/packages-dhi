@@ -1,0 +1,20 @@
+#!/usr/bin/env bash
+# List app names (directories under apps/ that contain an app-images.yaml) as a JSON array.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+apps=()
+for d in "${REPO_ROOT}/apps"/*/; do
+    [[ -f "${d}app-images.yaml" ]] || continue
+    apps+=("$(basename "$d")")
+done
+
+# Emit compact JSON array
+printf '['
+sep=''
+for app in "${apps[@]}"; do
+    printf '%s"%s"' "$sep" "$app"
+    sep=','
+done
+printf ']'

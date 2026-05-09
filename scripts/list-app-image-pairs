@@ -1,0 +1,41 @@
+#!/usr/bin/env bash
+# Emit a JSON array of {app, image} pairs across every apps/<app>/app-images.yaml.
+# Useful for matrix strategies that walk all apps' custom images.
+#
+# Per-app custom images (definition under apps/<app>/) are emitted once per
+# app. Shared images (definition under common/images/) are deduped across
+# apps and emitted under the synthetic app key "_shared" — they're built
+# once per workflow run by _app-build.yml's shared-images job, so multi-app
+# maintenance workflows (cleanup-stale-images, rescan-vulnerabilities) need
+# a single entry per shared image, not one per consuming app.
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+
+local_pairs="[]"
+shared_images="[]"
+for d in "${REPO_ROOT}/apps"/*/; do
+    manifest="${d}app-images.yaml"
+    [[ -f "$manifest" ]] || continue
+    app=$(basename "$d")
+
+    app_local=$(yq -o=json -I0 '
+      [to_entries[]
+       | select(.value | has("definition"))
+       | select(.value.definition | test("^common/images/") | not)
+       | .key]
+    ' "$manifest")
+    local_pairs=$(jq -c --arg app "$app" --argjson imgs "$app_local" \
+        '. + [($imgs[] | {app: $app, image: .})]' <<<"$local_pairs")
+
+    app_shared=$(yq -o=json -I0 '
+      [to_entries[]
+       | select(.value | has("definition"))
+       | select(.value.definition | test("^common/images/"))
+       | .key]
+    ' "$manifest")
+    shared_images=$(jq -c --argjson imgs "$app_shared" '. + $imgs' <<<"$shared_images")
+done
+
+jq -c --argjson local "$local_pairs" --argjson shared "$shared_images" \
+    '($shared | unique | map({app: "_shared", image: .})) + $local' <<<"null"

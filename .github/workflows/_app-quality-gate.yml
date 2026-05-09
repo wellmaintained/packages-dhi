@@ -1,9 +1,16 @@
-name: SBOM Quality Gate
+name: _app-quality-gate
 
 on:
-  workflow_run:
-    workflows: [Build]
-    types: [completed]
+  workflow_call:
+    inputs:
+      app:
+        description: 'App name under apps/'
+        required: true
+        type: string
+      run-id:
+        description: 'workflow_run id of the upstream build to pull artifacts from'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -11,13 +18,14 @@ permissions:
 
 jobs:
   resolve-images:
-    if: github.event.workflow_run.conclusion == 'success'
     runs-on: ubuntu-latest
     outputs:
       custom-images: ${{ steps.images.outputs.custom }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - id: images
+        env:
+          APP: ${{ inputs.app }}
         run: echo "custom=$(./scripts/list-custom-images)" >> "$GITHUB_OUTPUT"
 
   quality-gate:
@@ -32,9 +40,9 @@ jobs:
       - name: Download attestation artifacts
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
         with:
-          name: custom-${{ matrix.image }}-attestations
+          name: custom-${{ inputs.app }}-${{ matrix.image }}-attestations
           path: artifacts/${{ matrix.image }}/
-          run-id: ${{ github.event.workflow_run.id }}
+          run-id: ${{ inputs.run-id }}
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Check SBOM exists and is non-empty
@@ -44,7 +52,6 @@ jobs:
             echo "FAIL: No SPDX SBOM found for ${{ matrix.image }}"
             exit 1
           fi
-          # SPDX packages array
           packages=$(jq '.packages | length' "$sbom")
           echo "SBOM has ${packages} packages"
           if [ "$packages" -lt 1 ]; then
@@ -59,7 +66,6 @@ jobs:
             critical=$(jq '[.matches[] | select(.vulnerability.severity == "Critical")] | length' "$cves")
             high=$(jq '[.matches[] | select(.vulnerability.severity == "High")] | length' "$cves")
             echo "Critical: ${critical}, High: ${high}"
-            # Warn but don't fail — VEX may suppress these
           else
             echo "No CVE scan results found — skipping vulnerability check"
           fi
