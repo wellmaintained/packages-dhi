@@ -453,6 +453,16 @@ contents:
             # Trim .pyc bytecode (will regenerate on first run).
             find . -name '*.pyc' -delete
             find . -name '__pycache__' -type d -exec rm -rf {} +
+            # Trim non-runtime files from the senaite.impress develop-egg
+            # checkout (tests/, docs/, .git/). The pyphen pin workaround
+            # (see "install zc.buildout" step) clones the full senaite.impress
+            # git tree into src/senaite.impress, which buildout consumes via
+            # `develop = src/senaite.impress`. Runtime imports go through
+            # senaite.impress's installed package only — these directories
+            # are dev artefacts that pollute the SBOM file index without any
+            # runtime contribution. See yak: trim senaite-2.3 SBOM bloat from
+            # pyphen develop-egg.
+            find src/senaite.impress -type d \( -name tests -o -name docs -o -name .git \) -exec rm -rf {} +
             # Path surgery: buildout was run with buildout-directory =
             # ${target.dir}/opt/senaite (which expands to /out/opt/senaite
             # at build time). bin/instance and parts/instance/etc/* contain
