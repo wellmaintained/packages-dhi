@@ -4,6 +4,23 @@ Captured against `ghcr.io/wellmaintained/packages-dhi/senaite-lims-current:dev`
 (Plone 5.2.15 + senaite.lims 2.6.0, branch
 `restructure-build-senaite-current-image-and-app-from-senaite.lims-2.6.x`).
 
+## Across the senaite version line
+
+| Image           | senaite.core tests | grype findings |
+|-----------------|-------------------:|---------------:|
+| senaite-1.3     |          100 / 100 |            371 |
+| senaite-2.3     |          116 / 116 |            398 |
+| senaite-current |      **136 / 137** |         **50** |
+
+The dependency closure shrinks materially across the line as senaite modernises
+within the Py2 ceiling (2.6.0 is the last Py2-compatible release): 1.3.5 → 2.3.0
+→ 2.6.0 progressively trims Python-2-era transitive deps, driving grype findings
+from the ~370–400 range down to 50 against `:dev`. The single 1/137 senaite.core
+miss is **upstream doctest output drift** in `SampleCreate.rst` (timing-
+instrumentation lines added in 2.6 without refreshing the expected output) — not
+a wellmaintained regression. See "The single failure" below for the full
+attribution.
+
 ## How to reproduce
 
 ```
