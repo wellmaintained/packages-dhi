@@ -1,0 +1,71 @@
+name: Build image, push, sign, attest
+description: |
+  Wraps `just ci build <image>`, which (when CI=true) builds the image,
+  generates compliance artefacts, pushes :component_tag, signs, and attests
+  SBOM + provenance. Optionally pushes a per-PR :pr-${sha7} handoff tag for
+  downstream consumers (shared images), and uploads attestation artefacts.
+
+  Component-tag derivation honours the explicit sha7 input (PR head SHA) by
+  setting SHA7_OVERRIDE in the build environment; ci/mod.just::_component-tag
+  picks this up so all tags pushed by the chain use the PR head SHA rather
+  than the checkout's merge-commit SHA.
+
+inputs:
+  app:
+    description: App name under apps/ (e.g. sbomify-current); exported as APP.
+    required: true
+  image:
+    description: Image name in the matrix (passed to just ci build).
+    required: true
+  sha7:
+    description: 7-char SHA used in component-tag and handoff-tag (PR head SHA).
+    required: true
+  push_handoff:
+    description: 'true to push :pr-${sha7} for downstream builds (shared images only).'
+    required: false
+    default: 'false'
+
+runs:
+  using: composite
+  steps:
+    - name: Compute component tag (diagnostic)
+      id: tag
+      shell: bash
+      env:
+        APP: ${{ inputs.app }}
+      run: |
+        COMPONENT_TAG=$(just ci _component-tag "${{ inputs.image }}" "${{ inputs.sha7 }}")
+        REG=$(just ci _image-registry "${{ inputs.image }}")
+        {
+          echo "component_tag=${COMPONENT_TAG}"
+          echo "registry=${REG}"
+        } >> "$GITHUB_OUTPUT"
+        echo "==> Component tag: ${COMPONENT_TAG}"
+        echo "==> Registry:      ${REG}"
+
+    - name: Build image and generate compliance artifacts
+      shell: bash
+      env:
+        APP: ${{ inputs.app }}
+        # HANDOFF_TAG: substituted into __HANDOFF_TAG__ placeholders in DHI
+        # definitions by scripts/build-image (relevant for custom-dhi-builds).
+        HANDOFF_TAG: pr-${{ inputs.sha7 }}
+        # SHA7_OVERRIDE: ensures ci/mod.just::_component-tag (called from the
+        # chain push-to-ghcr → sign-image → attest-* recipes) uses the PR head
+        # SHA rather than `git rev-parse HEAD` (which is the merge-commit SHA
+        # on pull_request events).
+        SHA7_OVERRIDE: ${{ inputs.sha7 }}
+      run: just ci build ${{ inputs.image }}
+
+    - name: Push handoff tag for downstream builds
+      if: inputs.push_handoff == 'true'
+      shell: bash
+      run: |
+        docker tag "${{ steps.tag.outputs.registry }}:dev" "${{ steps.tag.outputs.registry }}:pr-${{ inputs.sha7 }}"
+        docker push "${{ steps.tag.outputs.registry }}:pr-${{ inputs.sha7 }}"
+
+    - name: Upload attestation artifacts
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+      with:
+        name: custom-${{ inputs.app }}-${{ inputs.image }}-attestations
+        path: artifacts/${{ inputs.image }}/

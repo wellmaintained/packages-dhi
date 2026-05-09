@@ -81,7 +81,10 @@ contents:
       # rebuild; CI will need a different mechanism (probably pulling the
       # previously-pushed component tag from GHCR). See the 2.0.0
       # prod.yaml's identical comment block for the full backstory.
-      uses: ghcr.io/wellmaintained/packages-dhi/python-2.7:dev
+      # Tag placeholder — substituted by scripts/build-image from
+      # $HANDOFF_TAG (default "dev"). CI sets this per PR (e.g. pr-abc1234)
+      # so concurrent PRs read distinct shared-image handoffs.
+      uses: ghcr.io/wellmaintained/packages-dhi/python-2.7:__HANDOFF_TAG__
       contents:
         packages:
           # The python-2.7 base is distroless — no shell, no coreutils.
@@ -557,7 +560,7 @@ contents:
   artifacts:
     # Pull the python-2.7 interpreter + stdlib from the wellmaintained base
     # image. See note on uses: above re digest brittleness.
-    - name: ghcr.io/wellmaintained/packages-dhi/python-2.7:dev
+    - name: ghcr.io/wellmaintained/packages-dhi/python-2.7:__HANDOFF_TAG__
       includes:
         - opt/python-2.7/**
       uid: 0

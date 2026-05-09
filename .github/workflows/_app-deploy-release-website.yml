@@ -1,9 +1,12 @@
-name: Deploy Release Website
+name: _app-deploy-release-website
 
 on:
-  release:
-    types: [released]
-  workflow_dispatch:
+  workflow_call:
+    inputs:
+      app:
+        description: 'App name under apps/'
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -16,6 +19,8 @@ jobs:
     name: Tag released images
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: ./.github/actions/setup-pipeline

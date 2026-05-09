@@ -7,11 +7,18 @@
 # Reads app-images.yaml to resolve the DHI definition path and registry,
 # then runs docker buildx build with SBOM and provenance generators.
 # Tags the image as <registry>:dev and loads it into local Docker.
+#
+# HANDOFF_TAG (env, default "dev"): substituted into the DHI definition
+# wherever the literal placeholder `__HANDOFF_TAG__` appears. CI sets this
+# to a per-PR value (e.g. `pr-abc1234`) so concurrent PRs don't trample
+# each other's shared-image handoff via a moving `:dev` pointer. Local
+# builds keep the default and resolve against the locally-built `:dev`.
 set -euo pipefail
 
 REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 APP="${APP:-sbomify-current}"
 APP_MANIFEST="${REPO_ROOT}/apps/${APP}/app-images.yaml"
+HANDOFF_TAG="${HANDOFF_TAG:-dev}"
 
 usage() {
     echo "Usage: $0 --image NAME"
@@ -36,9 +43,16 @@ REG=$(yq -r ".\"${IMAGE}\".registry | select(. != null)" "$APP_MANIFEST")
 [[ -z "$DEF" ]] && { echo "ERROR: no definition found for image '${IMAGE}'" >&2; exit 1; }
 [[ -z "$REG" ]] && { echo "ERROR: no registry found for image '${IMAGE}'" >&2; exit 1; }
 
-echo "=== Building ${DEF} → ${REG}:dev ==="
+# Materialise a temp DHI definition with __HANDOFF_TAG__ substituted.
+# Required because docker buildx reads the file as-is; DHI's frontend has
+# no env-var interpolation for image references in `uses:` / `name:` lines.
+RENDERED_DEF=$(mktemp --suffix=.yaml)
+trap 'rm -f "$RENDERED_DEF"' EXIT
+sed "s|__HANDOFF_TAG__|${HANDOFF_TAG}|g" "${REPO_ROOT}/${DEF}" > "$RENDERED_DEF"
+
+echo "=== Building ${DEF} → ${REG}:dev (handoff tag: ${HANDOFF_TAG}) ==="
 docker buildx build \
-    -f "${REPO_ROOT}/${DEF}" \
+    -f "$RENDERED_DEF" \
     --platform linux/amd64 \
     --sbom=generator=dhi.io/scout-sbom-indexer:1 \
     --provenance=1 \

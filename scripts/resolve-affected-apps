@@ -1,0 +1,159 @@
+#!/usr/bin/env bash
+# scripts/resolve-affected-apps — Compute the umbrella build's matrix inputs.
+#
+# Determines which apps are affected by a PR's diff (or honours a
+# workflow_dispatch override), then computes the union of shared images
+# those apps consume. Each shared image is paired with one of its real
+# consumer apps so the just chain (which reads apps/${APP}/app-images.yaml
+# for the registry + definition) keeps working.
+#
+# Usage:
+#   resolve-affected-apps <base_sha> <head_sha> <apps_input>
+#
+# Args:
+#   base_sha    PR base SHA (empty for workflow_dispatch).
+#   head_sha    PR head SHA (empty → current HEAD).
+#   apps_input  workflow_dispatch input ("all" or comma-separated list);
+#               ignored when base_sha is non-empty.
+#
+# Outputs (to GITHUB_OUTPUT, falling back to stdout):
+#   apps           JSON array of affected app names.
+#   shared-images  JSON array of {image,app} objects (one per shared image,
+#                  paired with a representative real consumer app).
+#   shared-needed  "true" iff shared-images is non-empty.
+#
+# Path-filter rules per app (mirrors the per-app callers being replaced):
+#   apps/<app>/**                      → app affected
+#   common/images/<image>/**           → app affected iff app uses <image>
+#   common/**                          → all apps affected
+#   scripts/**                         → all apps affected
+#   ci/**                              → all apps affected
+#   bin/**                             → all apps affected
+#   Justfile                           → all apps affected
+#   .github/actions/**                 → all apps affected
+#   .github/workflows/_app-build.yml   → all apps affected
+#   .github/workflows/build.yml        → all apps affected
+set -euo pipefail
+
+REPO_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+BASE_SHA="${1:-}"
+HEAD_SHA="${2:-}"
+APPS_INPUT="${3:-all}"
+
+# Discover all real apps (apps/<name>/app-images.yaml present).
+all_apps=()
+for d in "${REPO_ROOT}/apps"/*/; do
+    [[ -f "${d}app-images.yaml" ]] || continue
+    all_apps+=("$(basename "$d")")
+done
+
+# Build a per-app list of shared image keys (those whose definition lives
+# under common/images/). Cached as parallel arrays keyed by index.
+declare -A app_shared_csv
+for app in "${all_apps[@]}"; do
+    manifest="${REPO_ROOT}/apps/${app}/app-images.yaml"
+    keys=$(yq -o=json -I0 '
+      [to_entries[]
+       | select(.value | has("definition"))
+       | select(.value.definition | test("^common/images/"))
+       | .key]
+    ' "$manifest" | jq -r 'join(",")')
+    app_shared_csv[$app]="$keys"
+done
+
+# Determine affected apps.
+affected=()
+if [[ -n "$BASE_SHA" ]]; then
+    # PR context: diff base..head.
+    changed=$(git -C "$REPO_ROOT" diff --name-only "${BASE_SHA}..${HEAD_SHA}" || true)
+
+    for app in "${all_apps[@]}"; do
+        IFS=',' read -ra app_shared <<<"${app_shared_csv[$app]}"
+        hit=false
+        while IFS= read -r f; do
+            [[ -z "$f" ]] && continue
+            case "$f" in
+                apps/${app}/*) hit=true; break ;;
+                scripts/*|ci/*|bin/*|Justfile) hit=true; break ;;
+                .github/actions/*) hit=true; break ;;
+                .github/workflows/_app-build.yml|.github/workflows/build.yml)
+                    hit=true; break ;;
+                common/images/*)
+                    img="${f#common/images/}"
+                    img="${img%%/*}"
+                    for s in "${app_shared[@]}"; do
+                        [[ "$s" == "$img" ]] && { hit=true; break 2; }
+                    done
+                    ;;
+                common/*) hit=true; break ;;
+            esac
+        done <<<"$changed"
+        $hit && affected+=("$app")
+    done
+else
+    # workflow_dispatch context.
+    if [[ -z "$APPS_INPUT" || "$APPS_INPUT" == "all" ]]; then
+        affected=("${all_apps[@]}")
+    else
+        IFS=',' read -ra requested <<<"$APPS_INPUT"
+        for r in "${requested[@]}"; do
+            r=$(echo "$r" | xargs)
+            [[ -z "$r" ]] && continue
+            for a in "${all_apps[@]}"; do
+                [[ "$a" == "$r" ]] && affected+=("$a")
+            done
+        done
+    fi
+fi
+
+# Build the apps JSON array.
+if [[ ${#affected[@]} -gt 0 ]]; then
+    apps_json=$(printf '%s\n' "${affected[@]}" | jq -Rsc 'split("\n") | map(select(length > 0))')
+else
+    apps_json='[]'
+fi
+
+# Build the shared-images JSON: one {image, app} per unique shared image
+# consumed by an affected app. The paired app is the alphabetically-first
+# affected consumer — deterministic and always a real app whose manifest
+# the just chain can resolve.
+declare -A shared_to_app
+if [[ ${#affected[@]} -gt 0 ]]; then
+    sorted_affected=()
+    while IFS= read -r a; do sorted_affected+=("$a"); done < <(printf '%s\n' "${affected[@]}" | sort -u)
+    for app in "${sorted_affected[@]}"; do
+        IFS=',' read -ra app_shared <<<"${app_shared_csv[$app]}"
+        for s in "${app_shared[@]}"; do
+            [[ -z "$s" ]] && continue
+            [[ -n "${shared_to_app[$s]:-}" ]] && continue
+            shared_to_app[$s]="$app"
+        done
+    done
+fi
+
+shared_pairs='[]'
+set +u
+shared_keys=("${!shared_to_app[@]}")
+set -u
+if [[ ${#shared_keys[@]} -gt 0 ]]; then
+    pairs_input=""
+    while IFS= read -r img; do
+        pairs_input+=$(jq -nc --arg image "$img" --arg app "${shared_to_app[$img]}" '{image:$image, app:$app}')$'\n'
+    done < <(printf '%s\n' "${shared_keys[@]}" | sort -u)
+    shared_pairs=$(printf '%s' "$pairs_input" | jq -sc .)
+fi
+
+shared_needed=false
+[[ "$shared_pairs" != '[]' ]] && shared_needed=true
+
+if [[ -n "${GITHUB_OUTPUT:-}" ]]; then
+    {
+        echo "apps=${apps_json}"
+        echo "shared-images=${shared_pairs}"
+        echo "shared-needed=${shared_needed}"
+    } >> "$GITHUB_OUTPUT"
+else
+    echo "apps=${apps_json}"
+    echo "shared-images=${shared_pairs}"
+    echo "shared-needed=${shared_needed}"
+fi

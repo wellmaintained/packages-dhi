@@ -1,0 +1,36 @@
+name: Pre-Release sbomify-current
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+    paths:
+      - 'apps/sbomify-current/**'
+      - 'common/**'
+      - 'scripts/**'
+      - 'Justfile'
+      - 'ci/**'
+      - 'bin/**'
+      - '.github/workflows/_app-pre-release.yml'
+      - '.github/workflows/pre-release-sbomify-current.yml'
+      - '.github/actions/**'
+  workflow_dispatch:
+    inputs:
+      sha:
+        description: 'Commit SHA to create pre-release from (defaults to HEAD)'
+        required: false
+
+permissions:
+  contents: write
+  packages: write
+  actions: read
+  pull-requests: read
+
+jobs:
+  pre-release:
+    if: github.event_name == 'workflow_dispatch' || github.event.pull_request.merged == true
+    uses: ./.github/workflows/_app-pre-release.yml
+    with:
+      app: sbomify-current
+      sha: ${{ inputs.sha }}
+    secrets: inherit

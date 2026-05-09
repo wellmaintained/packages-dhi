@@ -1,0 +1,94 @@
+name: _app-build
+
+on:
+  workflow_call:
+    inputs:
+      app:
+        description: 'App name under apps/ (e.g. sbomify-current, senaite-current)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+
+jobs:
+  resolve-images:
+    name: Resolve image lists (${{ inputs.app }})
+    runs-on: ubuntu-latest
+    outputs:
+      local: ${{ steps.images.outputs.local }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - id: images
+        env:
+          APP: ${{ inputs.app }}
+        run: |
+          LOCAL=$(yq -o=json -I0 '
+            [to_entries[]
+             | select(.value | has("definition"))
+             | select(.value.definition | test("^common/images/") | not)
+             | .key]
+          ' "apps/${APP}/app-images.yaml")
+          echo "local=${LOCAL}" >> "$GITHUB_OUTPUT"
+
+  stock-dhi-images:
+    name: Extract DHI attestations (${{ inputs.app }})
+    runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+          cache-key: ${{ inputs.app }}-stock
+
+      - name: Extract attestations
+        run: just extract-dhi-attestations
+
+      - name: Upload attestation artifacts
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: stock-dhi-attestations-${{ inputs.app }}
+          path: artifacts/
+
+  custom-dhi-builds:
+    name: Build ${{ inputs.app }}/${{ matrix.image }}
+    needs: resolve-images
+    # Shared images (e.g. python-2.7) are built once per umbrella run by
+    # build.yml's shared-images job and pulled from registry via the
+    # __HANDOFF_TAG__ substitution in DHI definitions; no in-workflow dep.
+    if: ${{ needs.resolve-images.outputs.local != '[]' }}
+    runs-on: ubuntu-latest
+    env:
+      APP: ${{ inputs.app }}
+    strategy:
+      matrix:
+        image: ${{ fromJSON(needs.resolve-images.outputs.local) }}
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+      - uses: ./.github/actions/setup-pipeline
+        with:
+          dhi-username: ${{ vars.DHI_USERNAME }}
+          dhi-token: ${{ secrets.DHI_TOKEN }}
+          ghcr-login: true
+          ghcr-username: ${{ github.actor }}
+          ghcr-token: ${{ secrets.GITHUB_TOKEN }}
+          cache-key: ${{ inputs.app }}-${{ matrix.image }}
+
+      - name: Compute SHA7
+        id: sha
+        run: |
+          SHA7="${{ github.event.pull_request.head.sha || github.sha }}"
+          echo "sha7=${SHA7:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Build, push, sign, attest
+        uses: ./.github/actions/build-image-and-attest
+        with:
+          app: ${{ inputs.app }}
+          image: ${{ matrix.image }}
+          sha7: ${{ steps.sha.outputs.sha7 }}
+          push_handoff: 'false'
