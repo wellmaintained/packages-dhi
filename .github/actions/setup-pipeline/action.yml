@@ -17,7 +17,7 @@ inputs:
   ghcr-token:
     description: GHCR token (typically secrets.GITHUB_TOKEN)
   cache-key:
-    description: Suffix for sticky disk keys (use matrix.image or job name to avoid cross-job conflicts)
+    description: Suffix for cache keys (use matrix.image or job name to avoid cross-job conflicts)
     default: 'default'
 runs:
   using: composite
@@ -31,16 +31,21 @@ runs:
         enable-cache: false
 
     - name: Cache packages-dhi tools and data
-      uses: useblacksmith/stickydisk@41873b1513bb679f9c115504cbd13d3660432504 # v1.1.0
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
-        key: packages-dhi-cache-${{ inputs.cache-key }}
         path: /home/runner/.cache/packages-dhi
+        key: packages-dhi-cache-${{ inputs.cache-key }}-${{ hashFiles('common/tool-versions.yaml') }}
+        restore-keys: |
+          packages-dhi-cache-${{ inputs.cache-key }}-
+          packages-dhi-cache-
 
     - name: Cache sbomify enrichment data
-      uses: useblacksmith/stickydisk@41873b1513bb679f9c115504cbd13d3660432504 # v1.1.0
+      uses: actions/cache@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
       with:
-        key: sbomify-cache-${{ inputs.cache-key }}
         path: /home/runner/.cache/sbomify
+        key: sbomify-cache-${{ inputs.cache-key }}
+        restore-keys: |
+          sbomify-cache-
 
     - name: Set cache environment variables
       shell: bash
@@ -50,7 +55,7 @@ runs:
         echo "UV_CACHE_DIR=$HOME/.cache/packages-dhi/uv" >> "$GITHUB_ENV"
         echo "HUGO_CACHEDIR=$HOME/.cache/packages-dhi/hugo" >> "$GITHUB_ENV"
 
-    - name: Debug sticky disk contents
+    - name: Debug cache contents
       shell: bash
       run: |
         echo "=== packages-dhi cache ==="
