@@ -81,7 +81,10 @@ contents:
       # different mechanism (probably pulling the previously-pushed component
       # tag from GHCR). See the 2.0.0 sibling's identical comment block for
       # the full backstory.
-      uses: ghcr.io/wellmaintained/packages-dhi/python-2.7:dev
+      # Tag placeholder — substituted by scripts/build-image from
+      # $HANDOFF_TAG (default "dev"). CI sets this per PR (e.g. pr-abc1234)
+      # so concurrent PRs read distinct shared-image handoffs.
+      uses: ghcr.io/wellmaintained/packages-dhi/python-2.7:__HANDOFF_TAG__
       contents:
         packages:
           # The python-2.7 base is distroless — no shell, no coreutils.
@@ -453,16 +456,6 @@ contents:
             # Trim .pyc bytecode (will regenerate on first run).
             find . -name '*.pyc' -delete
             find . -name '__pycache__' -type d -exec rm -rf {} +
-            # Trim non-runtime files from the senaite.impress develop-egg
-            # checkout (tests/, docs/, .git/). The pyphen pin workaround
-            # (see "install zc.buildout" step) clones the full senaite.impress
-            # git tree into src/senaite.impress, which buildout consumes via
-            # `develop = src/senaite.impress`. Runtime imports go through
-            # senaite.impress's installed package only — these directories
-            # are dev artefacts that pollute the SBOM file index without any
-            # runtime contribution. See yak: trim senaite-2.3 SBOM bloat from
-            # pyphen develop-egg.
-            find src/senaite.impress -type d \( -name tests -o -name docs -o -name .git \) -exec rm -rf {} +
             # Path surgery: buildout was run with buildout-directory =
             # ${target.dir}/opt/senaite (which expands to /out/opt/senaite
             # at build time). bin/instance and parts/instance/etc/* contain
@@ -501,7 +494,7 @@ contents:
   artifacts:
     # Pull the python-2.7 interpreter + stdlib from the wellmaintained base
     # image. See note on uses: above re digest brittleness.
-    - name: ghcr.io/wellmaintained/packages-dhi/python-2.7:dev
+    - name: ghcr.io/wellmaintained/packages-dhi/python-2.7:__HANDOFF_TAG__
       includes:
         - opt/python-2.7/**
       uid: 0

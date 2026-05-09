@@ -45,10 +45,15 @@ extract-dhi-attestations:
 _image-registry image:
     @yq -r '."{{image}}".registry | select(. != null)' {{app_manifest}}
 
-_component-tag image:
+_component-tag image sha7="":
     #!/usr/bin/env bash
     set -euo pipefail
-    SHA7=$(git rev-parse --short=7 HEAD)
+    SHA7="{{sha7}}"
+    # On pull_request events, `git rev-parse HEAD` returns the merge-commit
+    # SHA, not the PR head SHA. CI exports SHA7_OVERRIDE so chained recipes
+    # (push-to-ghcr → sign-image → attest-*) tag with the PR head SHA.
+    [ -z "$SHA7" ] && SHA7="${SHA7_OVERRIDE:-}"
+    [ -z "$SHA7" ] && SHA7=$(git rev-parse --short=7 HEAD)
     DEF=$(yq -r '."{{image}}".definition | select(. != null)' "{{app_manifest}}")
     VERSION=$(grep -oP 'git\+https://[^#]+#\K[^"]+' "{{repo_root}}/$DEF" 2>/dev/null | head -1 || true)
     [ -z "$VERSION" ] && VERSION="unknown"
