@@ -4,6 +4,15 @@ on:
   pull_request:
     types: [closed]
     branches: [main]
+    paths:
+      - 'apps/sbomify-current/**'
+      - 'common/**'
+      - 'scripts/**'
+      - 'Justfile'
+      - 'ci/**'
+      - 'bin/**'
+      - '.github/actions/**'
+      - '.github/workflows/pre-release.yml'
   workflow_dispatch:
     inputs:
       sha:
