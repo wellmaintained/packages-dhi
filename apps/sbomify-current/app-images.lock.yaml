@@ -6,14 +6,14 @@ postgres:
 redis:
   source: dhi.io/redis:8
   sbomify_component_id: ABBCcw2YiYrG
-  digest: sha256:ed5e2e3edeed2962bccb7e6f71cfe1c0b0a6537d6754c8969d6d39c9430f2f03
+  digest: sha256:09e0ed7b846ea691da0d874d477809f752c35aafaee7d952c59d81c203c5df8c
 keycloak:
   source: dhi.io/keycloak:26
   sbomify_component_id: N4agQD8pvej8
-  digest: sha256:a46b1aee6d6b5d1c72d114c86482f2ed1befcf1a55cd0c189d552bfdaee51d8f
+  digest: sha256:831653be83418969cdef5046bb29e69c43787c7354a867f3bbc7dbdfbe6b5b4b
 caddy:
   source: dhi.io/caddy:2
-  digest: sha256:a620325bd1c654cae826c8dafd9516c11b58c651aa383a8b4d8e304d731d9619
+  digest: sha256:2f5185970db677f503f4e05c031849bce41715de1fe4c2520bea504a0292c32e
 minio:
   definition: common/images/minio/dhi.yaml
   registry: ghcr.io/wellmaintained/packages-dhi/minio
