@@ -2,18 +2,18 @@
 postgres:
   source: dhi.io/postgres:17
   sbomify_component_id: M8rixM6mMEPe
-  digest: sha256:99cb610d5fad22d0603379972d8c271070d32aff8bebe328dfe07d4eb872c72e
+  digest: sha256:639a739a9da1ac4b5fa0b22b93b116a02436df00f3beb9179161279a2643c9f5
 redis:
   source: dhi.io/redis:8
   sbomify_component_id: ABBCcw2YiYrG
-  digest: sha256:ed5e2e3edeed2962bccb7e6f71cfe1c0b0a6537d6754c8969d6d39c9430f2f03
+  digest: sha256:db21f5e0bf266b9fbd8df9b7aef140785465f5330fdc86662ec960d10118cefe
 keycloak:
   source: dhi.io/keycloak:26
   sbomify_component_id: N4agQD8pvej8
-  digest: sha256:a46b1aee6d6b5d1c72d114c86482f2ed1befcf1a55cd0c189d552bfdaee51d8f
+  digest: sha256:9c0db0e7827970c430777fd5c6944935ffb03864720f1ea8c052b3d4940c3ba2
 caddy:
   source: dhi.io/caddy:2
-  digest: sha256:a620325bd1c654cae826c8dafd9516c11b58c651aa383a8b4d8e304d731d9619
+  digest: sha256:f2472171f4df97b2320ff44deab1c25dbaac3e3a37a6d0d5e4bf3f952250ba89
 minio:
   definition: common/images/minio/dhi.yaml
   registry: ghcr.io/wellmaintained/packages-dhi/minio
